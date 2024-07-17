@@ -1,0 +1,10 @@
+{
+  "name": "votemarket-v2",
+  "private": true,
+  "packageManager": "pnpm@9.4.0",
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  }
+}
