@@ -15,6 +15,7 @@ import "src/interfaces/ILaPlace.sol";
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
 /// It uses storage proofs to validate and verify the votes and distribute the rewards accordingly.
 /// @dev This contract is better suited for L2s. Unadvised to deploy on L1.
+/// The contract is MultiCall compatible, to allow for batch calls.
 /// @custom:contact contact@stakedao.org
 contract Votemarket is ReentrancyGuard, Multicallable {
     using FixedPointMathLib for uint256;
@@ -68,7 +69,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     uint256 campaignCount;
 
     /// @notice Custom fee per manager.
-    mapping(address => uint256) public customFeePerManager;
+    mapping(address => uint256) public customFeeByManager;
 
     /// @notice Campaigns by ID.
     mapping(uint256 => Campaign) public campaignById;
@@ -96,6 +97,16 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
     error INVALID_NUMBER_OF_PERIODS();
+
+    event CampaignCreated(
+        uint256 campaignId,
+        address gauge,
+        address manager,
+        address rewardToken,
+        uint8 numberOfPeriods,
+        uint256 maxRewardPerVote,
+        uint256 totalRewardAmount
+    );
 
     ////////////////////////////////////////////////////////////////
     /// --- CAMPAIGN MANAGEMENT
@@ -176,6 +187,10 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Store the first period.
         periodByCampaignId[campaignId][0] =
             Period({startTimestamp: currentPeriod() + 1 weeks, rewardPerPeriod: rewardPerPeriod});
+
+        emit CampaignCreated(
+            campaignId, gauge, manager, rewardToken, numberOfPeriods, maxRewardPerVote, totalRewardAmount
+        );
     }
 
     function currentPeriod() public view returns (uint256) {
