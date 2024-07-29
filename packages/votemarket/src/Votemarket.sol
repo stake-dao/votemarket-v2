@@ -12,7 +12,7 @@ import "src/interfaces/ILaPlace.sol";
 
 /// @notice Vote market contract.
 /// @custom:contact contact@stakedao.org
-contract LaPlace is ReentrancyGuard {
+contract Votemarket is ReentrancyGuard {
     using FixedPointMathLib for uint256;
 
     struct Campaign {
@@ -37,13 +37,8 @@ contract LaPlace is ReentrancyGuard {
     /// @notice Minimum duration a Bounty.
     uint8 public constant MINIMUM_PERIODS = 2;
 
-    /// @notice Week in seconds.
-    uint256 private constant _WEEK = 1 weeks;
-
-    /// @notice Base unit for fixed point compute.
-    uint256 private constant _DENOMINATOR = 1e18;
-
     /// @notice Default fee.
+    /// @dev 1e18 = 100%.
     uint256 private constant _DEFAULT_FEE = 2e16; // 2%
 
     /// @notice Custom fee per manager.
@@ -119,7 +114,7 @@ contract LaPlace is ReentrancyGuard {
             numberOfPeriods: numberOfPeriods,
             maxRewardPerVote: maxRewardPerVote,
             totalRewardAmount: totalRewardAmount,
-            endTimestamp: currentPeriod() + numberOfPeriods * _WEEK
+            endTimestamp: currentPeriod() + numberOfPeriods * 1 weeks
         });
 
         /// Store blacklisted or whitelisted addresses.
