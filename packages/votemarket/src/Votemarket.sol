@@ -12,6 +12,8 @@ import "src/interfaces/IHook.sol";
 import "src/interfaces/ILaPlace.sol";
 
 /// @notice Vote market contract.
+/// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
+/// It uses storage proofs to validate and verify the votes and distribute the rewards accordingly.
 /// @dev This contract is better suited for L2s. Unadvised to deploy on L1.
 /// @custom:contact contact@stakedao.org
 contract Votemarket is ReentrancyGuard, Multicallable {
@@ -22,18 +24,28 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ///////////////////////////////////////////////////////////////
 
     struct Campaign {
+        /// @notice Chain ID of the gauge.
         uint256 chainId;
+        /// @notice Destination gauge address.
         address gauge;
+        /// @notice Address to manage the campaign.
         address manager;
+        /// @notice Main reward token.
         address rewardToken;
+        /// @notice Duration of the campaign in weeks.
         uint8 numberOfPeriods;
+        /// @notice Maximum reward per vote to distribute, to avoid overspending.
         uint256 maxRewardPerVote;
+        /// @notice Total reward amount to distribute.
         uint256 totalRewardAmount;
+        /// @notice End timestamp of the campaign.
         uint256 endTimestamp;
     }
 
     struct Period {
+        /// @notice Start timestamp of the period.
         uint256 startTimestamp;
+        /// @notice Amount of reward reserved for the period.
         uint256 rewardPerPeriod;
     }
 
@@ -137,7 +149,6 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Check validity of the hook.
         bool isValidHook = IHook(hook).validateHook();
         if (isValidHook) {
-            /// TODO: Store the hook for the campaign.
             /// We do not want to revert the transaction if the hook is invalid.
             /// By default, if the hook is invalid, the campaign will rollover.
             hookByCampaignId[campaignId] = hook;
