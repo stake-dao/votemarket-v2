@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 /// External Libraries
+import "solady/src/utils/Multicallable.sol";
 import "solady/src/utils/ReentrancyGuard.sol";
 import "solady/src/utils/SafeTransferLib.sol";
 import "solady/src/utils/FixedPointMathLib.sol";
@@ -11,9 +12,14 @@ import "src/interfaces/IHook.sol";
 import "src/interfaces/ILaPlace.sol";
 
 /// @notice Vote market contract.
+/// @dev This contract is better suited for L2s. Unadvised to deploy on L1.
 /// @custom:contact contact@stakedao.org
-contract Votemarket is ReentrancyGuard {
+contract Votemarket is ReentrancyGuard, Multicallable {
     using FixedPointMathLib for uint256;
+
+    ////////////////////////////////////////////////////////////////
+    /// --- DATA STRUCTURE DEFINITIONS
+    ///////////////////////////////////////////////////////////////
 
     struct Campaign {
         uint256 chainId;
@@ -31,15 +37,23 @@ contract Votemarket is ReentrancyGuard {
         uint256 rewardPerPeriod;
     }
 
-    /// @notice Campaigns count.
-    uint256 campaignCount;
+    ////////////////////////////////////////////////////////////////
+    /// --- CONSTANT VALUES
+    ///////////////////////////////////////////////////////////////
 
-    /// @notice Minimum duration a Bounty.
+    /// @notice Minimum duration for a campaign.
     uint8 public constant MINIMUM_PERIODS = 2;
 
     /// @notice Default fee.
-    /// @dev 1e18 = 100%.
-    uint256 private constant _DEFAULT_FEE = 2e16; // 2%
+    /// @dev 1e18 = 100%. Hence, 2e16 = 2%.
+    uint256 private constant _DEFAULT_FEE = 2e16;
+
+    ////////////////////////////////////////////////////////////////
+    /// --- STORAGE VARIABLES
+    ///////////////////////////////////////////////////////////////
+
+    /// @notice Campaigns count.
+    uint256 campaignCount;
 
     /// @notice Custom fee per manager.
     mapping(address => uint256) public customFeePerManager;
@@ -56,13 +70,21 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Blacklisted addresses per campaign that aren't counted for rewards arithmetics.
     mapping(uint256 => mapping(address => bool)) public isBlacklisted;
 
-    /// @notice Whitelisted addresses per campaign that are exlusively counted for rewards arithmetics.
+    /// @notice Whitelisted addresses per campaign that are exclusively counted for rewards arithmetics.
     mapping(uint256 => mapping(address => bool)) public isWhitelisted;
+
+    ////////////////////////////////////////////////////////////////
+    /// ---  EVENTS & ERRORS
+    ///////////////////////////////////////////////////////////////
 
     error ZERO_INPUT();
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
     error INVALID_NUMBER_OF_PERIODS();
+
+    ////////////////////////////////////////////////////////////////
+    /// --- CAMPAIGN MANAGEMENT
+    ///////////////////////////////////////////////////////////////
 
     /// @notice Create a new incentive campaign.
     function createCampaign(
@@ -118,7 +140,7 @@ contract Votemarket is ReentrancyGuard {
         });
 
         /// Store blacklisted or whitelisted addresses.
-        /// If blacklisted, the addresses will be substracted from the total votes.
+        /// If blacklisted, the addresses will be subtracted from the total votes.
         /// If whitelisted, only the addresses will be eligible for rewards.
         if (isWhitelist) {
             for (uint256 i = 0; i < blacklist.length; i++) {
