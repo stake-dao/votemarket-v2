@@ -61,6 +61,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Campaigns by ID.
     mapping(uint256 => Campaign) public campaignById;
 
+    /// @notice Hook by campaign ID.
+    mapping(uint256 => address) public hookByCampaignId;
+
     /// @notice Periods by campaign ID and period ID.
     mapping(uint256 => mapping(uint256 => Period)) public periodByCampaignId;
 
@@ -113,14 +116,6 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Transfer reward token to this contract.
         SafeTransferLib.safeTransferFrom(rewardToken, msg.sender, address(this), totalRewardAmount);
 
-        /// Check validity of the hook.
-        bool isValidHook = IHook(hook).validateHook();
-        if (isValidHook) {
-            /// TODO: Store the hook for the campaign.
-            /// We do not want to revert the transaction if the hook is invalid.
-            /// By default, if the hook is invalid, the campaign will rollover.
-        }
-
         /// Generate campaign ID.
         uint256 campaignId = campaignCount;
 
@@ -138,6 +133,15 @@ contract Votemarket is ReentrancyGuard, Multicallable {
             totalRewardAmount: totalRewardAmount,
             endTimestamp: currentPeriod() + numberOfPeriods * 1 weeks
         });
+
+        /// Check validity of the hook.
+        bool isValidHook = IHook(hook).validateHook();
+        if (isValidHook) {
+            /// TODO: Store the hook for the campaign.
+            /// We do not want to revert the transaction if the hook is invalid.
+            /// By default, if the hook is invalid, the campaign will rollover.
+            hookByCampaignId[campaignId] = hook;
+        }
 
         /// Store blacklisted or whitelisted addresses.
         /// If blacklisted, the addresses will be subtracted from the total votes.
