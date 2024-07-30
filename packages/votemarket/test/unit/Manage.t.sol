@@ -184,4 +184,49 @@ contract ManageCampaignTest is BaseTest {
         assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp + 4 weeks);
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
     }
+
+    function testIncreaseTotalRewardAmount() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        /// Increase the campaign duration.
+        vm.expectRevert(Votemarket.ZERO_INPUT.selector);
+        votemarket.increaseTotalRewardAmount(campaignId, 0);
+
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT);
+
+        /// Check the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+
+        /// Check the campaign upgrade.
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+
+        assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
+        assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT);
+        assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods);
+        assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp);
+        assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
+
+        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        /// Increase the campaign duration.
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT);
+
+        /// Check the campaign.
+        campaign = votemarket.getCampaign(campaignId);
+
+        /// Check the campaign upgrade.
+        campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+
+        assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
+        assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT * 2);
+        assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods);
+        assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp);
+        assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
+
+
+    }
 }

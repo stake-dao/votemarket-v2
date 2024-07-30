@@ -205,10 +205,8 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Check if there's a campaign upgrade in queue.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
 
-        if (campaignUpgrade.totalRewardAmount != 0) {
-            SafeTransferLib.safeTransferFrom(
-                campaign.rewardToken, msg.sender, address(this), totalRewardAmount
-            );
+        if (totalRewardAmount != 0) {
+            SafeTransferLib.safeTransferFrom(campaign.rewardToken, msg.sender, address(this), totalRewardAmount);
         }
 
         uint256 updatedMaxRewardPerVote = campaign.maxRewardPerVote;
@@ -237,6 +235,45 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         campaignUpgradeById[campaignId] = campaignUpgrade;
 
         emit CampaignUpgraded(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
+    }
+
+    /// @notice Increase the total reward amount, public function.
+    /// @param campaignId Id of the campaign.
+    /// @param totalRewardAmount Total reward amount to add.
+    /// @dev For convenience, this function can be called by anyone.
+    function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant {
+        if (totalRewardAmount == 0) revert ZERO_INPUT();
+
+        /// Get the campaign.
+        Campaign memory campaign = campaignById[campaignId];
+
+        /// Check if there's a campaign upgrade in queue.
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
+
+        SafeTransferLib.safeTransferFrom(
+            campaignById[campaignId].rewardToken, msg.sender, address(this), totalRewardAmount
+        );
+
+        /// If there's a campaign upgrade in queue, we add the new values to it.
+        if (campaignUpgrade.totalRewardAmount != 0) {
+            campaignUpgrade.totalRewardAmount += totalRewardAmount;
+        } else {
+            campaignUpgrade = CampaignUpgrade({
+                numberOfPeriods: campaign.numberOfPeriods,
+                totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
+                maxRewardPerVote: campaign.maxRewardPerVote,
+                endTimestamp: campaign.endTimestamp
+            });
+        }
+
+        campaignUpgradeById[campaignId] = campaignUpgrade;
+
+        emit CampaignUpgraded(
+            campaignId,
+            campaignUpgrade.numberOfPeriods,
+            campaignUpgrade.totalRewardAmount,
+            campaignUpgrade.maxRewardPerVote
+        );
     }
 
     ////////////////////////////////////////////////////////////////
