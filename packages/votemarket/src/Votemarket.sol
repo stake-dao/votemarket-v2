@@ -66,7 +66,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Campaigns count.
-    uint256 campaignCount;
+    uint256 public campaignCount;
 
     /// @notice Custom fee per manager.
     mapping(address => uint256) public customFeeByManager;
@@ -158,6 +158,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         });
 
         /// Check validity of the hook.
+        /// TODO: How to check if the hook is valid?
         bool isValidHook = IHook(hook).validateHook();
         if (isValidHook) {
             /// We do not want to revert the transaction if the hook is invalid.
