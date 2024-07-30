@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+/// External Libraries
 import "forge-std/src/Test.sol";
 import "forge-std/src/mocks/MockERC20.sol";
 
+/// Project Interfaces & Libraries
 import "src/Votemarket.sol";
 
-import "test/mocks/Hooks.sol";
+/// Testing contracts & libraries
 import "test/unit/Base.t.sol";
+import "test/mocks/Hooks.sol";
 
 contract CreateCampaignTest is BaseTest {
     function setUp() public override {
@@ -55,7 +58,7 @@ contract CreateCampaignTest is BaseTest {
         assertEq(totalRewardAmount, TOTAL_REWARD_AMOUNT);
         assertEq(endTimestamp, (block.timestamp / 1 weeks * 1 weeks) + VALID_PERIODS * 1 weeks);
 
-        Votemarket.Period memory period = votemarket.getPeriodPerCampaignId(initialCampaignCount, 0);
+        Period memory period = votemarket.getPeriodPerCampaignId(initialCampaignCount, 0);
 
         assertEq(period.startTimestamp, votemarket.currentPeriod() + 1 weeks);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);

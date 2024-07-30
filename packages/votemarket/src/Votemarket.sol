@@ -9,6 +9,7 @@ import "solady/src/utils/FixedPointMathLib.sol";
 
 /// Project Interfaces & Libraries
 import "src/interfaces/IHook.sol";
+import "src/interfaces/IVotemarket.sol";
 
 /// @notice Vote market contract.
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
@@ -18,47 +19,6 @@ import "src/interfaces/IHook.sol";
 /// @custom:contact contact@stakedao.org
 contract Votemarket is ReentrancyGuard, Multicallable {
     using FixedPointMathLib for uint256;
-
-    ////////////////////////////////////////////////////////////////
-    /// --- DATA STRUCTURE DEFINITIONS
-    ///////////////////////////////////////////////////////////////
-
-    struct Campaign {
-        /// @notice Chain Id of the destination chain where the gauge is deployed.
-        uint256 chainId;
-        /// @notice Destination gauge address.
-        address gauge;
-        /// @notice Address to manage the campaign.
-        address manager;
-        /// @notice Main reward token.
-        address rewardToken;
-        /// @notice Duration of the campaign in weeks.
-        uint8 numberOfPeriods;
-        /// @notice Maximum reward per vote to distribute, to avoid overspending.
-        uint256 maxRewardPerVote;
-        /// @notice Total reward amount to distribute.
-        uint256 totalRewardAmount;
-        /// @notice End timestamp of the campaign.
-        uint256 endTimestamp;
-    }
-
-    struct Period {
-        /// @notice Start timestamp of the period.
-        uint256 startTimestamp;
-        /// @notice Amount of reward reserved for the period.
-        uint256 rewardPerPeriod;
-    }
-
-    struct CampaignUpgrade {
-        /// @notice Number of periods after increase.
-        uint8 numberOfPeriods;
-        /// @notice Total reward amount after increase.
-        uint256 totalRewardAmount;
-        /// @notice New max reward per vote after increase.
-        uint256 maxRewardPerVote;
-        /// @notice New end timestamp after increase.
-        uint256 endTimestamp;
-    }
 
     ////////////////////////////////////////////////////////////////
     /// --- CONSTANT VALUES
@@ -236,7 +196,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) {
         /// Check if the campaign is ended.
-        if (getPeriodsLeft(campaignId) < 1) revert CAMPAIGN_ENDED();
+        if (getPeriodsLeft(campaignId) == 0) revert CAMPAIGN_ENDED();
 
         /// Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
@@ -272,7 +232,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
             });
         }
 
-        /// Save the campaign upgrade in queue.
+        /// Store the campaign upgrade in queue.
         campaignUpgradeById[campaignId] = campaignUpgrade;
 
         emit CampaignUpgraded(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
