@@ -35,6 +35,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// --- STORAGE VARIABLES
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Fee receiver.
+    address public feeReceiver;
+
     /// @notice Campaigns count.
     uint256 public campaignCount;
 
@@ -303,11 +306,51 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// 3. The campaign can't be closed before the claim deadline.
     /// 4. After the claim deadline, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
     /// else remaining funds will be sent to the fee receiver.
-    function closeCampaign(uint256 campaignId) external nonReentrant onlyManagerOrRemote(campaignId) {}
+    function closeCampaign(uint256 campaignId) external nonReentrant onlyManagerOrRemote(campaignId) {
+        Campaign storage campaign = campaignById[campaignId];
+
+        /// Check if there is an upgrade in queue and update the campaign.
+        _checkForUpgrade(campaignId);
+
+        /// Claim deadline is the end timestamp + claim deadline.
+        uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
+
+        /// Close deadline is the end timestamp + close deadline.
+        uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
+
+        uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
+
+        if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
+        {
+            _closeCampaign({
+                campaignId: campaignId,
+                totalRewardAmount: campaign.totalRewardAmount,
+                rewardToken: campaign.rewardToken,
+                receiver: campaign.manager
+            });
+        } else {
+            _closeCampaign({
+                campaignId: campaignId,
+                totalRewardAmount: campaign.totalRewardAmount,
+                rewardToken: campaign.rewardToken,
+                receiver: feeReceiver
+            });
+        }
+    }
 
     ////////////////////////////////////////////////////////////////
     /// --- INTERNAL LOGIC IMPLEMENTATION
     ///////////////////////////////////////////////////////////////
+
+    function _closeCampaign(uint256 campaignId, uint256 totalRewardAmount, address rewardToken, address receiver)
+        internal
+    {
+        uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
+
+        // Transfer the left over to the receiver.
+        SafeTransferLib.safeTransfer(rewardToken, receiver, leftOver);
+        delete campaignById[campaignId].manager;
+    }
 
     function _checkForUpgrade(uint256 campaignId) internal {}
 
