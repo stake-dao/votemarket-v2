@@ -94,8 +94,13 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// TODO: Implement remote managers.
     /// Usecase is when the manager is cross-chain message.
     modifier onlyManagerOrRemote(uint256 campaignId) {
-        if (msg.sender != campaignById[campaignId].manager) revert AUTH_MANAGER_ONLY();
+        if (!_isManagerOrRemote(campaignId)) revert AUTH_MANAGER_ONLY();
         _;
+    }
+
+    /// @notice Check if the manager or remote is calling the function.
+    function _isManagerOrRemote(uint256 campaignId) internal view returns (bool) {
+        return msg.sender == campaignById[campaignId].manager;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -275,6 +280,21 @@ contract Votemarket is ReentrancyGuard, Multicallable {
             campaignUpgrade.maxRewardPerVote
         );
     }
+
+    /// @notice Close the campaign.
+    /// @dev There's multiple conditions to check before closing the campaign.
+    /// 1. If the campaign didn't started yet, it can be closed immediately.
+    /// 2. The campaign must be ended. If there's an upgrade in queue, it'll be applied before closing the campaign.
+    /// 3. The campaign can't be closed before the claim deadline.
+    /// 4. After the claim deadline, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
+    /// else remaining funds will be sent to the fee receiver.
+    function closeCampaign(uint256 campaignId) external nonReentrant onlyManagerOrRemote(campaignId) {}
+
+    ////////////////////////////////////////////////////////////////
+    /// --- INTERNAL LOGIC IMPLEMENTATION
+    ///////////////////////////////////////////////////////////////
+
+    function _checkForUpgrade(uint256 campaignId) internal {}
 
     ////////////////////////////////////////////////////////////////
     /// --- GETTERS
