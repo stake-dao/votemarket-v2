@@ -101,9 +101,15 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         uint256 totalRewardAmount
     );
 
+    event CampaignUpgradeQueued(
+        uint256 campaignId, uint8 numberOfPeriods, uint256 totalRewardAmount, uint256 maxRewardPerVote
+    );
+
     event CampaignUpgraded(
         uint256 campaignId, uint8 numberOfPeriods, uint256 totalRewardAmount, uint256 maxRewardPerVote
     );
+
+    event CampaignClosed(uint256 campaignId);
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -257,7 +263,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Store the campaign upgrade in queue.
         campaignUpgradeById[campaignId] = campaignUpgrade;
 
-        emit CampaignUpgraded(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
+        emit CampaignUpgradeQueued(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
     }
 
     /// @notice Increase the total reward amount, public function.
@@ -291,7 +297,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
         campaignUpgradeById[campaignId] = campaignUpgrade;
 
-        emit CampaignUpgraded(
+        emit CampaignUpgradeQueued(
             campaignId,
             campaignUpgrade.numberOfPeriods,
             campaignUpgrade.totalRewardAmount,
@@ -307,6 +313,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// 4. After the claim deadline, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
     /// else remaining funds will be sent to the fee receiver.
     function closeCampaign(uint256 campaignId) external nonReentrant onlyManagerOrRemote(campaignId) {
+        /// Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
         /// Check if there is an upgrade in queue and update the campaign.
@@ -318,6 +325,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Close deadline is the end timestamp + close deadline.
         uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
 
+        /// Check if the campaign started.
         uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
 
         if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
@@ -342,6 +350,11 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// --- INTERNAL LOGIC IMPLEMENTATION
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Close the campaign.
+    /// @param campaignId Id of the campaign.
+    /// @param totalRewardAmount Total reward amount to claim.
+    /// @param rewardToken Reward token address.
+    /// @param receiver Receiver address.
     function _closeCampaign(uint256 campaignId, uint256 totalRewardAmount, address rewardToken, address receiver)
         internal
     {
@@ -350,9 +363,40 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         // Transfer the left over to the receiver.
         SafeTransferLib.safeTransfer(rewardToken, receiver, leftOver);
         delete campaignById[campaignId].manager;
+
+        emit CampaignClosed(campaignId);
     }
 
-    function _checkForUpgrade(uint256 campaignId) internal {}
+    function _checkForUpgrade(uint256 campaignId) internal {
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
+
+        // Check if there is an upgrade in queue.
+        if (campaignUpgrade.totalRewardAmount != 0) {
+            /// Get the first period.
+            Period storage firstPeriod = periodByCampaignId[campaignId][0];
+
+            // Save new values.
+            campaignById[campaignId].endTimestamp = campaignUpgrade.endTimestamp;
+            campaignById[campaignId].numberOfPeriods = campaignUpgrade.numberOfPeriods;
+            campaignById[campaignId].maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
+            campaignById[campaignId].totalRewardAmount = campaignUpgrade.totalRewardAmount;
+
+            if (block.timestamp <= firstPeriod.startTimestamp) {
+                firstPeriod.rewardPerPeriod =
+                    campaignUpgrade.totalRewardAmount.mulDiv(1, campaignUpgrade.numberOfPeriods);
+            }
+
+            emit CampaignUpgraded(
+                campaignId,
+                campaignUpgrade.numberOfPeriods,
+                campaignUpgrade.totalRewardAmount,
+                campaignUpgrade.maxRewardPerVote
+            );
+
+            // Reset the next values.
+            delete campaignUpgradeById[campaignId];
+        }
+    }
 
     ////////////////////////////////////////////////////////////////
     /// --- GETTERS
