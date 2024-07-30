@@ -190,7 +190,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @param totalRewardAmount Total reward amount to add.
     /// @param maxRewardPerVote Max reward per vote to add.
     /// @dev The manager can rug the campaign by manipulating the maxRewardPerVote, or dilute the totalRewardAmount.
-    function increaseCampaignDuration(
+    function manageCampaign(
         uint256 campaignId,
         uint8 numberOfPeriods,
         uint256 totalRewardAmount,
@@ -207,7 +207,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
         if (campaignUpgrade.totalRewardAmount != 0) {
             SafeTransferLib.safeTransferFrom(
-                campaign.rewardToken, msg.sender, address(this), campaignUpgrade.totalRewardAmount
+                campaign.rewardToken, msg.sender, address(this), totalRewardAmount
             );
         }
 
