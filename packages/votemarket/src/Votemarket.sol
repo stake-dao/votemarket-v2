@@ -25,7 +25,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ///////////////////////////////////////////////////////////////
 
     struct Campaign {
-        /// @notice Chain ID of the gauge.
+        /// @notice Chain ID of the destination chain where the gauge is deployed.
         uint256 chainId;
         /// @notice Destination gauge address.
         address gauge;
