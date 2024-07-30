@@ -189,6 +189,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @param numberOfPeriods Number of periods to add.
     /// @param totalRewardAmount Total reward amount to add.
     /// @param maxRewardPerVote Max reward per vote to add.
+    /// @dev The manager can rug the campaign by manipulating the maxRewardPerVote, or dilute the totalRewardAmount.
     function increaseCampaignDuration(
         uint256 campaignId,
         uint8 numberOfPeriods,
