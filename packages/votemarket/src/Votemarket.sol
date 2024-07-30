@@ -27,10 +27,6 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Minimum duration for a campaign.
     uint8 public constant MINIMUM_PERIODS = 2;
 
-    /// @notice Default fee.
-    /// @dev 1e18 = 100%. Hence, 2e16 = 2%.
-    uint256 private constant _DEFAULT_FEE = 2e16;
-
     ////////////////////////////////////////////////////////////////
     /// --- STORAGE VARIABLES
     ///////////////////////////////////////////////////////////////
@@ -40,6 +36,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     /// @notice Fee receiver.
     address public feeCollector;
+
+    /// @notice Fee.
+    uint256 public fee;
 
     /// @notice Campaigns count.
     uint256 public campaignCount;
@@ -137,6 +136,15 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Check if the manager or remote is calling the function.
     function _isManagerOrRemote(uint256 campaignId) internal view returns (bool) {
         return msg.sender == campaignById[campaignId].manager;
+    }
+
+    constructor() {
+        /// TODO: Put it as a parameter for create3 deployment.
+        governance = msg.sender;
+        feeCollector = msg.sender;
+
+        /// Default fee is 4%.
+        fee = 4e16;
     }
 
     ////////////////////////////////////////////////////////////////
