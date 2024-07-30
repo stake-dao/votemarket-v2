@@ -1,4 +1,4 @@
-// // SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: GPL-3.0
 // pragma solidity 0.8.20;
 // /*
 // ▄▄▄█████▓ ██░ ██ ▓█████     ██░ ██ ▓█████  ██▀███  ▓█████▄
@@ -46,17 +46,22 @@
 // `a@@a%@'    `%a@@'       `a@@a%a@@a
 // */
 
+// /// Libraries
 // import {Owned} from "solmate/auth/Owned.sol";
-// import {ERC20} from "solmate/tokens/ERC20.sol";
 // import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
-// import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
-// import {GaugeController} from "src/interfaces/GaugeController.sol";
+// import {ReentrancyGuard} from "solady/src/utils/ReentrancyGuard.sol";
 // import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
+
+// /// Project Interfaces
+// import {GaugeController} from "src/interfaces/GaugeController.sol";
 
 // /// @title  Platform
 // /// @author Stake DAO
+// /// Changelog:
+// /// - Batch close bounties.
+// /// - Add custom fees per manager.
+// /// - OnlyManager can close bounties.
 // contract Platform is Owned, ReentrancyGuard {
-// using SafeTransferLib for ERC20;
 // using FixedPointMathLib for uint256;
 
 // ////////////////////////////////////////////////////////////////
@@ -144,11 +149,11 @@
 // /// @notice Fee collector.
 // address public feeCollector;
 
+// /// @notice Custom fees per manager.
+// mapping(address => uint256) public fees;
+
 // /// @notice ID => Bounty.
 // mapping(uint256 => Bounty) public bounties;
-
-// /// @notice Whitelisted address for some functions
-// mapping(address => bool) public whitelisted;
 
 // /// @notice Recipient per address.
 // mapping(address => address) public recipient;
@@ -188,11 +193,6 @@
 
 // modifier onlyManager(uint256 _id) {
 // if (msg.sender != bounties[_id].manager) revert AUTH_MANAGER_ONLY();
-// _;
-// }
-
-// modifier onlyWhitelisted(address _caller) {
-// if (!whitelisted[_caller]) revert WHITELISTED_ONLY();
 // _;
 // }
 
@@ -291,24 +291,17 @@
 // /// @param amount Amount collected.
 // event FeesCollected(address indexed rewardToken, uint256 amount);
 
-// /// @notice Emitted when owner changed the whitelist status of an address
-// /// @param user Address of the user
-// /// @param status New whitelist status
-// event WhitelistUpdated(address indexed user, bool indexed status);
-
 // ////////////////////////////////////////////////////////////////
 // /// --- ERRORS
 // ///////////////////////////////////////////////////////////////
 
 // error KILLED();
 // error WRONG_INPUT();
-// error NO_RECIPIENT();
 // error ZERO_ADDRESS();
 // error INVALID_TOKEN();
 // error ALREADY_CLOSED();
 // error NO_PERIODS_LEFT();
 // error NOT_UPGRADEABLE();
-// error WHITELISTED_ONLY();
 // error AUTH_MANAGER_ONLY();
 // error INVALID_NUMBER_OF_PERIODS();
 
@@ -322,6 +315,10 @@
 // fee = _DEFAULT_FEE;
 // feeCollector = _feeCollector;
 // gaugeController = GaugeController(_gaugeController);
+// }
+
+// function name() external pure returns (string memory) {
+// return "StakeDAO CRV Votemarket";
 // }
 
 // ////////////////////////////////////////////////////////////////
@@ -431,22 +428,6 @@
 // function claimFor(address user, uint256 bountyId) external returns (uint256) {
 // address _recipient = recipient[user];
 // return _claim(user, _recipient != address(0) ? _recipient : user, bountyId);
-// }
-
-// /// @notice Claim rewards for a given bounty, for a set of users.
-// /// @param bountyId ID of the bounty.
-// /// @return Amount of rewards claimed.
-// /// @dev All users should have delegated to the msg.sender
-// function batchClaimFor(address[] calldata users, uint256 bountyId)
-// external
-// onlyWhitelisted(msg.sender)
-// returns (uint256)
-// {
-// for (uint256 i = 0; i < users.length; i++) {
-// if (recipient[users[i]] != msg.sender) revert NO_RECIPIENT();
-// }
-
-// return _batchClaim(users, msg.sender, bountyId);
 // }
 
 // /// @notice Claim all rewards for multiple bounties.
@@ -585,7 +566,10 @@
 // uint256 feeAmount;
 
 // if (fee != 0) {
-// feeAmount = amount.mulWad(fee);
+// uint256 _customFee = fees[bounty.manager];
+// _customFee = _customFee == 0 ? fee : _customFee;
+
+// feeAmount = amount.mulWad(_customFee);
 // amount -= feeAmount;
 // feeAccrued[bounty.rewardToken] += feeAmount;
 // }
@@ -594,103 +578,6 @@
 // SafeTransferLib.safeTransfer(bounty.rewardToken, _recipient, amount);
 
 // emit Claimed(_user, bounty.rewardToken, _bountyId, amount, feeAmount, currentPeriod);
-// }
-
-// /// @notice Claim rewards for a given bounty, for multiple users.
-// /// @param _users Address of the user.
-// /// @param _recipient Address of the recipient.
-// /// @param _bountyId ID of the bounty.
-// /// @return totalAmount amount of rewards claimed.
-// /// @dev Same as claim, but with a for loop
-// function _batchClaim(address[] calldata _users, address _recipient, uint256 _bountyId)
-// internal
-// nonReentrant
-// notKilled
-// returns (uint256 totalAmount)
-// {
-// uint256 currentPeriod = _updateBountyPeriod(_bountyId);
-
-// Bounty memory bounty = bounties[_bountyId];
-
-// uint256 length = _users.length;
-// for (uint256 i = 0; i < length; i++) {
-// address _user = _users[i];
-
-// GaugeController.VotedSlope memory userSlope = gaugeController.vote_user_slopes(_user, bounty.gauge);
-
-// uint256 _amountClaimed = amountClaimed[_bountyId];
-
-// if (
-// !_canUserClaim(
-// _user,
-// _bountyId,
-// bounty,
-// currentPeriod,
-// getCurrentPeriod(),
-// _amountClaimed,
-// userSlope.slope,
-// userSlope.end
-// )
-// ) continue;
-
-// // Update User last claim period.
-// lastUserClaim[_user][_bountyId] = currentPeriod;
-
-// // Voting Power = userSlope * dt
-// // with dt = lock_end - period.
-// uint256 _bias = _getAddrBias(userSlope.slope, userSlope.end, currentPeriod);
-// // Compute the reward amount based on
-// // Reward / Total Votes.
-// uint256 amount = _bias.mulWad(rewardPerVote[_bountyId]);
-// // Compute the reward amount based on
-// // the max price to pay.
-// uint256 _amountWithMaxPrice = _bias.mulWad(bounty.maxRewardPerVote);
-
-// // Distribute the _min between the amount based on votes, and price.
-// amount = FixedPointMathLib.min(amount, _amountWithMaxPrice);
-
-// // Update the amount claimed.
-// if (amount + _amountClaimed > bounty.totalRewardAmount) {
-// amount = bounty.totalRewardAmount - _amountClaimed;
-// }
-
-// amountClaimed[_bountyId] += amount;
-
-// uint256 feeAmount;
-
-// if (fee != 0) {
-// feeAmount = amount.mulWad(fee);
-// amount -= feeAmount;
-// feeAccrued[bounty.rewardToken] += feeAmount;
-// }
-
-// totalAmount += amount;
-// }
-// SafeTransferLib.safeTransfer(bounty.rewardToken, _recipient, totalAmount);
-// emit Claimed(_recipient, bounty.rewardToken, _bountyId, totalAmount, 0, currentPeriod);
-// return totalAmount;
-// }
-
-// function _canUserClaim(
-// address _user,
-// uint256 _bountyId,
-// Bounty memory _bounty,
-// uint256 currentPeriod,
-// uint256 gettedPeriod,
-// uint256 _amountClaimed,
-// uint256 _slope,
-// uint256 _end
-// ) internal view returns (bool) {
-// uint256 lastVote = gaugeController.last_user_vote(_user, _bounty.gauge);
-
-// if (
-// isBlacklisted[_bountyId][_user] || _slope == 0 || lastUserClaim[_user][_bountyId] >= currentPeriod
-// || currentPeriod >= _end || currentPeriod <= lastVote || currentPeriod >= _bounty.endTimestamp
-// || currentPeriod != gettedPeriod || _amountClaimed == _bounty.totalRewardAmount
-// ) {
-// return false;
-// }
-// return true;
 // }
 
 // /// @notice Update the current period for a given bounty.
@@ -868,7 +755,9 @@
 // }
 // // Substract fees.
 // if (fee != 0) {
-// amount = amount.mulWad(_BASE_UNIT - fee);
+// uint256 _customFee = fees[bounty.manager];
+// _customFee = _customFee == 0 ? fee : _customFee;
+// amount = amount.mulWad(_BASE_UNIT - _customFee);
 // }
 // }
 
@@ -927,30 +816,43 @@
 // uint8 _additionnalPeriods,
 // uint256 _increasedAmount,
 // uint256 _newMaxPricePerVote
-// ) external nonReentrant notKilled onlyManager(_bountyId) {
+// ) external {
+// _increaseBountyDuration(_bountyId, _additionnalPeriods, _increasedAmount, _newMaxPricePerVote);
+// }
+
+// function _increaseBountyDuration(
+// uint256 _bountyId,
+// uint8 _additionnalPeriods,
+// uint256 _increasedAmount,
+// uint256 _newMaxPricePerVote
+// ) internal nonReentrant notKilled onlyManager(_bountyId) {
 // if (!isUpgradeable[_bountyId]) revert NOT_UPGRADEABLE();
 // if (getPeriodsLeft(_bountyId) < 1) revert NO_PERIODS_LEFT();
-// if (_increasedAmount == 0 || _newMaxPricePerVote == 0) {
-// revert WRONG_INPUT();
-// }
 
 // Bounty storage bounty = bounties[_bountyId];
 // Upgrade memory upgradedBounty = upgradeBountyQueue[_bountyId];
 
+// if (_increasedAmount > 0) {
 // SafeTransferLib.safeTransferFrom(bounty.rewardToken, msg.sender, address(this), _increasedAmount);
+// }
+
+// uint256 updatedMaxRewardPerVote = bounty.maxRewardPerVote;
+// if (_newMaxPricePerVote > 0) {
+// updatedMaxRewardPerVote = _newMaxPricePerVote;
+// }
 
 // if (upgradedBounty.totalRewardAmount != 0) {
 // upgradedBounty = Upgrade({
 // numberOfPeriods: upgradedBounty.numberOfPeriods + _additionnalPeriods,
 // totalRewardAmount: upgradedBounty.totalRewardAmount + _increasedAmount,
-// maxRewardPerVote: _newMaxPricePerVote,
+// maxRewardPerVote: updatedMaxRewardPerVote,
 // endTimestamp: upgradedBounty.endTimestamp + (_additionnalPeriods * _WEEK)
 // });
 // } else {
 // upgradedBounty = Upgrade({
 // numberOfPeriods: bounty.numberOfPeriods + _additionnalPeriods,
 // totalRewardAmount: bounty.totalRewardAmount + _increasedAmount,
-// maxRewardPerVote: _newMaxPricePerVote,
+// maxRewardPerVote: updatedMaxRewardPerVote,
 // endTimestamp: bounty.endTimestamp + (_additionnalPeriods * _WEEK)
 // });
 // }
@@ -964,11 +866,26 @@
 
 // /// @notice Close Bounty if there is remaining.
 // /// @param bountyId ID of the bounty to close.
-// function closeBounty(uint256 bountyId) external nonReentrant {
+// function closeBounty(uint256 bountyId) external {
+// _closeBounty(bountyId);
+// }
+
+// function closeBounties(uint256[] calldata bountyIds) external {
+// uint256 length = bountyIds.length;
+
+// for (uint256 i = 0; i < length;) {
+// _closeBounty(bountyIds[i]);
+
+// unchecked {
+// ++i;
+// }
+// }
+// }
+
+// function _closeBounty(uint256 bountyId) internal nonReentrant onlyManager(bountyId) {
 // // Check if the currentPeriod is the last one.
 // // If not, we can increase the duration.
 // Bounty storage bounty = bounties[bountyId];
-// if (bounty.manager == address(0)) revert ALREADY_CLOSED();
 
 // // Check if there is an upgrade in queue and update the bounty.
 // _checkForUpgrade(bountyId);
@@ -1045,6 +962,15 @@
 // emit FeeCollectorUpdated(_feeCollector);
 // }
 
+// /// @notice Set a custom fee for a given manager.
+// /// @param _manager Address of the manager.
+// /// @param _fee Fee.
+// function setCustomFee(address _manager, uint256 _fee) external onlyOwner {
+// if (_fee > 1e18) revert WRONG_INPUT();
+
+// fees[_manager] = _fee;
+// }
+
 // /// @notice Set the recipient for a given address.
 // /// @param _for Address to set the recipient for.
 // /// @param _recipient Address of the recipient.
@@ -1052,12 +978,6 @@
 // recipient[_for] = _recipient;
 
 // emit RecipientSet(_for, _recipient);
-// }
-
-// function setWhitelisted(address _address, bool _isWhitelisted) external onlyOwner {
-// whitelisted[_address] = _isWhitelisted;
-
-// emit WhitelistUpdated(_address, _isWhitelisted);
 // }
 
 // function kill() external onlyOwner {
@@ -1132,6 +1052,6 @@
 // }
 
 // function getVersion() external pure returns (string memory) {
-// return "2.2.0";
+// return "2.3.0";
 // }
 // }

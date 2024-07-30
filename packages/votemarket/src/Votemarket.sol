@@ -24,7 +24,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ///////////////////////////////////////////////////////////////
 
     struct Campaign {
-        /// @notice Chain ID of the destination chain where the gauge is deployed.
+        /// @notice Chain Id of the destination chain where the gauge is deployed.
         uint256 chainId;
         /// @notice Destination gauge address.
         address gauge;
@@ -49,6 +49,17 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         uint256 rewardPerPeriod;
     }
 
+    struct CampaignUpgrade {
+        /// @notice Number of periods after increase.
+        uint8 numberOfPeriods;
+        /// @notice Total reward amount after increase.
+        uint256 totalRewardAmount;
+        /// @notice New max reward per vote after increase.
+        uint256 maxRewardPerVote;
+        /// @notice New end timestamp after increase.
+        uint256 endTimestamp;
+    }
+
     ////////////////////////////////////////////////////////////////
     /// --- CONSTANT VALUES
     ///////////////////////////////////////////////////////////////
@@ -70,14 +81,17 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Custom fee per manager.
     mapping(address => uint256) public customFeeByManager;
 
-    /// @notice Campaigns by ID.
+    /// @notice Campaigns by Id.
     mapping(uint256 => Campaign) public campaignById;
 
-    /// @notice Hook by campaign ID.
+    /// @notice Hook by campaign Id.
     mapping(uint256 => address) public hookByCampaignId;
 
-    /// @notice Periods by campaign ID and period ID.
+    /// @notice Periods by campaign Id and period Id.
     mapping(uint256 => mapping(uint256 => Period)) public periodByCampaignId;
+
+    /// @notice Campaign Upgrades in queue by Id. To be applied at the next action. (claim, upgrade)
+    mapping(uint256 => CampaignUpgrade) public campaignUpgradeById;
 
     /// @notice Blacklisted addresses per campaign.
     mapping(uint256 => address[]) public blacklistById;
@@ -95,6 +109,8 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     error ZERO_INPUT();
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
+    error CAMPAIGN_ENDED();
+    error AUTH_MANAGER_ONLY();
     error INVALID_NUMBER_OF_PERIODS();
 
     event CampaignCreated(
@@ -106,6 +122,21 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         uint256 maxRewardPerVote,
         uint256 totalRewardAmount
     );
+
+    event CampaignUpgraded(
+        uint256 campaignId, uint8 numberOfPeriods, uint256 totalRewardAmount, uint256 maxRewardPerVote
+    );
+
+    ////////////////////////////////////////////////////////////////
+    /// --- MODIFIERS
+    ///////////////////////////////////////////////////////////////
+
+    /// TODO: Implement remote managers.
+    /// Usecase is when the manager is cross-chain message.
+    modifier onlyManagerOrRemote(uint256 campaignId) {
+        if (msg.sender != campaignById[campaignId].manager) revert AUTH_MANAGER_ONLY();
+        _;
+    }
 
     ////////////////////////////////////////////////////////////////
     /// --- CAMPAIGN MANAGEMENT
@@ -138,7 +169,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Transfer reward token to this contract.
         SafeTransferLib.safeTransferFrom(rewardToken, msg.sender, address(this), totalRewardAmount);
 
-        /// Generate campaign ID.
+        /// Generate campaign Id.
         uint256 campaignId = campaignCount;
 
         /// Increment campaign count.
@@ -193,8 +224,69 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         );
     }
 
-    function currentPeriod() public view returns (uint256) {
-        return block.timestamp / 1 weeks * 1 weeks;
+    /// @notice Manage the campaign duration, total reward amount, and max reward per vote.
+    /// @param campaignId Id of the campaign.
+    /// @param numberOfPeriods Number of periods to add.
+    /// @param totalRewardAmount Total reward amount to add.
+    /// @param maxRewardPerVote Max reward per vote to add.
+    function increaseCampaignDuration(
+        uint256 campaignId,
+        uint8 numberOfPeriods,
+        uint256 totalRewardAmount,
+        uint256 maxRewardPerVote
+    ) external nonReentrant onlyManagerOrRemote(campaignId) {
+        /// Check if the campaign is ended.
+        if (getPeriodsLeft(campaignId) < 1) revert CAMPAIGN_ENDED();
+
+        /// Get the campaign.
+        Campaign storage campaign = campaignById[campaignId];
+
+        /// Check if there's a campaign upgrade in queue.
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
+
+        if (campaignUpgrade.totalRewardAmount != 0) {
+            SafeTransferLib.safeTransferFrom(
+                campaign.rewardToken, msg.sender, address(this), campaignUpgrade.totalRewardAmount
+            );
+        }
+
+        uint256 updatedMaxRewardPerVote = campaign.maxRewardPerVote;
+        if (maxRewardPerVote > 0) {
+            updatedMaxRewardPerVote = maxRewardPerVote;
+        }
+
+        /// If there's a campaign upgrade in queue, we add the new values to it.
+        if (campaignUpgrade.totalRewardAmount != 0) {
+            campaignUpgrade = CampaignUpgrade({
+                numberOfPeriods: campaignUpgrade.numberOfPeriods + numberOfPeriods,
+                totalRewardAmount: campaignUpgrade.totalRewardAmount + totalRewardAmount,
+                maxRewardPerVote: updatedMaxRewardPerVote,
+                endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * 1 weeks)
+            });
+        } else {
+            campaignUpgrade = CampaignUpgrade({
+                numberOfPeriods: campaign.numberOfPeriods + numberOfPeriods,
+                totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
+                maxRewardPerVote: updatedMaxRewardPerVote,
+                endTimestamp: campaign.endTimestamp + (numberOfPeriods * 1 weeks)
+            });
+        }
+
+        /// Save the campaign upgrade in queue.
+        campaignUpgradeById[campaignId] = campaignUpgrade;
+
+        emit CampaignUpgraded(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- GETTERS
+    ///////////////////////////////////////////////////////////////
+
+    function getPeriodsLeft(uint256 campaignId) public view returns (uint256 periodsLeft) {
+        Campaign storage campaign = campaignById[campaignId];
+
+        uint256 currentPeriod_ = currentPeriod();
+        periodsLeft = campaign.endTimestamp > currentPeriod_ ? (campaign.endTimestamp - currentPeriod_) / 1 weeks : 0;
     }
 
     function getBlacklistByCampaignId(uint256 campaignId) public view returns (address[] memory) {
@@ -203,5 +295,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     function getPeriodPerCampaignId(uint256 campaignId, uint256 periodId) public view returns (Period memory) {
         return periodByCampaignId[campaignId][periodId];
+    }
+
+    function currentPeriod() public view returns (uint256) {
+        return block.timestamp / 1 weeks * 1 weeks;
     }
 }
