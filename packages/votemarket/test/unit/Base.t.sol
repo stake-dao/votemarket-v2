@@ -29,4 +29,22 @@ abstract contract BaseTest is Test {
 
         HOOK = address(new MockHook());
     }
+
+    function _createCampaign() internal {
+        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        votemarket.createCampaign(
+            CHAIN_ID,
+            GAUGE,
+            creator,
+            address(rewardToken),
+            VALID_PERIODS,
+            MAX_REWARD_PER_VOTE,
+            TOTAL_REWARD_AMOUNT,
+            blacklist,
+            HOOK,
+            false
+        );
+    }
 }

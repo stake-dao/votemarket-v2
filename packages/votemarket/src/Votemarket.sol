@@ -249,6 +249,14 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         periodsLeft = campaign.endTimestamp > currentPeriod_ ? (campaign.endTimestamp - currentPeriod_) / 1 weeks : 0;
     }
 
+    function getCampaign(uint256 campaignId) public view returns (Campaign memory) {
+        return campaignById[campaignId];
+    }
+
+    function getCampaignUpgrade(uint256 campaignId) public view returns (CampaignUpgrade memory) {
+        return campaignUpgradeById[campaignId];
+    }
+
     function getBlacklistByCampaignId(uint256 campaignId) public view returns (address[] memory) {
         return blacklistById[campaignId];
     }

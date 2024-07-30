@@ -1,1 +1,4 @@
-# Pigeon: A Messaging protocols Aggregator
+# Votemarket: An incentive market
+
+
+This repository contains the smart contracts for the Votemarket protocol.
