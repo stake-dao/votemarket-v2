@@ -90,10 +90,13 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     error ZERO_INPUT();
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
+    error INVALID_NUMBER_OF_PERIODS();
+
     error CAMPAIGN_ENDED();
     error CAMPAIGN_NOT_ENDED();
+
     error AUTH_MANAGER_ONLY();
-    error INVALID_NUMBER_OF_PERIODS();
+    error AUTH_GOVERNANCE_ONLY();
 
     event CampaignCreated(
         uint256 campaignId,
@@ -118,6 +121,11 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
+
+    modifier onlyGovernance() {
+        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+        _;
+    }
 
     /// TODO: Implement remote managers.
     /// Usecase is when the manager is cross-chain message.
@@ -439,4 +447,10 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     ////////////////////////////////////////////////////////////////
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
+
+    function setFeeCollector(address _feeCollector) external onlyGovernance {
+        if (_feeCollector == address(0)) revert ZERO_ADDRESS();
+
+        feeCollector = _feeCollector;
+    }
 }
