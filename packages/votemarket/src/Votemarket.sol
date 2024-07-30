@@ -38,6 +38,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Campaigns count.
     uint256 public campaignCount;
 
+    /// @notice Claim deadline in seconds.
+    uint256 public claimDeadline;
+
+    /// @notice Close deadline in seconds.
+    uint256 public closeDeadline;
+
     /// @notice Custom fee per manager.
     mapping(address => uint256) public customFeeByManager;
 
@@ -52,6 +58,15 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     /// @notice Campaign Upgrades in queue by Id. To be applied at the next action. (claim, upgrade)
     mapping(uint256 => CampaignUpgrade) public campaignUpgradeById;
+
+    /// @notice Total claimed per campaign Id.
+    mapping(uint256 => uint256) public totalClaimedByCampaignId;
+
+    /// @notice Total claimed per period Id.
+    mapping(uint256 => mapping(uint256 => uint256)) public totalClaimedByPeriodId;
+
+    /// @notice Total claimed per user per campaign Id and period Id.
+    mapping(uint256 => mapping(uint256 => mapping(address => uint256))) public totalClaimedByUser;
 
     /// @notice Blacklisted addresses per campaign.
     mapping(uint256 => address[]) public blacklistById;
