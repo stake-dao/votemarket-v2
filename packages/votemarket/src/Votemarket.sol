@@ -390,13 +390,16 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         emit CampaignClosed(campaignId);
     }
 
+    /// @notice Check if there is an upgrade in queue.
+    /// @param campaignId Id of the campaign.
     function _checkForUpgrade(uint256 campaignId) internal {
+        /// Get the campaign upgrade.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
 
         // Check if there is an upgrade in queue.
         if (campaignUpgrade.totalRewardAmount != 0) {
-            /// Get the first period.
-            Period storage firstPeriod = periodByCampaignId[campaignId][0];
+            /// Get the second period.
+            Period storage secondPeriod = periodByCampaignId[campaignId][1];
 
             // Save new values.
             campaignById[campaignId].endTimestamp = campaignUpgrade.endTimestamp;
@@ -404,8 +407,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
             campaignById[campaignId].maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
             campaignById[campaignId].totalRewardAmount = campaignUpgrade.totalRewardAmount;
 
-            if (block.timestamp <= firstPeriod.startTimestamp) {
-                firstPeriod.rewardPerPeriod =
+            /// If the campaign didn't sart yet, we need to update the first period reward per period as it is done in the create campaign function.
+            if (secondPeriod.startTimestamp == 0) {
+                periodByCampaignId[campaignId][0].rewardPerPeriod =
                     campaignUpgrade.totalRewardAmount.mulDiv(1, campaignUpgrade.numberOfPeriods);
             }
 
