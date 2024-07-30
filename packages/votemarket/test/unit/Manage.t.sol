@@ -87,9 +87,12 @@ contract ManageCampaignTest is BaseTest {
         CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
+        /// It should be equal to the total reward amount + the new total reward amount.
         assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT * 2);
         assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods);
         assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp);
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
-    }   
+    }
+
+    function testIncreaseCampaignWithAllParams() public {}
 }

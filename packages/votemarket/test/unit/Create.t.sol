@@ -58,7 +58,7 @@ contract CreateCampaignTest is BaseTest {
         assertEq(totalRewardAmount, TOTAL_REWARD_AMOUNT);
         assertEq(endTimestamp, (block.timestamp / 1 weeks * 1 weeks) + VALID_PERIODS * 1 weeks);
 
-        Period memory period = votemarket.getPeriodPerCampaignId(initialCampaignCount, 0);
+        Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, 0);
 
         assertEq(period.startTimestamp, votemarket.currentPeriod() + 1 weeks);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
@@ -197,7 +197,7 @@ contract CreateCampaignTest is BaseTest {
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
 
-        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaignId(campaignId);
+        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaign(campaignId);
         assertEq(campaignBlacklist.length, 2);
         assertEq(campaignBlacklist[0], address(0xDEAD));
         assertEq(campaignBlacklist[1], address(0xBEEF));
@@ -233,7 +233,7 @@ contract CreateCampaignTest is BaseTest {
         assertFalse(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
 
-        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaignId(campaignId);
+        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaign(campaignId);
         assertEq(campaignBlacklist.length, 0);
     }
 

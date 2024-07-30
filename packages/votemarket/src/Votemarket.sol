@@ -258,11 +258,11 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         return campaignUpgradeById[campaignId];
     }
 
-    function getBlacklistByCampaignId(uint256 campaignId) public view returns (address[] memory) {
+    function getBlacklistByCampaign(uint256 campaignId) public view returns (address[] memory) {
         return blacklistById[campaignId];
     }
 
-    function getPeriodPerCampaignId(uint256 campaignId, uint256 periodId) public view returns (Period memory) {
+    function getPeriodPerCampaign(uint256 campaignId, uint256 periodId) public view returns (Period memory) {
         return periodByCampaignId[campaignId][periodId];
     }
 
