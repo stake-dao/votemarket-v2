@@ -1,16 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-/// External Libraries
-import "forge-std/src/Test.sol";
-import "forge-std/src/mocks/MockERC20.sol";
-
-/// Project Interfaces & Libraries
-import "src/Votemarket.sol";
-
 /// Testing contracts & libraries
 import "test/unit/Base.t.sol";
-import "test/mocks/Hooks.sol";
 
 contract CreateCampaignTest is BaseTest {
     function setUp() public override {

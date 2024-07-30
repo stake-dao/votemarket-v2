@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity 0.8.19;
+
+/// Testing contracts & libraries
+import "test/unit/Base.t.sol";
+
+contract CloseCampaignTest is BaseTest {
+    function setUp() public override {
+        BaseTest.setUp();
+
+        /// Create a default campaign.
+        _createCampaign();
+    }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- ACCESS CONTROL TESTS
+    ///////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////
+    /// --- LOGIC TESTS
+    ///////////////////////////////////////////////////////////////
+}

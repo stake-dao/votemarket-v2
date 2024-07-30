@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "forge-std/src/Test.sol";
-import "forge-std/src/mocks/MockERC20.sol";
-
-import "src/Votemarket.sol";
-
-import "test/mocks/Hooks.sol";
+/// Testing contracts & libraries
 import "test/unit/Base.t.sol";
 
 contract ManageCampaignTest is BaseTest {
@@ -226,7 +221,5 @@ contract ManageCampaignTest is BaseTest {
         assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods);
         assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp);
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
-
-
     }
 }
