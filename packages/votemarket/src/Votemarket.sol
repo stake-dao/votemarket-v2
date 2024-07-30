@@ -9,7 +9,6 @@ import "solady/src/utils/FixedPointMathLib.sol";
 
 /// Project Interfaces & Libraries
 import "src/interfaces/IHook.sol";
-import "src/interfaces/ILaPlace.sol";
 
 /// @notice Vote market contract.
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
