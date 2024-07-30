@@ -78,7 +78,6 @@ contract VotemarketUnitTest is Test {
 
         uint8 invalidPeriods = votemarket.MINIMUM_PERIODS() - 1;
 
-
         vm.expectRevert(Votemarket.INVALID_NUMBER_OF_PERIODS.selector);
         votemarket.createCampaign(
             CHAIN_ID,
@@ -200,6 +199,10 @@ contract VotemarketUnitTest is Test {
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
+
+        assertFalse(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
+        assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
+        assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
     }
 
     function testCreateCampaignWithWhitelist() public {
@@ -227,6 +230,13 @@ contract VotemarketUnitTest is Test {
         assertTrue(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
         assertTrue(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
+
+        assertFalse(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
+        assertFalse(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
+        assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
+
+        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaignId(campaignId);
+        assertEq(campaignBlacklist.length, 0);
     }
 
     function testCreateCampaignWithHook() public {
@@ -275,7 +285,7 @@ contract VotemarketUnitTest is Test {
         assertEq(votemarket.hookByCampaignId(campaignId), address(0));
     }
 
-    function testCurrentPeriod() view public {
+    function testCurrentPeriod() public view {
         uint256 expectedPeriod = block.timestamp / 1 weeks * 1 weeks;
         assertEq(votemarket.currentPeriod(), expectedPeriod);
     }
