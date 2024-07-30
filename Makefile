@@ -7,6 +7,7 @@ default:
 	@forge fmt && forge build
 
 clean:
+	rm report.txt
 	@forge clean && make default
 
 # Always keep Forge up to date
@@ -43,6 +44,9 @@ test-%:
 		exit 1; \
 	fi
 
+coverage:
+	@forge coverage --report debug > report.txt
+
 simulate-%:
 	make default
 	@echo "Target: $@"
@@ -70,4 +74,4 @@ deploy-%:
 		exit 1; \
 	fi
 
-.PHONY: test
+.PHONY: test coverage

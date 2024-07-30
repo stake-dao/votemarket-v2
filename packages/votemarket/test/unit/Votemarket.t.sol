@@ -70,6 +70,11 @@ contract VotemarketUnitTest is Test {
         assertEq(maxRewardPerVote, MAX_REWARD_PER_VOTE);
         assertEq(totalRewardAmount, TOTAL_REWARD_AMOUNT);
         assertEq(endTimestamp, (block.timestamp / 1 weeks * 1 weeks) + VALID_PERIODS * 1 weeks);
+
+        Votemarket.Period memory period = votemarket.getPeriodPerCampaignId(initialCampaignCount, 0);
+
+        assertEq(period.startTimestamp, votemarket.currentPeriod() + 1 weeks);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
     }
 
     function testCreateCampaignWithInvalidPeriods() public {
@@ -196,6 +201,7 @@ contract VotemarketUnitTest is Test {
         );
 
         uint256 campaignId = votemarket.campaignCount() - 1;
+
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
@@ -203,6 +209,11 @@ contract VotemarketUnitTest is Test {
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
+
+        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaignId(campaignId);
+        assertEq(campaignBlacklist.length, 2);
+        assertEq(campaignBlacklist[0], address(0xDEAD));
+        assertEq(campaignBlacklist[1], address(0xBEEF));
     }
 
     function testCreateCampaignWithWhitelist() public {
@@ -237,6 +248,25 @@ contract VotemarketUnitTest is Test {
 
         address[] memory campaignBlacklist = votemarket.getBlacklistByCampaignId(campaignId);
         assertEq(campaignBlacklist.length, 0);
+    }
+
+    function testCreateCampaignWithoutHook() public {
+        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        vm.expectRevert();
+        votemarket.createCampaign(
+            CHAIN_ID,
+            GAUGE,
+            MANAGER,
+            address(rewardToken),
+            VALID_PERIODS,
+            MAX_REWARD_PER_VOTE,
+            TOTAL_REWARD_AMOUNT,
+            blacklist,
+            address(0),
+            false
+        );
     }
 
     function testCreateCampaignWithHook() public {

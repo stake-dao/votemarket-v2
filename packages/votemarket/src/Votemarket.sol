@@ -182,7 +182,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         }
 
         /// Initialize the first period.
-        uint256 rewardPerPeriod = totalRewardAmount.mulWad(numberOfPeriods);
+        uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
         /// Store the first period.
         periodByCampaignId[campaignId][0] =
@@ -199,5 +199,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     function getBlacklistByCampaignId(uint256 campaignId) public view returns (address[] memory) {
         return blacklistById[campaignId];
+    }
+
+    function getPeriodPerCampaignId(uint256 campaignId, uint256 periodId) public view returns (Period memory) {
+        return periodByCampaignId[campaignId][periodId];
     }
 }
