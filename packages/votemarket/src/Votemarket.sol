@@ -35,8 +35,11 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// --- STORAGE VARIABLES
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Governance address.
+    address public governance;
+
     /// @notice Fee receiver.
-    address public feeReceiver;
+    address public feeCollector;
 
     /// @notice Campaigns count.
     uint256 public campaignCount;
@@ -88,6 +91,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
     error CAMPAIGN_ENDED();
+    error CAMPAIGN_NOT_ENDED();
     error AUTH_MANAGER_ONLY();
     error INVALID_NUMBER_OF_PERIODS();
 
@@ -328,8 +332,11 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Check if the campaign started.
         uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
 
-        if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
-        {
+        if (block.timestamp >= startTimestamp && block.timestamp < campaign.endTimestamp) {
+            revert CAMPAIGN_NOT_ENDED();
+        } else if (
+            block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_)
+        ) {
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
@@ -341,7 +348,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
                 rewardToken: campaign.rewardToken,
-                receiver: feeReceiver
+                receiver: feeCollector
             });
         }
     }
@@ -428,4 +435,8 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     function currentPeriod() public view returns (uint256) {
         return block.timestamp / 1 weeks * 1 weeks;
     }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- SETTERS
+    ///////////////////////////////////////////////////////////////
 }
