@@ -62,7 +62,7 @@ contract CreateCampaignTest is BaseTest {
 
         uint8 invalidPeriods = votemarket.MINIMUM_PERIODS() - 1;
 
-        vm.expectRevert(Votemarket.INVALID_NUMBER_OF_PERIODS.selector);
+        vm.expectRevert(Votemarket.INVALID_INPUT.selector);
         votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,

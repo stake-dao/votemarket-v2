@@ -89,7 +89,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     error ZERO_INPUT();
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
-    error INVALID_NUMBER_OF_PERIODS();
+    error INVALID_INPUT();
 
     error CAMPAIGN_ENDED();
     error CAMPAIGN_NOT_ENDED();
@@ -164,7 +164,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         address hook,
         bool isWhitelist
     ) external nonReentrant {
-        if (numberOfPeriods < MINIMUM_PERIODS) revert INVALID_NUMBER_OF_PERIODS();
+        if (numberOfPeriods < MINIMUM_PERIODS) revert INVALID_INPUT();
         if (totalRewardAmount == 0 || maxRewardPerVote == 0) revert ZERO_INPUT();
         if (rewardToken == address(0) || gauge == address(0)) revert ZERO_ADDRESS();
 
@@ -460,9 +460,24 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
 
+    function setFee(uint256 _fee) external onlyGovernance {
+        /// Fee cannot be higher than 10%.
+        if (_fee > 10e16) revert INVALID_INPUT();
+
+        fee = _fee;
+    }
+
     function setFeeCollector(address _feeCollector) external onlyGovernance {
         if (_feeCollector == address(0)) revert ZERO_ADDRESS();
 
         feeCollector = _feeCollector;
+    }
+
+    function setCloseDeadline(uint256 _closeDeadline) external onlyGovernance {
+        closeDeadline = _closeDeadline;
+    }
+
+    function setClaimDeadline(uint256 _claimDeadline) external onlyGovernance {
+        claimDeadline = _claimDeadline;
     }
 }
