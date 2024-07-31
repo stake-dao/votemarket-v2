@@ -75,7 +75,6 @@ contract CloseCampaignTest is BaseTest {
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
         votemarket.closeCampaign(campaignId);
 
-
         votemarket.closeCampaign(campaignId);
 
         /// Get the campaign.
@@ -87,5 +86,39 @@ contract CloseCampaignTest is BaseTest {
         assertEq(campaign.manager, address(0));
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
+    }
+
+    function testCloseEndedCampaignInCloseDeadline() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        /// Skip to the end of the campaign.
+        /// 1 week before the start + 2 weeks for the campaign + 1 week to the end.
+        skip(4 weeks);
+
+        /// We're in the close deadline period, so it should revert with CAMPAIGN_NOT_ENDED.
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Skip to the end of the close deadline.
+        skip(3 weeks);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Skip to the end of the close deadline.
+        skip(3 weeks);
+
+        vm.prank(address(0xBEEF));
+        /// The call is now permitted, and callable by anyone.
+        votemarket.closeCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+        uint256 feeBalance = rewardToken.balanceOf(feeCollector);
+
+        assertEq(balance, 0);
+        assertEq(managerBalance, 0);
+        assertEq(feeBalance, TOTAL_REWARD_AMOUNT);
     }
 }
