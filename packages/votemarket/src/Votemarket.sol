@@ -129,13 +129,13 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// TODO: Implement remote managers.
     /// Usecase is when the manager is cross-chain message.
     modifier onlyManagerOrRemote(uint256 campaignId) {
-        if (!_isManagerOrRemote(campaignId)) revert AUTH_MANAGER_ONLY();
+        _isManagerOrRemote(campaignId);
         _;
     }
 
     /// @notice Check if the manager or remote is calling the function.
-    function _isManagerOrRemote(uint256 campaignId) internal view returns (bool) {
-        return msg.sender == campaignById[campaignId].manager;
+    function _isManagerOrRemote(uint256 campaignId) internal view {
+        if (msg.sender != campaignById[campaignId].manager) revert AUTH_MANAGER_ONLY();
     }
 
     constructor() {
@@ -332,7 +332,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// 3. The campaign can't be closed before the claim deadline.
     /// 4. After the claim deadline, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
     /// else remaining funds will be sent to the fee receiver.
-    function closeCampaign(uint256 campaignId) external nonReentrant onlyManagerOrRemote(campaignId) {
+    function closeCampaign(uint256 campaignId) external nonReentrant {
         /// Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
@@ -353,6 +353,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         } else if (
             block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_)
         ) {
+            _isManagerOrRemote(campaignId);
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
