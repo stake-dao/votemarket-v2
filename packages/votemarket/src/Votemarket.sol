@@ -430,6 +430,8 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// --- GETTERS
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Returns the number of weeks before the campaign ends.
+    /// @param campaignId Id of the campaign.
     function getPeriodsLeft(uint256 campaignId) public view returns (uint256 periodsLeft) {
         Campaign storage campaign = campaignById[campaignId];
 

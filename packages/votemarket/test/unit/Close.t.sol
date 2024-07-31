@@ -165,6 +165,5 @@ contract CloseCampaignTest is BaseTest {
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
     }
-
     /// TODO: Test the close campaign with claimed rewards.
 }

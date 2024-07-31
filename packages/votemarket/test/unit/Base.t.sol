@@ -47,4 +47,60 @@ abstract contract BaseTest is Test {
             false
         );
     }
+
+
+    function testSetters() public {
+        /// Fee collector.
+        address feeCollector = address(0xCAFE);
+        votemarket.setFeeCollector(feeCollector);
+
+        assertEq(votemarket.feeCollector(), feeCollector);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setFeeCollector(feeCollector);
+
+        vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
+        votemarket.setFeeCollector(address(0));
+
+        /// Fee.
+        uint256 fee = 100;
+        votemarket.setFee(fee);
+        assertEq(votemarket.fee(), fee);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setFee(fee);
+
+        vm.expectRevert(Votemarket.INVALID_INPUT.selector);
+        votemarket.setFee(1e18);
+
+        /// Claim deadline.
+        uint256 claimDeadline = 3 weeks;
+        votemarket.setClaimDeadline(claimDeadline);
+        assertEq(votemarket.claimDeadline(), claimDeadline);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setClaimDeadline(claimDeadline);
+
+        /// Close deadline.
+        uint256 closeDeadline = 3 weeks;
+        votemarket.setCloseDeadline(closeDeadline);
+        assertEq(votemarket.closeDeadline(), closeDeadline);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setCloseDeadline(closeDeadline);
+    }
+
+    function testGetters() public {
+        _createCampaign();
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+
+        assertEq(votemarket.getPeriodsLeft(campaignId), 4);
+        skip(4 weeks);
+        assertEq(votemarket.getPeriodsLeft(campaignId), 0);
+    }
 }
