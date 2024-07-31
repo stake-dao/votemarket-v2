@@ -77,6 +77,10 @@ contract CloseCampaignTest is BaseTest {
 
         votemarket.closeCampaign(campaignId);
 
+        /// Try to close the campaign again.
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
         /// Get the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
@@ -121,4 +125,39 @@ contract CloseCampaignTest is BaseTest {
         assertEq(managerBalance, 0);
         assertEq(feeBalance, TOTAL_REWARD_AMOUNT);
     }
+
+    function testCloseCampaignWithAnUpgradeInQueue() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        /// Increase the total reward amount.
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT);
+
+        /// Skip to the end of the campaign.
+        /// 1 week before the start + 2 weeks for the campaign + 1 week to the end.
+        skip(4 weeks);
+
+        /// We're in the claim deadline period, so it should revert with CAMPAIGN_NOT_ENDED.
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Skip to the end of the claim deadline.
+        skip(3 weeks);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+        votemarket.closeCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+
+        assertEq(balance, 0);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
+    }
+
+    /// TODO: Test the close campaign with claimed rewards.
 }
