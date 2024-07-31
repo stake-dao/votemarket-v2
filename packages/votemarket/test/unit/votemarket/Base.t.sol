@@ -48,7 +48,6 @@ abstract contract BaseTest is Test {
         );
     }
 
-
     function testSetters() public {
         /// Fee collector.
         address feeCollector = address(0xCAFE);
@@ -97,7 +96,6 @@ abstract contract BaseTest is Test {
     function testGetters() public {
         _createCampaign();
         uint256 campaignId = votemarket.campaignCount() - 1;
-
 
         assertEq(votemarket.getPeriodsLeft(campaignId), 4);
         skip(4 weeks);

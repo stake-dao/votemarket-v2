@@ -34,6 +34,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
     /// @notice Governance address.
     address public governance;
 
+    /// @notice Address of the remote cross-chain message handler.
+    address public remote;
+
     /// @notice Fee receiver.
     address public feeCollector;
 
@@ -135,7 +138,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     /// @notice Check if the manager or remote is calling the function.
     function _isManagerOrRemote(uint256 campaignId) internal view {
-        if (msg.sender != campaignById[campaignId].manager) revert AUTH_MANAGER_ONLY();
+        if (msg.sender != campaignById[campaignId].manager && msg.sender != remote) revert AUTH_MANAGER_ONLY();
     }
 
     constructor() {
@@ -468,6 +471,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         if (_fee > 10e16) revert INVALID_INPUT();
 
         fee = _fee;
+    }
+
+    function setRemote(address _remote) external onlyGovernance {
+        if (_remote == address(0)) revert ZERO_ADDRESS();
+
+        remote = _remote;
     }
 
     function setFeeCollector(address _feeCollector) external onlyGovernance {

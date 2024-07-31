@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 /// Testing contracts & libraries
-import "test/unit/Base.t.sol";
+import "test/unit/votemarket/Base.t.sol";
 
 contract CloseCampaignTest is BaseTest {
     address feeCollector = address(0xCAFE);
