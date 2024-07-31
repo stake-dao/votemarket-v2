@@ -5,18 +5,87 @@ pragma solidity 0.8.19;
 import "test/unit/Base.t.sol";
 
 contract CloseCampaignTest is BaseTest {
+    address feeCollector = address(0xCAFE);
+
     function setUp() public override {
         BaseTest.setUp();
 
         /// Create a default campaign.
         _createCampaign();
+
+        votemarket.setClaimDeadline(3 weeks);
+        votemarket.setCloseDeadline(3 weeks);
+
+        votemarket.setFeeCollector(feeCollector);
     }
 
-    ////////////////////////////////////////////////////////////////
-    /// --- ACCESS CONTROL TESTS
-    ///////////////////////////////////////////////////////////////
+    function testCloseCampaignThatHasNotStarted() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
 
-    ////////////////////////////////////////////////////////////////
-    /// --- LOGIC TESTS
-    ///////////////////////////////////////////////////////////////
+        /// With random address.
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// With Manager.
+        votemarket.closeCampaign(campaignId);
+
+        /// Check the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+
+        assertEq(campaign.manager, address(0));
+        assertEq(balance, 0);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
+    }
+
+    function testCloseOngoingCampaign() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        /// Skip to the start of the campaign.
+        skip(1 weeks);
+
+        /// Close the campaign.
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Even with random address, it should revert with CAMPAIGN_NOT_ENDED.
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+    }
+
+    function testCloseEndedCampaignInClaimDeadline() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        /// Skip to the end of the campaign.
+        /// 1 week before the start + 2 weeks for the campaign + 1 week to the end.
+        skip(4 weeks);
+
+        /// We're in the claim deadline period, so it should revert with CAMPAIGN_NOT_ENDED.
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Skip to the end of the claim deadline.
+        skip(3 weeks);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+
+        votemarket.closeCampaign(campaignId);
+
+        /// Get the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+
+        assertEq(campaign.manager, address(0));
+        assertEq(balance, 0);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
+    }
 }

@@ -348,7 +348,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Check if the campaign started.
         uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
 
-        if (block.timestamp >= startTimestamp && block.timestamp < campaign.endTimestamp) {
+        if (block.timestamp >= startTimestamp && block.timestamp < claimDeadline_) {
             revert CAMPAIGN_NOT_ENDED();
         } else if (
             block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_)
@@ -360,7 +360,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
                 rewardToken: campaign.rewardToken,
                 receiver: campaign.manager
             });
-        } else {
+        } else if (block.timestamp >= closeDeadline_) {
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
