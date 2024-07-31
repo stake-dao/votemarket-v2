@@ -19,6 +19,13 @@ contract CloseCampaignTest is BaseTest {
         votemarket.setFeeCollector(feeCollector);
     }
 
+    function testCloseNonExistentCampaign() public {
+        uint256 campaignId = votemarket.campaignCount();
+
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+    }
+
     function testCloseCampaignThatHasNotStarted() public {
         uint256 campaignId = votemarket.campaignCount() - 1;
 
