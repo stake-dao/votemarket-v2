@@ -2,10 +2,10 @@
 pragma solidity 0.8.19;
 
 /// External Libraries
-import "solady/src/utils/Multicallable.sol";
-import "solady/src/utils/ReentrancyGuard.sol";
-import "solady/src/utils/SafeTransferLib.sol";
-import "solady/src/utils/FixedPointMathLib.sol";
+import "@solady/src/utils/Multicallable.sol";
+import "@solady/src/utils/ReentrancyGuard.sol";
+import "@solady/src/utils/SafeTransferLib.sol";
+import "@solady/src/utils/FixedPointMathLib.sol";
 
 /// Project Interfaces & Libraries
 import "src/interfaces/IHook.sol";
