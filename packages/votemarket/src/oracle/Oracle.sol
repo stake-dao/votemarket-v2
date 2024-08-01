@@ -17,6 +17,7 @@ contract Oracle {
         uint256 slope;
         uint256 power;
         uint256 end;
+        uint256 lastVote;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -35,8 +36,8 @@ contract Oracle {
     /// @notice Mapping of Gauge => Epoch => Point Weight Struct.
     mapping(address => mapping(uint256 => Point)) public pointByEpoch;
 
-    /// @notice Mapping of Address => Epoch => Voted Slope Struct.
-    mapping(address => mapping(uint256 => VotedSlope)) public votedSlopeByEpoch;
+    /// @notice Mapping of Address => Epoch => Gauge => Voted Slope Struct.
+    mapping(address => mapping(uint256 => mapping(address => VotedSlope))) public votedSlopeByEpoch;
 
     constructor() {
         governance = msg.sender;
@@ -46,12 +47,18 @@ contract Oracle {
     /// --- EVENTS & ERRORS
     ///////////////////////////////////////////////////////////////
 
+    error INVALID_EPOCH();
     error AUTH_GOVERNANCE_ONLY();
     error NOT_AUTHORIZED_DATA_PROVIDER();
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
+
+    modifier validEpoch(uint256 epoch) {
+        if (epochBlockNumber[epoch] == 0) revert INVALID_EPOCH();
+        _;
+    }
 
     modifier onlyAuthorizedDataProvider() {
         if (!authorizedDataProviders[msg.sender]) revert NOT_AUTHORIZED_DATA_PROVIDER();
@@ -76,19 +83,25 @@ contract Oracle {
     /// @param gauge Gauge address.
     /// @param epoch Epoch number.
     /// @param point Point struct.
-    function insertPoint(address gauge, uint256 epoch, Point memory point) external onlyAuthorizedDataProvider {
+    function insertPoint(address gauge, uint256 epoch, Point memory point)
+        external
+        validEpoch(epoch)
+        onlyAuthorizedDataProvider
+    {
         pointByEpoch[gauge][epoch] = point;
     }
 
-    /// @notice Insert a voted slope for an epoch and gauge.
+    /// @notice Insert a voted slope for an epoch and gauge for a voter.
+    /// @param voter Voter address.
     /// @param gauge Gauge address.
     /// @param epoch Epoch number.
-    /// @param votedSlope Voted slope struct.
-    function insertVotedSlope(address gauge, uint256 epoch, VotedSlope memory votedSlope)
+    /// @param slope Voted slope struct.
+    function insertAddressEpochData(address voter, address gauge, uint256 epoch, VotedSlope memory slope)
         external
+        validEpoch(epoch)
         onlyAuthorizedDataProvider
     {
-        votedSlopeByEpoch[gauge][epoch] = votedSlope;
+        votedSlopeByEpoch[voter][epoch][gauge] = slope;
     }
 
     ////////////////////////////////////////////////////////////////
