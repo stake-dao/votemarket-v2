@@ -179,7 +179,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         if (size == 0) revert INVALID_TOKEN();
 
         /// Transfer reward token to this contract.
-        SafeTransferLib.safeTransferFrom(rewardToken, msg.sender, address(this), totalRewardAmount);
+        SafeTransferLib.safeTransferFrom({
+            token: rewardToken,
+            from: msg.sender,
+            to: address(this),
+            amount: totalRewardAmount
+        });
 
         /// Generate campaign Id.
         uint256 campaignId = campaignCount;
@@ -258,7 +263,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
 
         if (totalRewardAmount != 0) {
-            SafeTransferLib.safeTransferFrom(campaign.rewardToken, msg.sender, address(this), totalRewardAmount);
+            SafeTransferLib.safeTransferFrom({
+                token: campaign.rewardToken,
+                from: msg.sender,
+                to: address(this),
+                amount: totalRewardAmount
+            });
         }
 
         uint256 updatedMaxRewardPerVote = campaign.maxRewardPerVote;
@@ -302,9 +312,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Check if there's a campaign upgrade in queue.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId];
 
-        SafeTransferLib.safeTransferFrom(
-            campaignById[campaignId].rewardToken, msg.sender, address(this), totalRewardAmount
-        );
+        SafeTransferLib.safeTransferFrom({
+            token: campaignById[campaignId].rewardToken,
+            from: msg.sender,
+            to: address(this),
+            amount: totalRewardAmount
+        });
 
         /// If there's a campaign upgrade in queue, we add the new values to it.
         if (campaignUpgrade.totalRewardAmount != 0) {
@@ -340,7 +353,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         Campaign storage campaign = campaignById[campaignId];
 
         /// Check if there is an upgrade in queue and update the campaign.
-        _checkForUpgrade(campaignId);
+        _checkForUpgrade({campaignId: campaignId});
 
         /// Claim deadline is the end timestamp + claim deadline.
         uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
@@ -356,7 +369,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         } else if (
             block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_)
         ) {
-            _isManagerOrRemote(campaignId);
+            _isManagerOrRemote({campaignId: campaignId});
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
@@ -388,7 +401,7 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
 
         // Transfer the left over to the receiver.
-        SafeTransferLib.safeTransfer(rewardToken, receiver, leftOver);
+        SafeTransferLib.safeTransfer({token: rewardToken, to: receiver, amount: leftOver});
         delete campaignById[campaignId].manager;
 
         emit CampaignClosed(campaignId);

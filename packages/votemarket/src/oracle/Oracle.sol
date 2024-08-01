@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+///  Project Interfaces
+import "src/interfaces/IOracle.sol";
+
 /// @notice Oracle contract to read voting values from the Gauge Controller.
 //// WIP IMPLEMENTATION
 contract Oracle {
     ////////////////////////////////////////////////////////////////
     /// --- DATA STRUCTURE DEFINITIONS
     ///////////////////////////////////////////////////////////////
-
-    struct BlockData {
-        bytes32 blockHash;
-        uint256 timestamp;
-        uint256 blockNumber;
-    }
 
     struct Point {
         uint256 bias;
@@ -40,7 +37,7 @@ contract Oracle {
     mapping(address => bool) public authorizedBlockNumberProviders;
 
     /// @notice Mapping of Timestamp => Block Number.
-    mapping(uint256 => BlockData) public epochBlockNumber;
+    mapping(uint256 => StateProofVerifier.BlockHeader) public epochBlockNumber;
 
     /// @notice Mapping of Gauge => Epoch => Point Weight Struct.
     mapping(address => mapping(uint256 => Point)) public pointByEpoch;
@@ -66,8 +63,8 @@ contract Oracle {
     ///////////////////////////////////////////////////////////////
 
     modifier validEpoch(uint256 epoch) {
-        BlockData memory blockData = epochBlockNumber[epoch];
-        if (blockData.blockNumber == 0) revert INVALID_EPOCH();
+        StateProofVerifier.BlockHeader memory blockData = epochBlockNumber[epoch];
+        if (blockData.number == 0) revert INVALID_EPOCH();
         _;
     }
 
@@ -91,7 +88,10 @@ contract Oracle {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Insert the block number for an epoch.
-    function insertBlockNumber(uint256 epoch, BlockData memory blockData) external onlyAuthorizedBlockNumberProvider {
+    function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader memory blockData)
+        external
+        onlyAuthorizedBlockNumberProvider
+    {
         epochBlockNumber[epoch] = blockData;
     }
 
