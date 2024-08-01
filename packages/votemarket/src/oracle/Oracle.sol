@@ -8,6 +8,12 @@ contract Oracle {
     /// --- DATA STRUCTURE DEFINITIONS
     ///////////////////////////////////////////////////////////////
 
+    struct BlockData {
+        bytes32 blockHash;
+        uint256 timestamp;
+        uint256 blockNumber;
+    }
+
     struct Point {
         uint256 bias;
         uint256 slope;
@@ -34,7 +40,7 @@ contract Oracle {
     mapping(address => bool) public authorizedBlockNumberProviders;
 
     /// @notice Mapping of Timestamp => Block Number.
-    mapping(uint256 => uint256) public epochBlockNumber;
+    mapping(uint256 => BlockData) public epochBlockNumber;
 
     /// @notice Mapping of Gauge => Epoch => Point Weight Struct.
     mapping(address => mapping(uint256 => Point)) public pointByEpoch;
@@ -60,7 +66,8 @@ contract Oracle {
     ///////////////////////////////////////////////////////////////
 
     modifier validEpoch(uint256 epoch) {
-        if (epochBlockNumber[epoch] == 0) revert INVALID_EPOCH();
+        BlockData memory blockData = epochBlockNumber[epoch];
+        if (blockData.blockNumber == 0) revert INVALID_EPOCH();
         _;
     }
 
@@ -84,8 +91,8 @@ contract Oracle {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Insert the block number for an epoch.
-    function insertBlockNumber(uint256 epoch, uint256 blockNumber) external onlyAuthorizedBlockNumberProvider {
-        epochBlockNumber[epoch] = blockNumber;
+    function insertBlockNumber(uint256 epoch, BlockData memory blockData) external onlyAuthorizedBlockNumberProvider {
+        epochBlockNumber[epoch] = blockData;
     }
 
     /// @notice Insert a point for an epoch and gauge.
