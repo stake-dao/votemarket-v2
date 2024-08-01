@@ -1,8 +1,7 @@
 {
-  "name": "@stake-dao/pigeon",
+  "name": "@stake-dao/vm-utils",
   "version": "1.0.0",
   "devDependencies": {
-    "@openzeppelin/contracts": "4.9.0",
     "solady": "github:vectorized/solady",
     "forge-std": "github:foundry-rs/forge-std"
   }
