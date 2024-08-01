@@ -30,6 +30,9 @@ contract Oracle {
     /// @notice Mapping of addresses authorized to insert data into the contract.
     mapping(address => bool) public authorizedDataProviders;
 
+    /// @notice  Mapping of addresses authorized to insert block numbers into the contract.
+    mapping(address => bool) public authorizedBlockNumberProviders;
+
     /// @notice Mapping of Timestamp => Block Number.
     mapping(uint256 => uint256) public epochBlockNumber;
 
@@ -50,6 +53,7 @@ contract Oracle {
     error INVALID_EPOCH();
     error AUTH_GOVERNANCE_ONLY();
     error NOT_AUTHORIZED_DATA_PROVIDER();
+    error NOT_AUTHORIZED_BLOCK_NUMBER_PROVIDER();
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -60,13 +64,18 @@ contract Oracle {
         _;
     }
 
+    modifier onlyGovernance() {
+        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+        _;
+    }
+
     modifier onlyAuthorizedDataProvider() {
         if (!authorizedDataProviders[msg.sender]) revert NOT_AUTHORIZED_DATA_PROVIDER();
         _;
     }
 
-    modifier onlyGovernance() {
-        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+    modifier onlyAuthorizedBlockNumberProvider() {
+        if (!authorizedBlockNumberProviders[msg.sender]) revert NOT_AUTHORIZED_BLOCK_NUMBER_PROVIDER();
         _;
     }
 
@@ -75,7 +84,7 @@ contract Oracle {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Insert the block number for an epoch.
-    function insertBlockNumber(uint256 epoch, uint256 blockNumber) external onlyAuthorizedDataProvider {
+    function insertBlockNumber(uint256 epoch, uint256 blockNumber) external onlyAuthorizedBlockNumberProvider {
         epochBlockNumber[epoch] = blockNumber;
     }
 
@@ -107,6 +116,14 @@ contract Oracle {
     ////////////////////////////////////////////////////////////////
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
+
+    function setAuthorizedBlockNumberProvider(address blockNumberProvider) external onlyGovernance {
+        authorizedBlockNumberProviders[blockNumberProvider] = true;
+    }
+
+    function revokeAuthorizedBlockNumberProvider(address blockNumberProvider) external onlyGovernance {
+        authorizedBlockNumberProviders[blockNumberProvider] = false;
+    }
 
     function setAuthorizedDataProvider(address dataProvider) external onlyGovernance {
         authorizedDataProviders[dataProvider] = true;
