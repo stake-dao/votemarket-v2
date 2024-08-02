@@ -14,6 +14,7 @@ contract Oracle {
     struct Point {
         uint256 bias;
         uint256 slope;
+        uint256 lastUpdate;
     }
 
     struct VotedSlope {
@@ -21,6 +22,7 @@ contract Oracle {
         uint256 power;
         uint256 end;
         uint256 lastVote;
+        uint256 lastUpdate;
     }
 
     ////////////////////////////////////////////////////////////////
