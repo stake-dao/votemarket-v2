@@ -6,9 +6,6 @@ import argparse
 # python sloc.py --dir <root_directory> --include <include_patterns> --exclude <exclude_patterns>
 
 def is_interface_file(file_path):
-    if file_path.endswith("Interface.sol"):
-        return True
-
     with open(file_path, "r", encoding="utf-8") as file:
         content = file.read()
         if "interface" in content and "contract" not in content:
