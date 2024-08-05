@@ -86,11 +86,7 @@ contract ProofCorrectnessTest is Test {
         return positions;
     }
 
-    function generateAccountProof(address account, address gauge)
-        internal
-        pure
-        returns (uint256[] memory)
-    {
+    function generateAccountProof(address account, address gauge) internal pure returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](4);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(11, account)), gauge)));
 
