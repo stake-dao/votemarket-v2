@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
 import "src/oracle/Oracle.sol";
 import "src/verifiers/Verifier.sol";
 
@@ -20,11 +19,9 @@ contract ProofCorrectnessTest is Test {
         vm.createSelectFork("mainnet", 20_449_552);
 
         oracle = new Oracle();
-
         verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
 
         oracle.setAuthorizedDataProvider(address(verifier));
-
         oracle.setAuthorizedBlockNumberProvider(address(this));
         oracle.setAuthorizedBlockNumberProvider(address(verifier));
     }
@@ -37,41 +34,72 @@ contract ProofCorrectnessTest is Test {
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
         (uint256 slope, uint256 power) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
 
-        (uint256[6] memory _positions, uint256 _blockNumber) = generateEthProofParams(account, gauge, epoch);
+        // Generate proofs for both gauge and account
+        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory gaugeProofRlp) =
+            generateAndEncodeProof(account, gauge, epoch, true);
+        (,,, bytes memory accountProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
-        bytes32 _block_hash;
-        bytes memory _block_header_rlp;
-        bytes memory _account_proof;
-        bytes memory _proof_rlp;
-
-        (_block_hash, _block_header_rlp, _account_proof, _proof_rlp) =
-            getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, _positions, _blockNumber);
-
-        /// Simulate a block number insertion.
+        // Simulate a block number insertion
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: _block_hash,
+                hash: blockHash,
                 stateRootHash: bytes32(0),
                 number: block.number,
                 timestamp: block.timestamp
             })
         );
 
-        verifier.setBlockData(_block_header_rlp, _account_proof);
+        verifier.setBlockData(blockHeaderRlp, controllerProof);
 
-        (, IOracle.VotedSlope memory userSlope, uint256 lastVote) =
-            verifier.setAccountData(account, gauge, epoch, _proof_rlp);
+        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, gaugeProofRlp);
+        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, accountProofRlp);
 
-        assertEq(lastUserVote, lastVote);
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.power, power);
+        assertEq(userSlope.lastVote, lastUserVote);
+    }
+
+    function generateAndEncodeProof(address account, address gauge, uint256 epoch, bool isGaugeProof)
+        internal
+        returns (bytes32, bytes memory, bytes memory, bytes memory)
+    {
+        uint256[] memory positions =
+            isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge, epoch);
+
+        return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
+    }
+
+    function generateGaugeProof(address gauge, uint256 epoch) internal pure returns (uint256[] memory) {
+        uint256[] memory positions = new uint256[](2);
+        uint256 pointWeightsPosition =
+            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(12, gauge)), epoch)))));
+        for (uint256 i = 0; i < 2; i++) {
+            positions[i] = pointWeightsPosition + i;
+        }
+        return positions;
+    }
+
+    function generateAccountProof(address account, address gauge, uint256 epoch)
+        internal
+        pure
+        returns (uint256[] memory)
+    {
+        uint256[] memory positions = new uint256[](4);
+        positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(11, account)), gauge)));
+
+        uint256 voteUserSlopePosition =
+            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(9, account)), gauge)))));
+        for (uint256 i = 0; i < 3; i++) {
+            positions[1 + i] = voteUserSlopePosition + i;
+        }
+        return positions;
     }
 
     function getRLPEncodedProofs(
-        string memory rpcUrl,
+        string memory chain,
         address _account,
-        uint256[6] memory _positions,
+        uint256[] memory _positions,
         uint256 _blockNumber
     )
         internal
@@ -82,37 +110,15 @@ contract ProofCorrectnessTest is Test {
             bytes memory _proof_rlp
         )
     {
-        string[] memory inputs = new string[](11);
+        string[] memory inputs = new string[](5 + _positions.length);
         inputs[0] = "python3";
         inputs[1] = "test/python/generate_proof.py";
-        inputs[2] = rpcUrl;
+        inputs[2] = chain;
         inputs[3] = vm.toString(_account);
-        for (uint256 i = 4; i < 10; i++) {
-            inputs[i] = vm.toString(_positions[i - 4]);
+        inputs[4] = vm.toString(_blockNumber);
+        for (uint256 i = 0; i < _positions.length; i++) {
+            inputs[5 + i] = vm.toString(_positions[i]);
         }
-        inputs[10] = vm.toString(_blockNumber);
         return abi.decode(vm.ffi(inputs), (bytes32, bytes, bytes, bytes));
-    }
-
-    function generateEthProofParams(address account, address gauge, uint256 epoch)
-        internal
-        view
-        returns (uint256[6] memory _positions, uint256)
-    {
-        uint256 lastUserVotePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(11, account)), gauge)));
-        _positions[0] = lastUserVotePosition;
-        uint256 pointWeightsPosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(12, gauge)), epoch)))));
-        uint256 i;
-        for (i = 0; i < 2; i++) {
-            _positions[1 + i] = pointWeightsPosition + i;
-        }
-
-        uint256 voteUserSlopePosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(9, account)), gauge)))));
-        for (i = 0; i < 3; i++) {
-            _positions[3 + i] = voteUserSlopePosition + i;
-        }
-        return (_positions, block.number);
     }
 }

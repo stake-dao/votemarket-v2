@@ -85,8 +85,9 @@ def encode_rlp_proofs(proofs):
 
 def main():
     account = args[1]
-    keys = [int(x) for x in args[2:8]]
-    block_number = args[8]
+    block_number = args[2]
+    # All the remaining args are the keys. Can be any number of keys. As list.
+    keys = [int(x) for x in args[3:]]
 
     return generate_proofs(account, keys, block_number)
 

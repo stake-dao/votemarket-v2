@@ -9,13 +9,16 @@ interface IOracle {
         uint256 power;
         uint256 end;
         uint256 lastVote;
+        uint256 lastUpdate;
     }
 
     struct Point {
         uint256 bias;
         uint256 slope;
+        uint256 lastUpdate;
     }
 
+    function pointByEpoch(address gauge, uint256 epoch) external view returns (Point memory);
     function epochBlockNumber(uint256 epoch) external view returns (StateProofVerifier.BlockHeader memory);
 
     function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader memory blockData) external;
