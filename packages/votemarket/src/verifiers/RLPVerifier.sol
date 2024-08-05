@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
+
 import "@utils/StateProofVerifier.sol";
 import "@solady/src/utils/LibString.sol";
 import "src/interfaces/IOracle.sol";
@@ -65,7 +66,6 @@ contract RLPVerifier {
         StateProofVerifier.Account memory gauge_controller_account = StateProofVerifier.extractAccountFromProof(
             SOURCE_GAUGE_CONTROLLER_HASH, block_header.stateRootHash, proofs[0].toList()
         );
-        console.log(gauge_controller_account.exists);
         if (!gauge_controller_account.exists) revert GAUGE_CONTROLLER_NOT_FOUND();
 
         stateRootHash = gauge_controller_account.storageRoot;

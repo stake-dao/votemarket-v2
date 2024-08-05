@@ -1,9 +1,9 @@
-import os
-import re
-import argparse
+import os, re, argparse
 
 # HOW TO USE:
 # python sloc.py --dir <root_directory> --include <include_patterns> --exclude <exclude_patterns>
+# By default, excludes node_modules, lib, test, .git, coverage, docs, out, broadcast, utils
+# Using flag override these defaults
 
 def is_interface_file(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
@@ -117,14 +117,15 @@ if __name__ == "__main__":
         "--exclude",
         nargs="+",
         default=[
-            r"node_modules",
+            "node_modules",
             "lib",
-            r"test",
-            r".git",
-            r"coverage",
-            r"docs",
-            r"out",
-            r"broadcast",
+            "test",
+            ".git",
+            "coverage",
+            "docs",
+            "out",
+            "broadcast",
+            "utils"
         ],
         help="Regex patterns for directories to exclude from the search",
     )
