@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+/// External Libraries
 import "@utils/StateProofVerifier.sol";
 import "@solady/src/utils/LibString.sol";
+
+/// Project Interfaces & Libraries
 import "src/interfaces/IOracle.sol";
 
 abstract contract RLPDecoder {
