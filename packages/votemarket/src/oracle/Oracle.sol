@@ -38,7 +38,7 @@ contract Oracle {
     /// @notice  Mapping of addresses authorized to insert block numbers into the contract.
     mapping(address => bool) public authorizedBlockNumberProviders;
 
-    /// @notice Mapping of Timestamp => Block Number.
+    /// @notice Mapping of Timestamp => Block Header Data.
     mapping(uint256 => StateProofVerifier.BlockHeader) public epochBlockNumber;
 
     /// @notice Mapping of Gauge => Epoch => Point Weight Struct.

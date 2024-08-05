@@ -16,6 +16,8 @@ interface IOracle {
         uint256 slope;
     }
 
+    function epochBlockNumber(uint256 epoch) external view returns (StateProofVerifier.BlockHeader memory);
+
     function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader memory blockData) external;
 
     function insertPoint(address gauge, uint256 epoch, Point memory point) external;

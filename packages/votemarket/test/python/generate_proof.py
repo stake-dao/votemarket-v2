@@ -49,13 +49,13 @@ def generate_proofs(account, proof, block_number):
     rlp_block = encode_rlp_block(block)
 
     # Encode RLP proofs
-    rlp_proof = encode_rlp_proofs(
+    account_proof, rlp_proof = encode_rlp_proofs(
         web3.eth.get_proof(account, proof, block_identifier=int(block_number))
     )
 
     data = encode(
-        ["bytes32", "bytes", "bytes"],
-        [block["hash"], rlp_block, rlp_proof],
+        ["bytes32", "bytes", "bytes", "bytes"],
+        [block["hash"], rlp_block, account_proof, rlp_proof],
     ).hex()
 
     print("0x" + data)
@@ -80,7 +80,7 @@ def encode_rlp_proofs(proofs):
         list(map(rlp.decode, map(HexBytes, proof["proof"])))
         for proof in proofs["storageProof"]
     ]
-    return rlp.encode([account_proof, *storage_proofs])
+    return rlp.encode(account_proof), rlp.encode(storage_proofs)
 
 
 def main():
