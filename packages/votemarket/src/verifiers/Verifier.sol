@@ -15,10 +15,10 @@ contract Verifier is RLPDecoder {
     uint256 public immutable USER_SLOPE_MAPPING_SLOT;
 
     error INVALID_HASH();
+    error ALREADY_REGISTERED();
     error NO_BLOCK_NUMBER();
     error INVALID_BLOCK_HASH();
     error INVALID_BLOCK_NUMBER();
-    error BLOCK_HEADER_ALREADY_REGISTERED();
     error INVALID_PROOF_LENGTH();
     error GAUGE_CONTROLLER_NOT_FOUND();
 
@@ -46,7 +46,7 @@ contract Verifier is RLPDecoder {
 
         if (blockHeader_.hash != epochBlockHeader.hash) revert INVALID_BLOCK_HASH();
         if (blockHeader_.number != epochBlockHeader.number) revert INVALID_BLOCK_NUMBER();
-        if (epochBlockHeader.stateRootHash != bytes32(0)) revert BLOCK_HEADER_ALREADY_REGISTERED();
+        if (epochBlockHeader.stateRootHash != bytes32(0)) revert ALREADY_REGISTERED();
 
         stateRootHash = _registerBlockHeader(epoch, blockHeader_, proof.toRlpItem().toList());
 
@@ -57,6 +57,9 @@ contract Verifier is RLPDecoder {
         external
         returns (IOracle.VotedSlope memory userSlope)
     {
+        userSlope = ORACLE.votedSlopeByEpoch(account, gauge, epoch);
+        if (userSlope.lastUpdate != 0) revert ALREADY_REGISTERED();
+
         userSlope = _extractAccountData(account, gauge, epoch, proof);
         ORACLE.insertAddressEpochData(account, gauge, epoch, userSlope);
         return userSlope;
@@ -66,6 +69,9 @@ contract Verifier is RLPDecoder {
         external
         returns (IOracle.Point memory weight)
     {
+        weight = ORACLE.pointByEpoch(gauge, epoch);
+        if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
+
         weight = _extractPointData(gauge, epoch, proof);
         ORACLE.insertPoint(gauge, epoch, weight);
         return weight;

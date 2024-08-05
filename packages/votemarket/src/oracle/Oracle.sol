@@ -44,8 +44,8 @@ contract Oracle {
     /// @notice Mapping of Gauge => Epoch => Point Weight Struct.
     mapping(address => mapping(uint256 => Point)) public pointByEpoch;
 
-    /// @notice Mapping of Address => Epoch => Gauge => Voted Slope Struct.
-    mapping(address => mapping(uint256 => mapping(address => VotedSlope))) public votedSlopeByEpoch;
+    /// @notice Mapping of Address => Gauge => Epoch => Voted Slope Struct.
+    mapping(address => mapping(address => mapping(uint256 => VotedSlope))) public votedSlopeByEpoch;
 
     constructor() {
         governance = msg.sender;
@@ -119,7 +119,7 @@ contract Oracle {
         validEpoch(epoch)
         onlyAuthorizedDataProvider
     {
-        votedSlopeByEpoch[voter][epoch][gauge] = slope;
+        votedSlopeByEpoch[voter][gauge][epoch] = slope;
     }
 
     ////////////////////////////////////////////////////////////////

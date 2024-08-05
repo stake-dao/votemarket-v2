@@ -8,6 +8,7 @@ import "src/verifiers/Verifier.sol";
 interface IGaugeController {
     function last_user_vote(address, address) external view returns (uint256);
     function vote_user_slopes(address, address) external view returns (uint256, uint256);
+    function points_weight(address, uint256) external view returns (uint256, uint256);
 }
 
 contract ProofCorrectnessTest is Test {
@@ -33,11 +34,11 @@ contract ProofCorrectnessTest is Test {
 
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
         (uint256 slope, uint256 power) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 bias_, uint256 slope_) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
 
         // Generate proofs for both gauge and account
-        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory gaugeProofRlp) =
+        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
             generateAndEncodeProof(account, gauge, epoch, true);
-        (,,, bytes memory accountProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
         // Simulate a block number insertion
         oracle.insertBlockNumber(
@@ -52,12 +53,17 @@ contract ProofCorrectnessTest is Test {
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
 
-        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, gaugeProofRlp);
-        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, accountProofRlp);
+        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
+
+        (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
+        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.power, power);
         assertEq(userSlope.lastVote, lastUserVote);
+
+        assertEq(weight.bias, bias_);
+        assertEq(weight.slope, slope_);
     }
 
     function generateAndEncodeProof(address account, address gauge, uint256 epoch, bool isGaugeProof)
@@ -65,7 +71,7 @@ contract ProofCorrectnessTest is Test {
         returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
         uint256[] memory positions =
-            isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge, epoch);
+            isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
 
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
     }
@@ -80,7 +86,7 @@ contract ProofCorrectnessTest is Test {
         return positions;
     }
 
-    function generateAccountProof(address account, address gauge, uint256 epoch)
+    function generateAccountProof(address account, address gauge)
         internal
         pure
         returns (uint256[] memory)
