@@ -15,8 +15,8 @@ contract Verifier is RLPDecoder {
     uint256 public immutable USER_SLOPE_MAPPING_SLOT;
 
     error INVALID_HASH();
-    error ALREADY_REGISTERED();
     error NO_BLOCK_NUMBER();
+    error ALREADY_REGISTERED();
     error INVALID_BLOCK_HASH();
     error INVALID_BLOCK_NUMBER();
     error INVALID_PROOF_LENGTH();
@@ -46,6 +46,7 @@ contract Verifier is RLPDecoder {
 
         if (blockHeader_.hash != epochBlockHeader.hash) revert INVALID_BLOCK_HASH();
         if (blockHeader_.number != epochBlockHeader.number) revert INVALID_BLOCK_NUMBER();
+
         if (epochBlockHeader.stateRootHash != bytes32(0)) revert ALREADY_REGISTERED();
 
         stateRootHash = _registerBlockHeader(epoch, blockHeader_, proof.toRlpItem().toList());
