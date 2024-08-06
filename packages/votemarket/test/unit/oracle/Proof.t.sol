@@ -2,22 +2,43 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
+
 import "src/oracle/Oracle.sol";
 import "src/verifiers/Verifier.sol";
+import "src/interfaces/IGaugeController.sol";
 
-interface IGaugeController {
-    function last_user_vote(address, address) external view returns (uint256);
-    function vote_user_slopes(address, address) external view returns (uint256, uint256);
-    function points_weight(address, uint256) external view returns (uint256, uint256);
-}
-
-contract ProofCorrectnessTest is Test {
+abstract contract ProofCorrectnessTest is Test {
     Oracle oracle;
     Verifier verifier;
     address internal constant GAUGE_CONTROLLER = address(0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB);
 
+    address account;
+    address gauge;
+    uint256 blockNumber;
+
+    uint256 lastUserVoteSlot;
+    uint256 userSlopeSlot;
+    uint256 weightSlot;
+
+    constructor(
+        address _account,
+        address _gauge,
+        uint256 _blockNumber,
+        uint256 _lastUserVoteSlot,
+        uint256 _userSlopeSlot,
+        uint256 _weightSlot
+    ) {
+        account = _account;
+        gauge = _gauge;
+        blockNumber = _blockNumber;
+
+        lastUserVoteSlot = _lastUserVoteSlot;
+        userSlopeSlot = _userSlopeSlot;
+        weightSlot = _weightSlot;
+    }
+
     function setUp() public {
-        vm.createSelectFork("mainnet", 20_449_552);
+        vm.createSelectFork("mainnet", blockNumber);
 
         oracle = new Oracle();
         verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
@@ -28,8 +49,6 @@ contract ProofCorrectnessTest is Test {
     }
 
     function testGetProofParams() public {
-        address account = 0x52f541764E6e90eeBc5c21Ff570De0e2D63766B6;
-        address gauge = 0x16A3a047fC1D388d5846a73ACDb475b11228c299;
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);

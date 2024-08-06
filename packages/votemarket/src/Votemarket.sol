@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 /// External Libraries
-import "@solady/src/utils/Multicallable.sol";
 import "@solady/src/utils/ReentrancyGuard.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
 import "@solady/src/utils/FixedPointMathLib.sol";
@@ -148,6 +147,10 @@ contract Votemarket is ReentrancyGuard {
         /// TODO: Put it as a parameter for create3 deployment.
         governance = msg.sender;
         feeCollector = msg.sender;
+
+        /// 3 months.
+        closeDeadline = 12 weeks;
+        claimDeadline = 12 weeks;
 
         /// Default fee is 4%.
         fee = 4e16;
