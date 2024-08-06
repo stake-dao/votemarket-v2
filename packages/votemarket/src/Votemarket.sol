@@ -10,6 +10,7 @@ import "@solady/src/utils/FixedPointMathLib.sol";
 /// Project Interfaces & Libraries
 import "src/interfaces/IHook.sol";
 import "src/interfaces/IVotemarket.sol";
+import "src/interfaces/IOracleLens.sol";
 
 /// @notice Vote market contract.
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
@@ -33,6 +34,9 @@ contract Votemarket is ReentrancyGuard, Multicallable {
 
     /// @notice Governance address.
     address public governance;
+
+    /// @notice Oracle address.
+    address public oracle;
 
     /// @notice Address of the remote cross-chain message handler.
     address public remote;
@@ -149,6 +153,12 @@ contract Votemarket is ReentrancyGuard, Multicallable {
         /// Default fee is 4%.
         fee = 4e16;
     }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- CLAIM LOGIC
+    ///////////////////////////////////////////////////////////////
+
+    function _claim(address account, address gauge, uint256 epoch) internal {}
 
     ////////////////////////////////////////////////////////////////
     /// --- CAMPAIGN MANAGEMENT
