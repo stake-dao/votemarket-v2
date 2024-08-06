@@ -81,6 +81,9 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Blacklisted addresses per campaign.
     mapping(uint256 => address[]) public blacklistById;
 
+    /// @notice Mapping of campaign ids that are whitelist only.
+    mapping(uint256 => bool) public whitelistOnly;
+
     /// @notice Blacklisted addresses per campaign that aren't counted for rewards arithmetics.
     mapping(uint256 => mapping(address => bool)) public isBlacklisted;
 
@@ -99,7 +102,9 @@ contract Votemarket is ReentrancyGuard {
     error CAMPAIGN_ENDED();
     error CAMPAIGN_NOT_ENDED();
 
+    error AUTH_BLACKLISTED();
     error AUTH_MANAGER_ONLY();
+    error AUTH_WHITELIST_ONLY();
     error AUTH_GOVERNANCE_ONLY();
 
     event CampaignCreated(
@@ -128,6 +133,18 @@ contract Votemarket is ReentrancyGuard {
 
     modifier onlyGovernance() {
         if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+        _;
+    }
+
+    modifier checkWhitelist(uint256 campaignId, address account) {
+        if (whitelistOnly[campaignId]) {
+            if (!isWhitelisted[campaignId][account]) revert AUTH_WHITELIST_ONLY();
+        }
+        _;
+    }
+
+    modifier checkBlacklist(uint256 campaignId, address account) {
+        if (isBlacklisted[campaignId][account]) revert AUTH_BLACKLISTED();
         _;
     }
 
@@ -160,7 +177,12 @@ contract Votemarket is ReentrancyGuard {
     /// --- CLAIM LOGIC
     ///////////////////////////////////////////////////////////////
 
-    function _claim(address account, address gauge, uint256 epoch) internal {}
+    function _claim(uint256 campaignId, address account, address gauge, uint256 epoch)
+        internal
+        checkWhitelist(campaignId, account)
+        checkBlacklist(campaignId, account)
+        returns (uint256 claimed)
+    {}
 
     ////////////////////////////////////////////////////////////////
     /// --- CAMPAIGN MANAGEMENT
@@ -232,6 +254,9 @@ contract Votemarket is ReentrancyGuard {
             for (uint256 i = 0; i < blacklist.length; i++) {
                 isWhitelisted[campaignId][blacklist[i]] = true;
             }
+
+            /// Flag the campaign as whitelist only.
+            whitelistOnly[campaignId] = true;
         } else {
             for (uint256 i = 0; i < blacklist.length; i++) {
                 isBlacklisted[campaignId][blacklist[i]] = true;
@@ -490,6 +515,12 @@ contract Votemarket is ReentrancyGuard {
     ////////////////////////////////////////////////////////////////
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
+
+    function setOracle(address _oracle) external onlyGovernance {
+        if (_oracle == address(0)) revert ZERO_ADDRESS();
+
+        oracle = _oracle;
+    }
 
     function setFee(uint256 _fee) external onlyGovernance {
         /// Fee cannot be higher than 10%.

@@ -184,6 +184,7 @@ contract CreateCampaignTest is BaseTest {
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
         assertTrue(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
+        assertFalse(votemarket.whitelistOnly(campaignId));
 
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
@@ -220,6 +221,7 @@ contract CreateCampaignTest is BaseTest {
         assertTrue(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
         assertTrue(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
+        assertTrue(votemarket.whitelistOnly(campaignId));
 
         assertFalse(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
