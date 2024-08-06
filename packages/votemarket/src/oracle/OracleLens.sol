@@ -12,7 +12,7 @@ contract OracleLens {
         oracle = _oracle;
     }
 
-    function getTotalVotesPerEpoch(address gauge, uint256 epoch) external view returns (uint256) {}
+    function getTotalVotes(address gauge, uint256 epoch) external view returns (uint256) {}
     function canClaim(address account, address gauge, uint256 epoch) external view returns (bool) {}
-    function getVoteAccountPerEpoch(address account, address gauge, uint256 epoch) external view returns (uint256) {}
+    function getAccountVotes(address account, address gauge, uint256 epoch) external view returns (uint256) {}
 }
