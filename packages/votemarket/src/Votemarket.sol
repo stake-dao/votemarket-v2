@@ -16,9 +16,8 @@ import "src/interfaces/IOracleLens.sol";
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
 /// It uses storage proofs to validate and verify the votes and distribute the rewards accordingly.
 /// @dev This contract is better suited for L2s. Unadvised to deploy on L1.
-/// The contract is MultiCall compatible, to allow for batch calls.
 /// @custom:contact contact@stakedao.org
-contract Votemarket is ReentrancyGuard, Multicallable {
+contract Votemarket is ReentrancyGuard {
     using FixedPointMathLib for uint256;
 
     ////////////////////////////////////////////////////////////////
