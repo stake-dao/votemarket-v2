@@ -43,8 +43,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
         assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods + 2);
@@ -66,8 +68,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(MAX_REWARD_PER_VOTE, campaign.maxRewardPerVote);
         assertEq(campaignUpgrade.maxRewardPerVote, MAX_REWARD_PER_VOTE * 2);
@@ -93,8 +97,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         /// It should be equal to the total reward amount + the new total reward amount.
@@ -120,8 +126,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         /// It should be equal to the total reward amount + the new total reward amount.
@@ -147,8 +155,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         /// It should be equal to the total reward amount + the new total reward amount.
@@ -171,7 +181,7 @@ contract ManageCampaignTest is BaseTest {
         campaign = votemarket.getCampaign(campaignId);
 
         /// Check the campaign upgrade.
-        campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT * 2);
@@ -195,8 +205,10 @@ contract ManageCampaignTest is BaseTest {
         /// Check the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
+        uint256 currentEpoch = votemarket.currentEpoch();
+
         /// Check the campaign upgrade.
-        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        CampaignUpgrade memory campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT);
@@ -214,7 +226,7 @@ contract ManageCampaignTest is BaseTest {
         campaign = votemarket.getCampaign(campaignId);
 
         /// Check the campaign upgrade.
-        campaignUpgrade = votemarket.getCampaignUpgrade(campaignId);
+        campaignUpgrade = votemarket.getCampaignUpgrade(campaignId, currentEpoch + 1 weeks);
 
         assertEq(TOTAL_REWARD_AMOUNT, campaign.totalRewardAmount);
         assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + TOTAL_REWARD_AMOUNT * 2);

@@ -29,6 +29,8 @@ struct Period {
     uint256 startTimestamp;
     /// @notice Amount of reward reserved for the period.
     uint256 rewardPerPeriod;
+    /// @notice  Leftover amount.
+    uint256 leftover;
 }
 
 struct CampaignUpgrade {

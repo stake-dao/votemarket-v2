@@ -28,6 +28,9 @@ abstract contract BaseTest is Test {
         rewardToken.initialize("Mock Token", "MOCK", 18);
 
         HOOK = address(new MockHook());
+
+        /// To avoid timestamp = 0.
+        skip(1 weeks);
     }
 
     function _createCampaign() internal {
@@ -97,8 +100,8 @@ abstract contract BaseTest is Test {
         _createCampaign();
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        assertEq(votemarket.getPeriodsLeft(campaignId), 4);
+        assertEq(votemarket.getPeriodsLeft(campaignId, votemarket.currentEpoch()), 4);
         skip(4 weeks);
-        assertEq(votemarket.getPeriodsLeft(campaignId), 0);
+        assertEq(votemarket.getPeriodsLeft(campaignId, votemarket.currentEpoch()), 0);
     }
 }

@@ -52,7 +52,7 @@ contract CreateCampaignTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, 0);
 
-        assertEq(period.startTimestamp, votemarket.currentPeriod() + 1 weeks);
+        assertEq(period.startTimestamp, votemarket.currentEpoch() + 1 weeks);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
     }
 
@@ -298,6 +298,6 @@ contract CreateCampaignTest is BaseTest {
 
     function testCurrentPeriod() public view {
         uint256 expectedPeriod = block.timestamp / 1 weeks * 1 weeks;
-        assertEq(votemarket.currentPeriod(), expectedPeriod);
+        assertEq(votemarket.currentEpoch(), expectedPeriod);
     }
 }
