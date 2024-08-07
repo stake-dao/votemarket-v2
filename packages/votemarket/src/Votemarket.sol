@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+/// Test
+import "@forge-std/src/Test.sol";
+
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
@@ -193,16 +196,22 @@ contract Votemarket is ReentrancyGuard {
         return claimed;
     }
 
+    function updateEpoch(uint256 campaignId, uint256 epoch) external returns (uint256 epoch_) {
+        epoch_ = _updateEpoch(campaignId, epoch);
+    }
+
     function _updateEpoch(uint256 campaignId, uint256 epoch) internal returns (uint256 epoch_) {
         if (_isEpochAlreadyUpdated(campaignId, epoch)) return epoch;
 
         _validatePreviousState(campaignId, epoch);
         _checkForUpgrade(campaignId, epoch);
 
-        /// Update Period Reward.
-        Period storage period = _getPeriod(campaignId, epoch);
         uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
         uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
+
+        /// Update Period.
+        Period storage period = _getPeriod(campaignId, epoch);
+        period.startTimestamp = epoch;
         period.rewardPerPeriod = totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods);
 
         _updateRewardPerVote(campaignId, epoch, period);
@@ -216,8 +225,8 @@ contract Votemarket is ReentrancyGuard {
 
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
-        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
-        if (remainingPeriods == campaignById[campaignId].numberOfPeriods && previousPeriod.rewardPerPeriod == 0) {
+
+        if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
             revert PREVIOUS_STATE_MISSING();
         }
     }
@@ -423,8 +432,8 @@ contract Votemarket is ReentrancyGuard {
             });
         } else {
             campaignUpgrade = CampaignUpgrade({
-                numberOfPeriods: numberOfPeriods,
-                totalRewardAmount: totalRewardAmount,
+                numberOfPeriods: campaign.numberOfPeriods + numberOfPeriods,
+                totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: updatedMaxRewardPerVote,
                 endTimestamp: campaign.endTimestamp + (numberOfPeriods * 1 weeks)
             });
@@ -464,7 +473,7 @@ contract Votemarket is ReentrancyGuard {
         } else {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods,
-                totalRewardAmount: totalRewardAmount,
+                totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: campaign.maxRewardPerVote,
                 endTimestamp: campaign.endTimestamp
             });
@@ -491,9 +500,6 @@ contract Votemarket is ReentrancyGuard {
         /// Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
-        /// Can't close the campaign if last epoch is missing.
-        if (isEpochUpdated(campaignId, campaign.endTimestamp - 1 weeks)) revert PREVIOUS_STATE_MISSING();
-
         /// Claim deadline is the end timestamp + claim deadline.
         uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
 
@@ -503,11 +509,18 @@ contract Votemarket is ReentrancyGuard {
         /// Check if the campaign started.
         uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
 
+        /// Can't close the campaign if the campaign is not ended.
         if (block.timestamp >= startTimestamp && block.timestamp < claimDeadline_) {
             revert CAMPAIGN_NOT_ENDED();
-        } else if (
-            block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_)
-        ) {
+        }
+
+        /// Validate the previous state if the campaign is started.
+        if(block.timestamp >= startTimestamp){
+            _validatePreviousState(campaignId, campaign.endTimestamp - 1 weeks);
+        }
+
+        if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
+        {
             _isManagerOrRemote({campaignId: campaignId});
             _closeCampaign({
                 campaignId: campaignId,
@@ -555,14 +568,14 @@ contract Votemarket is ReentrancyGuard {
         // Check if there is an upgrade in queue.
         if (campaignUpgrade.totalRewardAmount != 0) {
             /// Add to the leftover amount the newly added reward amount so it can be split accordingly to the remaining periods.
-            periodByCampaignId[campaignId][epoch - 1 weeks].leftover += campaignUpgrade.totalRewardAmount;
+            periodByCampaignId[campaignId][epoch - 1 weeks].leftover =
+                campaignUpgrade.totalRewardAmount - campaignById[campaignId].totalRewardAmount;
 
             // Save new values.
             campaignById[campaignId].endTimestamp = campaignUpgrade.endTimestamp;
+            campaignById[campaignId].numberOfPeriods = campaignUpgrade.numberOfPeriods;
             campaignById[campaignId].maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
-
-            campaignById[campaignId].numberOfPeriods += campaignUpgrade.numberOfPeriods;
-            campaignById[campaignId].totalRewardAmount += campaignUpgrade.totalRewardAmount;
+            campaignById[campaignId].totalRewardAmount = campaignUpgrade.totalRewardAmount;
 
             emit CampaignUpgraded(
                 campaignId,

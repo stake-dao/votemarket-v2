@@ -75,6 +75,8 @@ contract CloseCampaignTest is BaseTest {
         vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
         votemarket.closeCampaign(campaignId);
 
+        _updateEpochs(campaignId);
+
         /// Skip to the end of the claim deadline.
         skip(3 weeks);
 
@@ -109,6 +111,8 @@ contract CloseCampaignTest is BaseTest {
         /// We're in the close deadline period, so it should revert with CAMPAIGN_NOT_ENDED.
         vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
         votemarket.closeCampaign(campaignId);
+
+        _updateEpochs(campaignId);
 
         /// Skip to the end of the close deadline.
         skip(3 weeks);
@@ -152,6 +156,12 @@ contract CloseCampaignTest is BaseTest {
 
         /// Skip to the end of the claim deadline.
         skip(3 weeks);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        votemarket.closeCampaign(campaignId);
+
+        _updateEpochs(campaignId);
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
