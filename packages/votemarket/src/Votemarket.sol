@@ -201,7 +201,7 @@ contract Votemarket is ReentrancyGuard {
 
         /// Update Period Reward.
         Period storage period = _getPeriod(campaignId, epoch);
-        uint256 remainingPeriods = _getRemainingPeriods(campaignId, epoch);
+        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
         uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
         period.rewardPerPeriod = totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods);
 
@@ -216,7 +216,7 @@ contract Votemarket is ReentrancyGuard {
 
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
-        uint256 remainingPeriods = getPeriodsLeft(campaignId, epoch);
+        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
         if (remainingPeriods == campaignById[campaignId].numberOfPeriods && previousPeriod.rewardPerPeriod == 0) {
             revert PREVIOUS_STATE_MISSING();
         }
@@ -224,10 +224,6 @@ contract Votemarket is ReentrancyGuard {
 
     function _getPeriod(uint256 campaignId, uint256 epoch) internal view returns (Period storage) {
         return periodByCampaignId[campaignId][epoch];
-    }
-
-    function _getRemainingPeriods(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
-        return getPeriodsLeft(campaignId, epoch);
     }
 
     function _calculateTotalReward(uint256 campaignId, uint256 epoch, uint256 remainingPeriods)
@@ -240,20 +236,16 @@ contract Votemarket is ReentrancyGuard {
         return previousPeriod.leftover + currentPeriod.rewardPerPeriod * remainingPeriods;
     }
 
-    function _updatePeriodReward(
-        Period storage period,
-        uint256 totalRewardForRemainingPeriods,
-        uint256 remainingPeriods
-    ) internal {}
-
     function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period) internal {
+        /// To mark the epoch as updated. If non of the conditions are met.
+        uint256 rewardPerVote = 1;
         if (whitelistOnly[campaignId]) {
-            rewardPerVoteByCampaignId[campaignId][epoch] = campaignById[campaignId].maxRewardPerVote;
+            rewardPerVote = campaignById[campaignId].maxRewardPerVote;
         } else {
             uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
             if (totalVotes != 0) {
-                uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1, totalVotes);
+                rewardPerVote = period.rewardPerPeriod.mulDiv(1, totalVotes);
 
                 if (rewardPerVote > campaignById[campaignId].maxRewardPerVote) {
                     rewardPerVote = campaignById[campaignId].maxRewardPerVote;
@@ -270,13 +262,11 @@ contract Votemarket is ReentrancyGuard {
                         period.leftover = leftOver;
                     }
                 }
-                rewardPerVoteByCampaignId[campaignId][epoch] = rewardPerVote;
-            } else {
-                /// To mark the epoch as updated.
-                /// If the total votes are 0, even with this value, no rewards will be distributed.
-                rewardPerVoteByCampaignId[campaignId][epoch] = 1;
             }
         }
+
+        /// Save the reward per vote.
+        rewardPerVoteByCampaignId[campaignId][epoch] = rewardPerVote;
     }
 
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
@@ -399,7 +389,7 @@ contract Votemarket is ReentrancyGuard {
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) {
         /// Check if the campaign is ended.
-        if (getPeriodsLeft(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
 
         uint256 epoch = currentEpoch() + 1 weeks;
 
@@ -590,7 +580,7 @@ contract Votemarket is ReentrancyGuard {
     function isEpochUpdated(uint256 campaignId, uint256 epoch) public view returns (bool) {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
 
-        uint256 remainingPeriods = getPeriodsLeft(campaignId, epoch);
+        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
         uint256 periodId = remainingPeriods > 0 ? remainingPeriods : 0;
 
         /// If first epoch, no previous period. If reward per vote is missing, it's not updated.
@@ -599,7 +589,7 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Returns the number of weeks before the campaign ends.
     /// @param campaignId Id of the campaign.
-    function getPeriodsLeft(uint256 campaignId, uint256 epoch) public view returns (uint256 periodsLeft) {
+    function getRemainingPeriods(uint256 campaignId, uint256 epoch) public view returns (uint256 periodsLeft) {
         Campaign storage campaign = campaignById[campaignId];
         periodsLeft = campaign.endTimestamp > epoch ? (campaign.endTimestamp - epoch) / 1 weeks : 0;
     }

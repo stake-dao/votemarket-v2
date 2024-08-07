@@ -100,8 +100,8 @@ abstract contract BaseTest is Test {
         _createCampaign();
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        assertEq(votemarket.getPeriodsLeft(campaignId, votemarket.currentEpoch()), 4);
+        assertEq(votemarket.getRemainingPeriods(campaignId, votemarket.currentEpoch()), 4);
         skip(4 weeks);
-        assertEq(votemarket.getPeriodsLeft(campaignId, votemarket.currentEpoch()), 0);
+        assertEq(votemarket.getRemainingPeriods(campaignId, votemarket.currentEpoch()), 0);
     }
 }
