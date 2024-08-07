@@ -235,8 +235,7 @@ contract CreateCampaignTest is BaseTest {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        vm.expectRevert();
-        votemarket.createCampaign(
+        uint campaignId = votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             MANAGER,
@@ -248,6 +247,8 @@ contract CreateCampaignTest is BaseTest {
             address(0),
             false
         );
+
+        assertEq(votemarket.hookByCampaignId(campaignId), address(0));
     }
 
     function testCreateCampaignWithHook() public {
@@ -271,29 +272,6 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
         assertEq(votemarket.hookByCampaignId(campaignId), mockHook);
-    }
-
-    function testCreateCampaignWithInvalidHook() public {
-        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
-        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
-
-        address invalidHook = address(new MockInvalidHook());
-
-        votemarket.createCampaign(
-            CHAIN_ID,
-            GAUGE,
-            MANAGER,
-            address(rewardToken),
-            VALID_PERIODS,
-            MAX_REWARD_PER_VOTE,
-            TOTAL_REWARD_AMOUNT,
-            blacklist,
-            invalidHook,
-            false
-        );
-
-        uint256 campaignId = votemarket.campaignCount() - 1;
-        assertEq(votemarket.hookByCampaignId(campaignId), address(0));
     }
 
     function testCurrentPeriod() public view {

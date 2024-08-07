@@ -307,7 +307,7 @@ contract Votemarket is ReentrancyGuard {
         address[] calldata blacklist,
         address hook,
         bool isWhitelist
-    ) external nonReentrant {
+    ) external nonReentrant returns (uint256 campaignId) {
         if (numberOfPeriods < MINIMUM_PERIODS) revert INVALID_INPUT();
         if (totalRewardAmount == 0 || maxRewardPerVote == 0) revert ZERO_INPUT();
         if (rewardToken == address(0) || gauge == address(0)) revert ZERO_ADDRESS();
@@ -328,7 +328,7 @@ contract Votemarket is ReentrancyGuard {
         });
 
         /// Generate campaign Id.
-        uint256 campaignId = campaignCount;
+        campaignId = campaignCount;
 
         /// Increment campaign count.
         ++campaignCount;
@@ -345,14 +345,9 @@ contract Votemarket is ReentrancyGuard {
             endTimestamp: currentEpoch() + numberOfPeriods * 1 weeks
         });
 
-        /// Check validity of the hook.
-        /// TODO: How to check if the hook is valid?
-        bool isValidHook = IHook(hook).validateHook();
-        if (isValidHook) {
-            /// We do not want to revert the transaction if the hook is invalid.
-            /// By default, if the hook is invalid, the campaign will rollover.
-            hookByCampaignId[campaignId] = hook;
-        }
+        /// Store the hook.
+        /// No need to check if the hook is valid.
+        hookByCampaignId[campaignId] = hook;
 
         /// Store blacklisted or whitelisted addresses.
         /// If blacklisted, the addresses will be subtracted from the total votes.
@@ -515,7 +510,7 @@ contract Votemarket is ReentrancyGuard {
         }
 
         /// Validate the previous state if the campaign is started.
-        if(block.timestamp >= startTimestamp){
+        if (block.timestamp >= startTimestamp) {
             _validatePreviousState(campaignId, campaign.endTimestamp - 1 weeks);
         }
 

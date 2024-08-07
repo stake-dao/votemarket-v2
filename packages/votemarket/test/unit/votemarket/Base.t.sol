@@ -47,12 +47,15 @@ abstract contract BaseTest is Test {
         /// To avoid timestamp = 0.
         skip(1 weeks);
 
-        oracle.insertBlockNumber(votemarket.currentEpoch(), StateProofVerifier.BlockHeader({
-            hash: blockhash(block.number),
-            stateRootHash: bytes32(0),
-            number: block.number,
-            timestamp: block.timestamp
-        }));
+        oracle.insertBlockNumber(
+            votemarket.currentEpoch(),
+            StateProofVerifier.BlockHeader({
+                hash: blockhash(block.number),
+                stateRootHash: bytes32(0),
+                number: block.number,
+                timestamp: block.timestamp
+            })
+        );
 
         _mockGaugeData(GAUGE, votemarket.currentEpoch());
         _mockAccountData(address(this), GAUGE, votemarket.currentEpoch());
