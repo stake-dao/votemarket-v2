@@ -20,7 +20,18 @@ contract UpdateEpochTest is BaseTest {
         votemarket.setOracle(address(mockOracle));
     }
 
-    function testUpdateEpochCampaignNotStarted() public {}
+    function testUpdateEpochCampaignNotStarted() public {
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
+
+        assertEq(period.startTimestamp, 0);
+        assertEq(period.rewardPerPeriod, 0);
+        assertEq(period.leftover, 0);
+
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_STARTED.selector);
+        votemarket.updateEpoch(campaignId, currentEpoch);
+    }
 
     function testUpdateEpoch() public {}
     function testUpdateEpochForSubsequentPeriods() public {}

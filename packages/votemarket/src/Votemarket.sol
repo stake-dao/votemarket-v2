@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+/// TODO: CLEAN LOGIC
+/// Enum for State Transitions ?
+
 /// TODO: REMOVE
 import "@forge-std/src/Test.sol";
 
@@ -156,6 +159,11 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
+    modifier checkCampaignStarted(uint256 campaignId, uint256 epoch) {
+        if (epoch < campaignById[campaignId].startTimestamp) revert CAMPAIGN_NOT_STARTED();
+        _;
+    }
+
     /// TODO: Implement remote managers.
     /// Usecase is when the manager is cross-chain message.
     modifier onlyManagerOrRemote(uint256 campaignId) {
@@ -189,6 +197,7 @@ contract Votemarket is ReentrancyGuard {
         internal
         checkWhitelist(campaignId, account)
         checkBlacklist(campaignId, account)
+        checkCampaignStarted(campaignId, epoch)
         returns (uint256 claimed)
     {
         /// Update the epoch.
@@ -197,7 +206,10 @@ contract Votemarket is ReentrancyGuard {
         return claimed;
     }
 
-    function updateEpoch(uint256 campaignId, uint256 epoch) external returns (uint256 epoch_) {
+    function updateEpoch(uint256 campaignId, uint256 epoch) external checkCampaignStarted(campaignId, epoch) returns (uint256 epoch_) {
+        /// Check if the campaign is started.
+        if (epoch < campaignById[campaignId].startTimestamp) revert CAMPAIGN_NOT_STARTED();
+
         epoch_ = _updateEpoch(campaignId, epoch);
     }
 
@@ -205,6 +217,11 @@ contract Votemarket is ReentrancyGuard {
         if (_isEpochAlreadyUpdated(campaignId, epoch)) return epoch;
 
         _checkForUpgrade(campaignId, epoch);
+
+        /// Validate the previous state if the campaign is started.
+        if (epoch >= campaignById[campaignId].startTimestamp + 1 weeks) {
+            _validatePreviousState(campaignId, epoch);
+        }
 
         uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
         uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
@@ -224,14 +241,10 @@ contract Votemarket is ReentrancyGuard {
     }
 
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
-        Campaign storage campaign = campaignById[campaignId];
+        Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
 
-        if (epoch >= campaign.startTimestamp + 1 weeks) {
-            Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
-
-            if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
-                revert PREVIOUS_STATE_MISSING();
-            }
+        if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
+            revert PREVIOUS_STATE_MISSING();
         }
     }
 
@@ -516,34 +529,25 @@ contract Votemarket is ReentrancyGuard {
             revert CAMPAIGN_NOT_ENDED();
         }
 
-        if (block.timestamp >= startTimestamp) {
-            /// Validate the previous state if the campaign is started.
+        address receiver = campaign.manager;
+
+        if (block.timestamp < startTimestamp) {
+            _isManagerOrRemote(campaignId);
+        } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
+            _isManagerOrRemote(campaignId);
+
             _validatePreviousState(campaignId, campaign.endTimestamp - 1 weeks);
-        }
-
-        if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
-        {
-            /// During the Close deadline period, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
-            _isManagerOrRemote({campaignId: campaignId});
-
-            /// Close the campaign.
-            _closeCampaign({
-                campaignId: campaignId,
-                totalRewardAmount: campaign.totalRewardAmount,
-                rewardToken: campaign.rewardToken,
-                receiver: campaign.manager
-            });
-
-            /// If the close deadline is reached. Anyone can close the campaign.
         } else if (block.timestamp >= closeDeadline_) {
-            /// Close the campaign.
-            _closeCampaign({
-                campaignId: campaignId,
-                totalRewardAmount: campaign.totalRewardAmount,
-                rewardToken: campaign.rewardToken,
-                receiver: feeCollector
-            });
+            receiver = feeCollector;
         }
+
+        /// Close the campaign.
+        _closeCampaign({
+            campaignId: campaignId,
+            totalRewardAmount: campaign.totalRewardAmount,
+            rewardToken: campaign.rewardToken,
+            receiver: receiver
+        });
     }
 
     ////////////////////////////////////////////////////////////////

@@ -157,7 +157,6 @@ contract CloseCampaignTest is BaseTest {
         /// Skip to the end of the claim deadline.
         skip(3 weeks);
 
-        vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
 
