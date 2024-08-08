@@ -1,6 +1,6 @@
 # Votemarket: An incentive market
 
 
-Current SLOC: 681
+Current SLOC: 702
 
 SLOC to not exceed: 1311
