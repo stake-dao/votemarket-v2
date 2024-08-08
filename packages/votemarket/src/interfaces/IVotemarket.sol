@@ -33,6 +33,8 @@ struct Period {
     uint256 rewardPerPeriod;
     /// @notice  Leftover amount.
     uint256 leftover;
+    /// @notice Flag to indicate if the period is updated.
+    bool updated;
 }
 
 struct CampaignUpgrade {

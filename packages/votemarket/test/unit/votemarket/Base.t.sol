@@ -148,7 +148,7 @@ abstract contract BaseTest is Test {
         uint256 startTimestamp = campaign.startTimestamp;
 
         for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
-            votemarket.updateEpoch(campaignId, i);
+            votemarket.updateEpoch(campaignId, i, "");
 
             /// Get the campaign.
             campaign = votemarket.getCampaign(campaignId);

@@ -193,7 +193,7 @@ contract Votemarket is ReentrancyGuard {
     /// --- CLAIM LOGIC
     ///////////////////////////////////////////////////////////////
 
-    function _claim(uint256 campaignId, address account, uint256 epoch)
+    function _claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
         internal
         checkWhitelist(campaignId, account)
         checkBlacklist(campaignId, account)
@@ -201,12 +201,12 @@ contract Votemarket is ReentrancyGuard {
         returns (uint256 claimed)
     {
         /// Update the epoch.
-        epoch = _updateEpoch(campaignId, epoch);
+        epoch = _updateEpoch(campaignId, epoch, hookData);
 
         return claimed;
     }
 
-    function updateEpoch(uint256 campaignId, uint256 epoch)
+    function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
         external
         checkCampaignStarted(campaignId, epoch)
         returns (uint256 epoch_)
@@ -214,23 +214,23 @@ contract Votemarket is ReentrancyGuard {
         /// Check if the campaign is started.
         if (epoch < campaignById[campaignId].startTimestamp) revert CAMPAIGN_NOT_STARTED();
 
-        epoch_ = _updateEpoch(campaignId, epoch);
+        epoch_ = _updateEpoch(campaignId, epoch, hookData);
     }
 
-    function _updateEpoch(uint256 campaignId, uint256 epoch) internal returns (uint256 epoch_) {
-        if (_isEpochAlreadyUpdated(campaignId, epoch)) return epoch;
+    function _updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
+        internal
+        returns (uint256 epoch_)
+    {
+        /// Get the period.
+        Period storage period = _getPeriod(campaignId, epoch);
+        if (period.updated) return epoch;
 
         _checkForUpgrade(campaignId, epoch);
 
-        /// Validate the previous state if the campaign is started.
+        /// Validate the previous state if the campaign is started and not the first period.
         if (epoch >= campaignById[campaignId].startTimestamp + 1 weeks) {
             _validatePreviousState(campaignId, epoch);
-        }
 
-        /// Update Period.
-        Period storage period = _getPeriod(campaignId, epoch);
-
-        if (period.startTimestamp == 0) {
             uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
             uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
 
@@ -238,19 +238,16 @@ contract Votemarket is ReentrancyGuard {
             period.rewardPerPeriod = totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods);
         }
 
-        _updateRewardPerVote(campaignId, epoch, period);
+        _updateRewardPerVote(campaignId, epoch, period, hookData);
 
+        period.updated = true;
         return epoch;
-    }
-
-    function _isEpochAlreadyUpdated(uint256 campaignId, uint256 epoch) internal view returns (bool) {
-        return rewardPerVoteByCampaignId[campaignId][epoch] != 0;
     }
 
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
 
-        if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
+        if (!previousPeriod.updated) {
             revert PREVIOUS_STATE_MISSING();
         }
     }
@@ -268,7 +265,9 @@ contract Votemarket is ReentrancyGuard {
         return previousPeriod.leftover + previousPeriod.rewardPerPeriod * remainingPeriods;
     }
 
-    function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period) internal {
+    function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period, bytes calldata hookData)
+        internal
+    {
         /// To mark the epoch as updated. If non of the conditions are met.
         uint256 rewardPerVote = 1;
         if (whitelistOnly[campaignId]) {
@@ -290,6 +289,8 @@ contract Votemarket is ReentrancyGuard {
                             to: hookByCampaignId[campaignId],
                             amount: leftOver
                         });
+                        /// Trigger the hook.
+                        IHook(hookByCampaignId[campaignId]).doSomething(hookData);
                     } else {
                         period.leftover = leftOver;
                     }
@@ -398,8 +399,12 @@ contract Votemarket is ReentrancyGuard {
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
         /// Store the first period.
-        periodByCampaignId[campaignId][currentEpoch_ + 1 weeks] =
-            Period({startTimestamp: currentEpoch_ + 1 weeks, rewardPerPeriod: rewardPerPeriod, leftover: 0});
+        periodByCampaignId[campaignId][currentEpoch_ + 1 weeks] = Period({
+            startTimestamp: currentEpoch_ + 1 weeks,
+            rewardPerPeriod: rewardPerPeriod,
+            leftover: 0,
+            updated: false
+        });
 
         emit CampaignCreated(
             campaignId, gauge, manager, rewardToken, numberOfPeriods, maxRewardPerVote, totalRewardAmount
@@ -585,15 +590,22 @@ contract Votemarket is ReentrancyGuard {
 
         // Check if there is an upgrade in queue.
         if (campaignUpgrade.totalRewardAmount != 0) {
-            /// Add to the leftover amount the newly added reward amount so it can be split accordingly to the remaining periods.
-            periodByCampaignId[campaignId][epoch - 1 weeks].leftover =
-                campaignUpgrade.totalRewardAmount - campaignById[campaignId].totalRewardAmount;
+            Campaign storage campaign = campaignById[campaignId];
+
+            if (epoch == campaign.startTimestamp) {
+                periodByCampaignId[campaignId][epoch].rewardPerPeriod =
+                    campaignUpgrade.totalRewardAmount.mulDiv(1, campaign.numberOfPeriods);
+            } else {
+                /// Add to the leftover amount the newly added reward amount so it can be split accordingly to the remaining periods.
+                periodByCampaignId[campaignId][epoch - 1 weeks].leftover =
+                    campaignUpgrade.totalRewardAmount - campaignById[campaignId].totalRewardAmount;
+            }
 
             // Save new values.
-            campaignById[campaignId].endTimestamp = campaignUpgrade.endTimestamp;
-            campaignById[campaignId].numberOfPeriods = campaignUpgrade.numberOfPeriods;
-            campaignById[campaignId].maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
-            campaignById[campaignId].totalRewardAmount = campaignUpgrade.totalRewardAmount;
+            campaign.endTimestamp = campaignUpgrade.endTimestamp;
+            campaign.numberOfPeriods = campaignUpgrade.numberOfPeriods;
+            campaign.maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
+            campaign.totalRewardAmount = campaignUpgrade.totalRewardAmount;
 
             emit CampaignUpgraded(
                 campaignId,

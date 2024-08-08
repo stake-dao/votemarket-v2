@@ -24,7 +24,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
 
         vm.expectRevert(Votemarket.CAMPAIGN_NOT_STARTED.selector);
-        votemarket.updateEpoch(campaignId, currentEpoch);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
     function testUpdateEpoch() public {
@@ -41,7 +41,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
         assertEq(rewardPerVote, 0);
 
-        votemarket.updateEpoch(campaignId, currentEpoch);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
         rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
@@ -52,7 +52,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
 
         /// Update again.
-        votemarket.updateEpoch(campaignId, currentEpoch);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
         rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
@@ -83,7 +83,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
         assertEq(rewardPerVote, 0);
 
-        votemarket.updateEpoch(campaignId, currentEpoch);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
         rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
@@ -100,16 +100,18 @@ contract UpdateEpochTest is BaseTest {
         Period memory previousPeriod = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
         currentEpoch = votemarket.currentEpoch();
-        votemarket.updateEpoch(campaignId, currentEpoch);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
         rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
 
         /// How much we were planning to distribute per period.
-        uint256 expectedRewardPerPeriod = previousPeriod.rewardPerPeriod * votemarket.getRemainingPeriods(campaignId, currentEpoch);
+        uint256 expectedRewardPerPeriod =
+            previousPeriod.rewardPerPeriod * votemarket.getRemainingPeriods(campaignId, currentEpoch);
 
         /// Add the leftover amount from the previous period and divide by the remaining periods.
-        expectedRewardPerPeriod = (expectedRewardPerPeriod + previousPeriod.leftover) / votemarket.getRemainingPeriods(campaignId, currentEpoch);
+        expectedRewardPerPeriod = (expectedRewardPerPeriod + previousPeriod.leftover)
+            / votemarket.getRemainingPeriods(campaignId, currentEpoch);
 
         expectedLeftOver = expectedRewardPerPeriod - maxRewardPerVote.mulDiv(TOTAL_VOTES, 1e18);
 
@@ -117,6 +119,15 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
         assertEq(period.leftover, expectedLeftOver);
         assertEq(rewardPerVote, maxRewardPerVote);
+    }
+
+    function testUpdateEpochWithPreviousMissingState() public {
+        /// Skip to the second period.
+        skip(2 weeks);
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
     function testUpdateEpochAfterCampaignEnd() public {}
