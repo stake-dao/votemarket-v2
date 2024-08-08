@@ -130,6 +130,40 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
+    function testUpdateEpochWithUpgradeInQueueFirstPeriod() public {
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        /// Increase the total reward amount.
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT);
+
+        uint epoch = votemarket.currentEpoch() + 1 weeks;
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+        uint256 rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, votemarket.currentEpoch());
+
+        assertEq(period.startTimestamp, epoch);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        assertEq(period.leftover, 0);
+        assertEq(rewardPerVote, 0);
+        assertEq(period.updated, false);
+
+        skip(1 weeks);
+
+        uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT * 2) / VALID_PERIODS;
+        votemarket.updateEpoch(campaignId, epoch, "");
+
+        period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+        rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, epoch);
+
+        assertEq(period.startTimestamp, epoch);
+        assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
+        assertEq(period.leftover, 0);
+        assertEq(rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
+        assertEq(period.updated, true);
+
+        votemarket.updateEpoch(campaignId, epoch, "");
+    }
+
     function testUpdateEpochAfterCampaignEnd() public {}
     function testUpdateEpochWithZeroTotalVotes() public {}
     function testUpdateEpochWithLowTotalVotes() public {}
