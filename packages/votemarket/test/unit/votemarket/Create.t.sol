@@ -235,7 +235,7 @@ contract CreateCampaignTest is BaseTest {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        uint campaignId = votemarket.createCampaign(
+        uint256 campaignId = votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             MANAGER,

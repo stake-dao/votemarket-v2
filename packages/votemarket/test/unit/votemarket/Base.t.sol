@@ -5,16 +5,14 @@ import "@forge-std/src/Test.sol";
 import "@forge-std/src/mocks/MockERC20.sol";
 
 import "src/Votemarket.sol";
-import "src/oracle/Oracle.sol";
-import "src/oracle/OracleLens.sol";
 
 import "test/mocks/Hooks.sol";
+import "test/mocks/OracleLens.sol";
 
 abstract contract BaseTest is Test {
     address creator = address(this);
 
-    Oracle oracle;
-    OracleLens oracleLens;
+    MockOracleLens oracleLens;
 
     MockERC20 rewardToken;
     Votemarket votemarket;
@@ -30,8 +28,7 @@ abstract contract BaseTest is Test {
     uint256 constant TOTAL_REWARD_AMOUNT = 1000e18;
 
     function setUp() public virtual {
-        oracle = new Oracle();
-        oracleLens = new OracleLens(address(oracle));
+        oracleLens = new MockOracleLens();
 
         votemarket = new Votemarket();
         votemarket.setOracle(address(oracleLens));
@@ -41,21 +38,8 @@ abstract contract BaseTest is Test {
 
         HOOK = address(new MockHook());
 
-        oracle.setAuthorizedDataProvider(address(this));
-        oracle.setAuthorizedBlockNumberProvider(address(this));
-
         /// To avoid timestamp = 0.
         skip(1 weeks);
-
-        oracle.insertBlockNumber(
-            votemarket.currentEpoch(),
-            StateProofVerifier.BlockHeader({
-                hash: blockhash(block.number),
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
-            })
-        );
 
         _mockGaugeData(GAUGE, votemarket.currentEpoch());
         _mockAccountData(address(this), GAUGE, votemarket.currentEpoch());
@@ -149,15 +133,10 @@ abstract contract BaseTest is Test {
     }
 
     function _mockGaugeData(address gauge, uint256 epoch) internal {
-        oracle.insertPoint(gauge, epoch, Oracle.Point({bias: 10e18, slope: 1e18, lastUpdate: block.timestamp}));
+        oracleLens.setTotalVotes(gauge, epoch, 10e18);
     }
 
     function _mockAccountData(address account, address gauge, uint256 epoch) internal {
-        oracle.insertAddressEpochData(
-            account,
-            gauge,
-            epoch,
-            Oracle.VotedSlope({slope: 1e18, power: 1e18, end: epoch, lastVote: 0, lastUpdate: block.timestamp})
-        );
+        oracleLens.setAccountVotes(account, gauge, epoch, 10e18);
     }
 }
