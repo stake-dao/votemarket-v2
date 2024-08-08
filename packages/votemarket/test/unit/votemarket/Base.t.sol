@@ -27,6 +27,9 @@ abstract contract BaseTest is Test {
     uint256 constant MAX_REWARD_PER_VOTE = 1e18;
     uint256 constant TOTAL_REWARD_AMOUNT = 1000e18;
 
+    uint256 TOTAL_VOTES = 2000e18;
+    uint256 ACCOUNT_VOTES = 1000e18;
+
     function setUp() public virtual {
         oracleLens = new MockOracleLens();
 
@@ -40,16 +43,13 @@ abstract contract BaseTest is Test {
 
         /// To avoid timestamp = 0.
         skip(1 weeks);
-
-        _mockGaugeData(GAUGE, votemarket.currentEpoch());
-        _mockAccountData(address(this), GAUGE, votemarket.currentEpoch());
     }
 
     function _createCampaign() internal returns (uint256 campaignId) {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        return votemarket.createCampaign(
+        campaignId = votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             creator,
@@ -61,6 +61,9 @@ abstract contract BaseTest is Test {
             HOOK,
             false
         );
+
+        _mockGaugeData(campaignId, GAUGE);
+        _mockAccountData(campaignId, address(this), GAUGE);
     }
 
     function testSetters() public {
@@ -132,11 +135,25 @@ abstract contract BaseTest is Test {
         }
     }
 
-    function _mockGaugeData(address gauge, uint256 epoch) internal {
-        oracleLens.setTotalVotes(gauge, epoch, 10e18);
+    function _mockGaugeData(uint256 campaignId, address gauge) internal {
+        /// Get the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+        uint256 endTimestamp = campaign.endTimestamp;
+        uint256 startTimestamp = campaign.startTimestamp - 1 weeks;
+
+        for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
+            oracleLens.setTotalVotes(gauge, i, TOTAL_VOTES);
+        }
     }
 
-    function _mockAccountData(address account, address gauge, uint256 epoch) internal {
-        oracleLens.setAccountVotes(account, gauge, epoch, 10e18);
+    function _mockAccountData(uint256 campaignId, address account, address gauge) internal {
+        /// Get the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+        uint256 endTimestamp = campaign.endTimestamp;
+        uint256 startTimestamp = campaign.startTimestamp - 1 weeks;
+
+        for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
+            oracleLens.setAccountVotes(account, gauge, i, ACCOUNT_VOTES);
+        }
     }
 }

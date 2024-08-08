@@ -10,14 +10,6 @@ contract UpdateEpochTest is BaseTest {
         BaseTest.setUp();
 
         campaignId = _createCampaign();
-
-        uint256 currentEpoch = votemarket.currentEpoch();
-
-        // Initialize the oracle with some votes
-        MockOracleLens mockOracle = new MockOracleLens();
-
-        mockOracle.setTotalVotes(GAUGE, currentEpoch, 10_000e18);
-        votemarket.setOracle(address(mockOracle));
     }
 
     function testUpdateEpochCampaignNotStarted() public {
@@ -33,9 +25,43 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, currentEpoch);
     }
 
-    function testUpdateEpoch() public {}
+    function testUpdateEpoch() public {
+        // Skip to the start of the campaign.
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
+        uint256 rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
+
+        assertEq(period.startTimestamp, currentEpoch);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        assertEq(period.leftover, 0);
+        assertEq(rewardPerVote, 0);
+
+        votemarket.updateEpoch(campaignId, currentEpoch);
+
+        period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
+        rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
+
+        assertEq(period.startTimestamp, currentEpoch);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        assertEq(period.leftover, 0);
+        assertEq(rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+
+        /// Update again.
+        votemarket.updateEpoch(campaignId, currentEpoch);
+
+        period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
+        rewardPerVote = votemarket.rewardPerVoteByCampaignId(campaignId, currentEpoch);
+
+        assertEq(period.startTimestamp, currentEpoch);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        assertEq(period.leftover, 0);
+        assertEq(rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+    }
+
     function testUpdateEpochForSubsequentPeriods() public {}
-    function testAlreadyUpdatedEpoch() public {}
 
     function testUpdateEpochAfterCampaignEnd() public {}
     function testUpdateEpochWithZeroTotalVotes() public {}

@@ -206,7 +206,11 @@ contract Votemarket is ReentrancyGuard {
         return claimed;
     }
 
-    function updateEpoch(uint256 campaignId, uint256 epoch) external checkCampaignStarted(campaignId, epoch) returns (uint256 epoch_) {
+    function updateEpoch(uint256 campaignId, uint256 epoch)
+        external
+        checkCampaignStarted(campaignId, epoch)
+        returns (uint256 epoch_)
+    {
         /// Check if the campaign is started.
         if (epoch < campaignById[campaignId].startTimestamp) revert CAMPAIGN_NOT_STARTED();
 
@@ -271,7 +275,7 @@ contract Votemarket is ReentrancyGuard {
             uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
             if (totalVotes != 0) {
-                rewardPerVote = period.rewardPerPeriod.mulDiv(1, totalVotes);
+                rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
 
                 if (rewardPerVote > campaignById[campaignId].maxRewardPerVote) {
                     rewardPerVote = campaignById[campaignId].maxRewardPerVote;
@@ -299,6 +303,8 @@ contract Votemarket is ReentrancyGuard {
         address[] memory blacklist = getBlacklistByCampaign(campaignId);
 
         uint256 totalVotes = IOracleLens(oracle).getTotalVotes(campaignById[campaignId].gauge, epoch);
+        console.log("totalVotes", totalVotes);
+        console.log(address(oracle));
 
         uint256 blacklistedVotes;
         for (uint256 i = 0; i < blacklist.length; i++) {
