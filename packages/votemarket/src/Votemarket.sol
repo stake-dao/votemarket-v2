@@ -227,13 +227,16 @@ contract Votemarket is ReentrancyGuard {
             _validatePreviousState(campaignId, epoch);
         }
 
-        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
-        uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
-
         /// Update Period.
         Period storage period = _getPeriod(campaignId, epoch);
-        period.startTimestamp = epoch;
-        period.rewardPerPeriod = totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods);
+
+        if (period.startTimestamp == 0) {
+            uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
+            uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
+
+            period.startTimestamp = epoch;
+            period.rewardPerPeriod = totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods);
+        }
 
         _updateRewardPerVote(campaignId, epoch, period);
 
@@ -262,8 +265,7 @@ contract Votemarket is ReentrancyGuard {
         returns (uint256)
     {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
-        Period storage currentPeriod = periodByCampaignId[campaignId][epoch];
-        return previousPeriod.leftover + currentPeriod.rewardPerPeriod * remainingPeriods;
+        return previousPeriod.leftover + previousPeriod.rewardPerPeriod * remainingPeriods;
     }
 
     function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period) internal {
@@ -280,7 +282,7 @@ contract Votemarket is ReentrancyGuard {
                 if (rewardPerVote > campaignById[campaignId].maxRewardPerVote) {
                     rewardPerVote = campaignById[campaignId].maxRewardPerVote;
 
-                    uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1);
+                    uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
 
                     if (hookByCampaignId[campaignId] != address(0)) {
                         SafeTransferLib.safeTransfer({
@@ -303,8 +305,6 @@ contract Votemarket is ReentrancyGuard {
         address[] memory blacklist = getBlacklistByCampaign(campaignId);
 
         uint256 totalVotes = IOracleLens(oracle).getTotalVotes(campaignById[campaignId].gauge, epoch);
-        console.log("totalVotes", totalVotes);
-        console.log(address(oracle));
 
         uint256 blacklistedVotes;
         for (uint256 i = 0; i < blacklist.length; i++) {
