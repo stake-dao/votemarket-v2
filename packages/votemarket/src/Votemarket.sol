@@ -108,6 +108,7 @@ contract Votemarket is ReentrancyGuard {
 
     error CAMPAIGN_ENDED();
     error CAMPAIGN_NOT_ENDED();
+    error CAMPAIGN_NOT_STARTED();
 
     error AUTH_BLACKLISTED();
     error AUTH_MANAGER_ONLY();
@@ -203,7 +204,6 @@ contract Votemarket is ReentrancyGuard {
     function _updateEpoch(uint256 campaignId, uint256 epoch) internal returns (uint256 epoch_) {
         if (_isEpochAlreadyUpdated(campaignId, epoch)) return epoch;
 
-        _validatePreviousState(campaignId, epoch);
         _checkForUpgrade(campaignId, epoch);
 
         uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
@@ -224,10 +224,14 @@ contract Votemarket is ReentrancyGuard {
     }
 
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
-        Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
+        Campaign storage campaign = campaignById[campaignId];
 
-        if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
-            revert PREVIOUS_STATE_MISSING();
+        if (epoch >= campaign.startTimestamp + 1 weeks) {
+            Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
+
+            if (previousPeriod.startTimestamp == 0 && !_isEpochAlreadyUpdated(campaignId, epoch)) {
+                revert PREVIOUS_STATE_MISSING();
+            }
         }
     }
 
@@ -330,6 +334,8 @@ contract Votemarket is ReentrancyGuard {
         /// Generate campaign Id.
         campaignId = campaignCount;
 
+        uint256 currentEpoch_ = currentEpoch();
+
         /// Increment campaign count.
         ++campaignCount;
 
@@ -342,7 +348,8 @@ contract Votemarket is ReentrancyGuard {
             numberOfPeriods: numberOfPeriods,
             maxRewardPerVote: maxRewardPerVote,
             totalRewardAmount: totalRewardAmount,
-            endTimestamp: currentEpoch() + numberOfPeriods * 1 weeks
+            startTimestamp: currentEpoch_ + 1 weeks,
+            endTimestamp: currentEpoch_ + numberOfPeriods * 1 weeks
         });
 
         /// Store the hook.
@@ -372,8 +379,8 @@ contract Votemarket is ReentrancyGuard {
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
         /// Store the first period.
-        periodByCampaignId[campaignId][0] =
-            Period({startTimestamp: currentEpoch() + 1 weeks, rewardPerPeriod: rewardPerPeriod, leftover: 0});
+        periodByCampaignId[campaignId][currentEpoch_ + 1 weeks] =
+            Period({startTimestamp: currentEpoch_ + 1 weeks, rewardPerPeriod: rewardPerPeriod, leftover: 0});
 
         emit CampaignCreated(
             campaignId, gauge, manager, rewardToken, numberOfPeriods, maxRewardPerVote, totalRewardAmount
@@ -502,28 +509,34 @@ contract Votemarket is ReentrancyGuard {
         uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
 
         /// Check if the campaign started.
-        uint256 startTimestamp = periodByCampaignId[campaignId][0].startTimestamp;
+        uint256 startTimestamp = campaign.startTimestamp;
 
         /// Can't close the campaign if the campaign is not ended.
         if (block.timestamp >= startTimestamp && block.timestamp < claimDeadline_) {
             revert CAMPAIGN_NOT_ENDED();
         }
 
-        /// Validate the previous state if the campaign is started.
         if (block.timestamp >= startTimestamp) {
+            /// Validate the previous state if the campaign is started.
             _validatePreviousState(campaignId, campaign.endTimestamp - 1 weeks);
         }
 
         if (block.timestamp < startTimestamp || (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_))
         {
+            /// During the Close deadline period, the campaign can be closed by the manager or remote, but within a certain timeframe (close deadline)
             _isManagerOrRemote({campaignId: campaignId});
+
+            /// Close the campaign.
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,
                 rewardToken: campaign.rewardToken,
                 receiver: campaign.manager
             });
+
+            /// If the close deadline is reached. Anyone can close the campaign.
         } else if (block.timestamp >= closeDeadline_) {
+            /// Close the campaign.
             _closeCampaign({
                 campaignId: campaignId,
                 totalRewardAmount: campaign.totalRewardAmount,

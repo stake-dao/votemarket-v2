@@ -38,6 +38,7 @@ contract CreateCampaignTest is BaseTest {
             uint8 numberOfPeriods,
             uint256 maxRewardPerVote,
             uint256 totalRewardAmount,
+            uint256 startTimestamp,
             uint256 endTimestamp
         ) = votemarket.campaignById(initialCampaignCount);
 
@@ -48,9 +49,10 @@ contract CreateCampaignTest is BaseTest {
         assertEq(numberOfPeriods, VALID_PERIODS);
         assertEq(maxRewardPerVote, MAX_REWARD_PER_VOTE);
         assertEq(totalRewardAmount, TOTAL_REWARD_AMOUNT);
+        assertEq(startTimestamp, votemarket.currentEpoch() + 1 weeks);
         assertEq(endTimestamp, (block.timestamp / 1 weeks * 1 weeks) + VALID_PERIODS * 1 weeks);
 
-        Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, 0);
+        Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, startTimestamp);
 
         assertEq(period.startTimestamp, votemarket.currentEpoch() + 1 weeks);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);

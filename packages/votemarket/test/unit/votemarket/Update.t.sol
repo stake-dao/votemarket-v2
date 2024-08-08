@@ -5,41 +5,38 @@ import "test/unit/votemarket/Base.t.sol";
 
 contract UpdateEpochTest is BaseTest {
     uint256 public campaignId;
-    uint256 public initialEpoch;
 
     function setUp() public override {
         BaseTest.setUp();
 
-        // Create a campaign
-        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
-        vm.startPrank(creator);
-        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
-        campaignId = votemarket.createCampaign(
-            CHAIN_ID,
-            GAUGE,
-            MANAGER,
-            address(rewardToken),
-            VALID_PERIODS,
-            MAX_REWARD_PER_VOTE,
-            TOTAL_REWARD_AMOUNT,
-            blacklist,
-            HOOK,
-            false
-        );
-        vm.stopPrank();
+        campaignId = _createCampaign();
 
-        initialEpoch = votemarket.currentEpoch();
+        uint256 currentEpoch = votemarket.currentEpoch();
 
         // Initialize the oracle with some votes
         MockOracleLens mockOracle = new MockOracleLens();
-        mockOracle.setTotalVotes(GAUGE, initialEpoch, 1000 * 1e18);
+
+        mockOracle.setTotalVotes(GAUGE, currentEpoch, 10_000e18);
         votemarket.setOracle(address(mockOracle));
-
-        // Initialize the first period
-        votemarket.updateEpoch(campaignId, initialEpoch);
-
-        // Skip to the next epoch
-        skip(1 weeks);
-        initialEpoch = votemarket.currentEpoch();
     }
+
+    function testUpdateEpochCampaignNotStarted() public {}
+
+    function testUpdateEpoch() public {}
+    function testUpdateEpochForSubsequentPeriods() public {}
+    function testAlreadyUpdatedEpoch() public {}
+
+    function testUpdateEpochAfterCampaignEnd() public {}
+    function testUpdateEpochWithZeroTotalVotes() public {}
+    function testUpdateEpochWithLowTotalVotes() public {}
+
+    function testUpdateEpochForWhitelistOnlyCampaign() public {}
+    function testUpdateEpochWithHook() public {}
+    function testUpdateEpochAfterCampaignUpgrade() public {}
+
+    function testUpdateEpochMultipleTimes() public {}
+    function testUpdateEpochWithMaximumPossibleValues() public {}
+
+    function testUpdateEpochWithoutPreviousEpoch() public {}
+    function testUpdateEpochForNonExistentCampaign() public {}
 }

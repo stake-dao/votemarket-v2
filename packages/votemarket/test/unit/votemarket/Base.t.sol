@@ -24,7 +24,7 @@ abstract contract BaseTest is Test {
     uint8 constant VALID_PERIODS = 4;
     address constant GAUGE = address(0x1234);
     address constant MANAGER = address(0x5678);
-    uint256 constant MAX_REWARD_PER_VOTE = 100e18;
+    uint256 constant MAX_REWARD_PER_VOTE = 1e18;
     uint256 constant TOTAL_REWARD_AMOUNT = 1000e18;
 
     function setUp() public virtual {
@@ -45,11 +45,11 @@ abstract contract BaseTest is Test {
         _mockAccountData(address(this), GAUGE, votemarket.currentEpoch());
     }
 
-    function _createCampaign() internal {
+    function _createCampaign() internal returns (uint256 campaignId) {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        votemarket.createCampaign(
+        return votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             creator,
@@ -121,7 +121,7 @@ abstract contract BaseTest is Test {
         /// Get the campaign.
         Campaign memory campaign = votemarket.getCampaign(campaignId);
         uint256 endTimestamp = campaign.endTimestamp;
-        uint256 startTimestamp = endTimestamp - campaign.numberOfPeriods * 1 weeks;
+        uint256 startTimestamp = campaign.startTimestamp;
 
         for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
             votemarket.updateEpoch(campaignId, i);
