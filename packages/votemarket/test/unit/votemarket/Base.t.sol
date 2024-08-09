@@ -66,7 +66,10 @@ abstract contract BaseTest is Test {
         _mockAccountData(campaignId, address(this), GAUGE);
     }
 
-    function _createCampaign(address hook, uint256 maxRewardPerVote) internal returns (uint256 campaignId) {
+    function _createCampaign(address hook, uint256 maxRewardPerVote, address[] memory addresses, bool whitelist)
+        internal
+        returns (uint256 campaignId)
+    {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
@@ -78,9 +81,9 @@ abstract contract BaseTest is Test {
             VALID_PERIODS,
             maxRewardPerVote,
             TOTAL_REWARD_AMOUNT,
-            blacklist,
+            addresses,
             hook,
-            false
+            whitelist
         );
 
         _mockGaugeData(campaignId, GAUGE);

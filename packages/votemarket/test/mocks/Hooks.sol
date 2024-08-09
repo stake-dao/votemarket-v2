@@ -6,10 +6,14 @@ contract MockHook {
     function validateHook() external pure returns (bool) {
         return true;
     }
+
+    function doSomething(bytes calldata) external pure {}
 }
 
 contract MockInvalidHook {
     function validateHook() external pure returns (bool) {
         return false;
     }
+
+    function doSomething(bytes calldata) external pure {}
 }
