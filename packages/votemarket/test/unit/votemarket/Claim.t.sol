@@ -113,9 +113,9 @@ contract ClaimTest is BaseTest {
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.claim(campaignId, address(this), currentEpoch, "");
 
-        // /// We take the fee into account here.
-        // uint256 claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, currentEpoch, address(this));
-        // assertEq(claimedPerAccount, expectedClaim);
+        /// We take the fee into account here.
+        uint256 claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, lastClaimEpoch, address(this));
+        assertEq(claimedPerAccount, expectedClaim);
     }
 }
 
