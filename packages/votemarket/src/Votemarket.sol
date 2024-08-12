@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-/// TODO: CLEAN LOGIC
-/// Enum for State Transitions ?
-
 /// TODO: REMOVE
-import "@forge-std/src/Test.sol";
+/// import "@forge-std/src/Test.sol";
 
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
@@ -201,6 +198,7 @@ contract Votemarket is ReentrancyGuard {
     /// @return claimed The amount of rewards claimed
     function claim(uint256 campaignId, address receiver, uint256 epoch, bytes calldata hookData)
         external
+        nonReentrant
         returns (uint256 claimed)
     {
         return _claim(
@@ -294,7 +292,10 @@ contract Votemarket is ReentrancyGuard {
         // 1. Update the total claimed amount for the account in this campaign and epoch
         totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim;
 
-        // 2. Update the total claimed amount for the campaign
+        // 2. Update total claimed amount for the epoch
+        totalClaimedByPeriodId[data.campaignId][data.epoch] += data.amountToClaim;
+
+        // 3. Update the total claimed amount for the campaign
         totalClaimedByCampaignId[data.campaignId] += data.amountToClaim;
     }
 
@@ -318,6 +319,7 @@ contract Votemarket is ReentrancyGuard {
     /// @return epoch_ The updated epoch
     function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
         external
+        nonReentrant
         checkCampaignStarted(campaignId, epoch)
         returns (uint256 epoch_)
     {
