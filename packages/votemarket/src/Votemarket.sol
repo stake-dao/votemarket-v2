@@ -161,8 +161,6 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
-    /// TODO: Implement remote managers.
-    /// Usecase is when the manager is cross-chain message.
     modifier onlyManagerOrRemote(uint256 campaignId) {
         _isManagerOrRemote(campaignId);
         _;

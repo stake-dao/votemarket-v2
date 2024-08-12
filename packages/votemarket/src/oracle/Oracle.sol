@@ -4,13 +4,13 @@ pragma solidity 0.8.19;
 ///  Project Interfaces
 import "src/interfaces/IOracle.sol";
 
-/// @notice Oracle contract to read voting values from the Gauge Controller.
-//// WIP IMPLEMENTATION
+/// @notice Oracle contract to store voting values from the Gauge Controller.
 contract Oracle {
     ////////////////////////////////////////////////////////////////
     /// --- DATA STRUCTURE DEFINITIONS
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Curve Gauge Controller Structs appended with last update timestamp.
     struct Point {
         uint256 bias;
         uint256 slope;
@@ -31,6 +31,9 @@ contract Oracle {
 
     /// @notice Governance address.
     address public governance;
+
+    /// @notice Future governance address.
+    address public futureGovernance;
 
     /// @notice Mapping of addresses authorized to insert data into the contract.
     mapping(address => bool) public authorizedDataProviders;
@@ -55,6 +58,7 @@ contract Oracle {
     /// --- EVENTS & ERRORS
     ///////////////////////////////////////////////////////////////
 
+    error ZERO_ADDRESS();
     error INVALID_EPOCH();
     error AUTH_GOVERNANCE_ONLY();
     error NOT_AUTHORIZED_DATA_PROVIDER();
@@ -140,5 +144,16 @@ contract Oracle {
 
     function revokeAuthorizedDataProvider(address dataProvider) external onlyGovernance {
         authorizedDataProviders[dataProvider] = false;
+    }
+
+    function transferGovernance(address _governance) external onlyGovernance {
+        if (_governance == address(0)) revert ZERO_ADDRESS();
+
+        futureGovernance = _governance;
+    }
+
+    function acceptGovernance() external {
+        if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
+        governance = futureGovernance;
     }
 }
