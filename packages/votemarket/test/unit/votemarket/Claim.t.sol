@@ -129,6 +129,34 @@ contract ClaimTest is BaseTest {
         assertEq(claimed, 0);
     }
 
+    function testClaimWithWhitelistOnlyCampaign() public {
+        blacklist = new address[](1);
+        blacklist[0] = address(this);
+
+        campaignId = _createCampaign({
+            hook: address(0),
+            maxRewardPerVote: MAX_REWARD_PER_VOTE,
+            addresses: blacklist,
+            whitelist: true
+        });
+
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_WHITELIST_ONLY.selector);
+        votemarket.claim(campaignId, address(this), currentEpoch, "");
+
+        uint expectedClaim = ACCOUNT_VOTES.mulDiv(MAX_REWARD_PER_VOTE, 1e18);
+        uint claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
+
+        /// Since the recipient and the fee collector are the same, it should be the same as the expected claim.
+        assertEq(claimed, expectedClaim);
+        assertEq(rewardToken.balanceOf(address(this)), expectedClaim);
+
+    }
+
     function testReentrancyWithHook() public {
         ReentrancyAttacker reentrancyAttacker = new ReentrancyAttacker(address(votemarket));
         campaignId = _createCampaign({

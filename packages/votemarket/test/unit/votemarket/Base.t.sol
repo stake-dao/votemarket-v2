@@ -109,6 +109,9 @@ abstract contract BaseTest is Test {
         votemarket.setFee(fee);
         assertEq(votemarket.fee(), fee);
 
+        vm.expectRevert(Votemarket.INVALID_INPUT.selector);
+        votemarket.setFee(1e18);
+
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
         votemarket.setFee(fee);
