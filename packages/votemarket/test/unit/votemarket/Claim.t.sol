@@ -109,7 +109,7 @@ contract ClaimTest is BaseTest {
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
         assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
 
-        uint currentEpoch = votemarket.currentEpoch();
+        uint256 currentEpoch = votemarket.currentEpoch();
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.claim(campaignId, address(this), currentEpoch, "");
 
@@ -128,6 +128,20 @@ contract ClaimTest is BaseTest {
         uint256 claimed = votemarket.claim(campaignId, address(this), campaign.endTimestamp - 1 weeks, "");
         assertEq(claimed, 0);
     }
+
+    function testReentrancyWithHook() public {
+        ReentrancyAttacker reentrancyAttacker = new ReentrancyAttacker(address(votemarket));
+        campaignId = _createCampaign({hook: address(reentrancyAttacker), maxRewardPerVote: 1e16, addresses: blacklist, whitelist: false});
+
+        skip(1 weeks);
+
+        uint currentEpoch = votemarket.currentEpoch();
+        bytes memory data = abi.encode(campaignId, currentEpoch);
+
+        vm.expectRevert(ReentrancyGuard.Reentrancy.selector);
+        votemarket.claim(campaignId, address(this), currentEpoch, data);
+    }
+
 }
 
 contract ReentrancyAttacker {
@@ -137,7 +151,8 @@ contract ReentrancyAttacker {
         votemarket = Votemarket(_votemarket);
     }
 
-    function attack(uint256 campaignId, uint256 epoch) external {
+    function doSomething(bytes calldata data) external {
+        (uint256 campaignId, uint256 epoch) = abi.decode(data, (uint256, uint256));
         votemarket.claim(campaignId, address(this), epoch, "");
     }
 
