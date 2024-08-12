@@ -23,7 +23,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.rewardPerPeriod, 0);
         assertEq(period.leftover, 0);
 
-        vm.expectRevert(Votemarket.CAMPAIGN_NOT_STARTED.selector);
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
@@ -179,11 +179,11 @@ contract UpdateEpochTest is BaseTest {
         uint256 epoch = votemarket.currentEpoch();
         Campaign memory campaign = votemarket.getCampaign(campaignId);
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.updateEpoch(campaignId, epoch, "");
 
         vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
-        votemarket.updateEpoch(campaignId, campaign.endTimestamp, "");
+        votemarket.updateEpoch(campaignId, campaign.endTimestamp - 1 weeks, "");
 
         votemarket.updateEpoch(campaignId, campaign.startTimestamp, "");
 
@@ -338,7 +338,7 @@ contract UpdateEpochTest is BaseTest {
         uint256 nonExistentCampaignId = 9999;
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.updateEpoch(nonExistentCampaignId, currentEpoch, "");
     }
 }
