@@ -26,6 +26,22 @@ struct Campaign {
     uint256 endTimestamp;
 }
 
+/// @notice Claim data struct to avoid stack too deep errors.
+struct ClaimData {
+    /// @notice Campaign ID.
+    uint256 campaignId;
+    /// @notice Account address.
+    address account;
+    /// @notice Receiver address.
+    address receiver;
+    /// @notice Epoch to claim.
+    uint256 epoch;
+    /// @notice Amount to claim.
+    uint256 amountToClaim;
+    /// @notice Fee amount.
+    uint256 feeAmount;
+}
+
 struct Period {
     /// @notice Start timestamp of the period.
     uint256 startTimestamp;
