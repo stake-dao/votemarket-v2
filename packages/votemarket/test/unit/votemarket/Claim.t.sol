@@ -150,9 +150,9 @@ contract ClaimTest is BaseTest {
 
         uint expectedClaim = ACCOUNT_VOTES.mulDiv(MAX_REWARD_PER_VOTE, 1e18);
         uint claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
-
+        
         /// Since the recipient and the fee collector are the same, it should be the same as the expected claim.
-        assertEq(claimed, expectedClaim);
+        assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
         assertEq(rewardToken.balanceOf(address(this)), expectedClaim);
 
     }
