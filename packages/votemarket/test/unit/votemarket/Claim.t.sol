@@ -131,16 +131,22 @@ contract ClaimTest is BaseTest {
 
     function testReentrancyWithHook() public {
         ReentrancyAttacker reentrancyAttacker = new ReentrancyAttacker(address(votemarket));
-        campaignId = _createCampaign({hook: address(reentrancyAttacker), maxRewardPerVote: 1e16, addresses: blacklist, whitelist: false});
+        campaignId = _createCampaign({
+            hook: address(reentrancyAttacker),
+            maxRewardPerVote: 1e16,
+            addresses: blacklist,
+            whitelist: false
+        });
 
         skip(1 weeks);
 
-        uint currentEpoch = votemarket.currentEpoch();
+        uint256 currentEpoch = votemarket.currentEpoch();
         bytes memory data = abi.encode(campaignId, currentEpoch);
 
         vm.expectRevert(ReentrancyGuard.Reentrancy.selector);
         votemarket.claim(campaignId, address(this), currentEpoch, data);
     }
+}
 
 contract ReentrancyAttacker {
     Votemarket public votemarket;
