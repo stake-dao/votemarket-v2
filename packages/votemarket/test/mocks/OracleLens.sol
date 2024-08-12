@@ -5,6 +5,10 @@ contract MockOracleLens {
     mapping(address => mapping(uint256 => uint256)) private totalVotes;
     mapping(address => mapping(address => mapping(uint256 => uint256))) private accountVotes;
 
+    function canClaim(address, address, uint256) external pure returns (bool) {
+        return true;
+    }
+
     function setTotalVotes(address gauge, uint256 epoch, uint256 votes) external {
         totalVotes[gauge][epoch] = votes;
     }

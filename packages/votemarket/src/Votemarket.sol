@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 /// TODO: REMOVE
-/// import "@forge-std/src/Test.sol";
+import "@forge-std/src/Test.sol";
 
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
@@ -250,7 +250,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Check if the account has not claimed before or if there's a new reward available
         bool notClaimedOrNewReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
-            || rewardPerVoteByCampaignId[data.campaignId][data.epoch] > 1;
+            || rewardPerVoteByCampaignId[data.campaignId][data.epoch] == 1;
 
         // 5. Return true if all conditions are met
         return canClaimFromOracle && withinClaimDeadline && notClaimedOrNewReward;
@@ -288,13 +288,13 @@ contract Votemarket is ReentrancyGuard {
     /// @param data The claim data
     function _updateClaimState(ClaimData memory data) internal {
         // 1. Update the total claimed amount for the account in this campaign and epoch
-        totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim;
+        totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim + data.feeAmount;
 
         // 2. Update total claimed amount for the epoch
-        totalClaimedByPeriodId[data.campaignId][data.epoch] += data.amountToClaim;
+        totalClaimedByPeriodId[data.campaignId][data.epoch] += data.amountToClaim + data.feeAmount;
 
         // 3. Update the total claimed amount for the campaign
-        totalClaimedByCampaignId[data.campaignId] += data.amountToClaim;
+        totalClaimedByCampaignId[data.campaignId] += data.amountToClaim + data.feeAmount;
     }
 
     /// @notice Transfers tokens for a claim
