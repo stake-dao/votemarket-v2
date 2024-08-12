@@ -24,6 +24,9 @@ contract ClaimTest is BaseTest {
         uint expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
 
         assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
+        assertApproxEqRel(rewardToken.balanceOf(recipient), expectedClaim, votemarket.fee());
+        /// Fee
+        assertEq(rewardToken.balanceOf(address(this)), expectedClaim * votemarket.fee() / 1e18);
     }
 
     function testClaimTwiceInSameEpoch() public {
@@ -45,6 +48,10 @@ contract ClaimTest is BaseTest {
         claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, currentEpoch, address(this));
         assertEq(claimed, 0);
         assertEq(claimedPerAccount, expectedClaim);
+
+        assertApproxEqRel(rewardToken.balanceOf(recipient), expectedClaim, votemarket.fee());
+        /// Fee
+        assertEq(rewardToken.balanceOf(address(this)), expectedClaim * votemarket.fee() / 1e18);
     }
 }
 
