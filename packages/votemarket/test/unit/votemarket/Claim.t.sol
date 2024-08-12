@@ -117,6 +117,17 @@ contract ClaimTest is BaseTest {
         uint256 claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, lastClaimEpoch, address(this));
         assertEq(claimedPerAccount, expectedClaim);
     }
+
+    function testClaimAfterClaimDeadline() public {
+        skip(VALID_PERIODS * 1 weeks);
+        skip(votemarket.claimDeadline());
+
+        _updateEpochs(campaignId);
+
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+        uint256 claimed = votemarket.claim(campaignId, address(this), campaign.endTimestamp - 1 weeks, "");
+        assertEq(claimed, 0);
+    }
 }
 
 contract ReentrancyAttacker {
