@@ -142,8 +142,6 @@ contract ClaimTest is BaseTest {
         votemarket.claim(campaignId, address(this), currentEpoch, data);
     }
 
-}
-
 contract ReentrancyAttacker {
     Votemarket public votemarket;
 

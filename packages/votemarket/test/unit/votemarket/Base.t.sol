@@ -133,6 +133,15 @@ abstract contract BaseTest is Test {
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
         votemarket.setCloseDeadline(closeDeadline);
+
+        /// Fee collector.
+        address remote = address(0xCAFE);
+        votemarket.setRemote(feeCollector);
+        assertEq(votemarket.remote(), remote);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setRemote(remote);
     }
 
     function testGetters() public {

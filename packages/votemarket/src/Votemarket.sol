@@ -758,20 +758,6 @@ contract Votemarket is ReentrancyGuard {
     /// --- VIEW FUNCTIONS
     ///////////////////////////////////////////////////////////////
 
-    /// @notice Checks if an epoch is updated for a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The epoch to check
-    /// @return bool True if the epoch is updated, false otherwise
-    function isEpochUpdated(uint256 campaignId, uint256 epoch) public view returns (bool) {
-        Period storage previousPeriod = periodByCampaignId[campaignId][epoch - 1 weeks];
-
-        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
-        uint256 periodId = remainingPeriods > 0 ? remainingPeriods : 0;
-
-        // If first epoch, no previous period. If reward per vote is missing, it's not updated.
-        return periodId != campaignById[campaignId].numberOfPeriods && previousPeriod.rewardPerPeriod != 0;
-    }
-
     /// @notice Returns the number of weeks before the campaign ends
     /// @param campaignId The ID of the campaign
     /// @param epoch The current epoch
