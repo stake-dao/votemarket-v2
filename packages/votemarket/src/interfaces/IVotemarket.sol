@@ -62,6 +62,10 @@ struct CampaignUpgrade {
     uint256 maxRewardPerVote;
     /// @notice New end timestamp after increase.
     uint256 endTimestamp;
+    /// @notice Hook address.
+    address hook;
+    /// @notice Addresses to add to the whitelist/blacklist.
+    address[] addresses;
 }
 
 interface IVotemarket {}

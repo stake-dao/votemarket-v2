@@ -125,7 +125,7 @@ contract ClaimTest is BaseTest {
         _updateEpochs(campaignId);
 
         Campaign memory campaign = votemarket.getCampaign(campaignId);
-        uint256 claimed = votemarket.claim(campaignId,  campaign.endTimestamp - 1 weeks, "", address(this));
+        uint256 claimed = votemarket.claim(campaignId, campaign.endTimestamp - 1 weeks, "", address(this));
         assertEq(claimed, 0);
     }
 
@@ -189,6 +189,6 @@ contract ReentrancyAttacker {
     }
 
     fallback() external {
-        votemarket.claim(0,  0, "", address(this));
+        votemarket.claim(0, 0, "", address(this));
     }
 }

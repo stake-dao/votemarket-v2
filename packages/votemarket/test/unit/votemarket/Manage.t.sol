@@ -22,7 +22,7 @@ contract ManageCampaignTest is BaseTest {
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
         /// Increase the campaign duration.
-        votemarket.manageCampaign(campaignId, 2, 0, 0);
+        votemarket.manageCampaign(campaignId, 2, 0, 0, address(0), new address[](0));
     }
 
     ////////////////////////////////////////////////////////////////
@@ -37,7 +37,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 2,
             totalRewardAmount: 0,
-            maxRewardPerVote: 0
+            maxRewardPerVote: 0,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.
@@ -62,7 +64,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 0,
             totalRewardAmount: 0,
-            maxRewardPerVote: MAX_REWARD_PER_VOTE * 2
+            maxRewardPerVote: MAX_REWARD_PER_VOTE * 2,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.
@@ -91,7 +95,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 0,
             totalRewardAmount: TOTAL_REWARD_AMOUNT * 2,
-            maxRewardPerVote: 0
+            maxRewardPerVote: 0,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.
@@ -120,7 +126,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 2,
             totalRewardAmount: TOTAL_REWARD_AMOUNT,
-            maxRewardPerVote: MAX_REWARD_PER_VOTE * 2
+            maxRewardPerVote: MAX_REWARD_PER_VOTE * 2,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.
@@ -149,7 +157,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 2,
             totalRewardAmount: TOTAL_REWARD_AMOUNT,
-            maxRewardPerVote: MAX_REWARD_PER_VOTE
+            maxRewardPerVote: MAX_REWARD_PER_VOTE,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.
@@ -174,7 +184,9 @@ contract ManageCampaignTest is BaseTest {
             campaignId: campaignId,
             numberOfPeriods: 2,
             totalRewardAmount: TOTAL_REWARD_AMOUNT,
-            maxRewardPerVote: MAX_REWARD_PER_VOTE
+            maxRewardPerVote: MAX_REWARD_PER_VOTE,
+            hook: address(0),
+            addresses: new address[](0)
         });
 
         /// Check the campaign.

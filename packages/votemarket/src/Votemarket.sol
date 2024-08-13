@@ -619,7 +619,9 @@ contract Votemarket is ReentrancyGuard {
         uint256 campaignId,
         uint8 numberOfPeriods,
         uint256 totalRewardAmount,
-        uint256 maxRewardPerVote
+        uint256 maxRewardPerVote,
+        address hook,
+        address[] calldata addresses
     ) external nonReentrant onlyManagerOrRemote(campaignId) {
         // Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
@@ -649,14 +651,18 @@ contract Votemarket is ReentrancyGuard {
                 numberOfPeriods: campaignUpgrade.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaignUpgrade.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: updatedMaxRewardPerVote,
-                endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH)
+                endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
+                hook: campaignUpgrade.hook,
+                addresses: campaignUpgrade.addresses
             });
         } else {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: updatedMaxRewardPerVote,
-                endTimestamp: campaign.endTimestamp + (numberOfPeriods * EPOCH_LENGTH)
+                endTimestamp: campaign.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
+                hook: hook,
+                addresses: addresses
             });
         }
 
@@ -695,7 +701,9 @@ contract Votemarket is ReentrancyGuard {
                 numberOfPeriods: campaign.numberOfPeriods,
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: campaign.maxRewardPerVote,
-                endTimestamp: campaign.endTimestamp
+                endTimestamp: campaign.endTimestamp,
+                hook: address(0),
+                addresses: new address[](0)
             });
         }
 
@@ -779,6 +787,18 @@ contract Votemarket is ReentrancyGuard {
                 // Add to the leftover amount the newly added reward amount
                 periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover =
                     campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
+            }
+
+            // Update the hook.
+            hookByCampaignId[campaignId] = campaignUpgrade.hook;
+
+            /// Update the addresses.
+            delete addressesSet[campaignId];
+
+            if (campaignUpgrade.addresses.length > 0) {
+                for (uint256 i = 0; i < campaignUpgrade.addresses.length; i++) {
+                    addressesSet[campaignId].add(campaignUpgrade.addresses[i]);
+                }
             }
 
             // Save new values
