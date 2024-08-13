@@ -5,6 +5,8 @@ pragma solidity 0.8.19;
 import "test/unit/votemarket/Base.t.sol";
 
 contract CreateCampaignTest is BaseTest {
+    using EnumerableSetLib for EnumerableSetLib.AddressSet;
+
     function setUp() public override {
         BaseTest.setUp();
     }
@@ -183,19 +185,12 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        assertTrue(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
-        assertTrue(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
-        assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId);
+
         assertFalse(votemarket.whitelistOnly(campaignId));
-
-        assertFalse(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
-        assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
-        assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
-
-        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId);
-        assertEq(campaignBlacklist.length, 2);
-        assertEq(campaignBlacklist[0], address(0xDEAD));
-        assertEq(campaignBlacklist[1], address(0xBEEF));
+        assertEq(blacklistArray.length, 2);
+        assertEq(blacklistArray[0], address(0xDEAD));
+        assertEq(blacklistArray[1], address(0xBEEF));
     }
 
     function testCreateCampaignWithWhitelist() public {
@@ -206,7 +201,7 @@ contract CreateCampaignTest is BaseTest {
         testWhitelist[0] = address(0xDEAD);
         testWhitelist[1] = address(0xBEEF);
 
-        votemarket.createCampaign(
+        uint256 campaignId = votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             MANAGER,
@@ -219,18 +214,12 @@ contract CreateCampaignTest is BaseTest {
             true
         );
 
-        uint256 campaignId = votemarket.campaignCount() - 1;
-        assertTrue(votemarket.isWhitelisted(campaignId, address(0xDEAD)));
-        assertTrue(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
-        assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
-        assertTrue(votemarket.whitelistOnly(campaignId));
-
-        assertFalse(votemarket.isBlacklisted(campaignId, address(0xDEAD)));
-        assertFalse(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
-        assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
-
         address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId);
+
+        assertTrue(votemarket.whitelistOnly(campaignId));
         assertEq(campaignBlacklist.length, 2);
+        assertEq(campaignBlacklist[0], address(0xDEAD));
+        assertEq(campaignBlacklist[1], address(0xBEEF));
     }
 
     function testCreateCampaignWithoutHook() public {

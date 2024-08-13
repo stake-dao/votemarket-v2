@@ -259,7 +259,7 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(whitelistCampaignId, votemarket.currentEpoch());
         uint256 rewardPerVote = votemarket.rewardPerVoteByCampaignId(whitelistCampaignId, votemarket.currentEpoch());
-        uint expectedRewardPerVote = period.rewardPerPeriod.mulDiv(1e18, ACCOUNT_VOTES);
+        uint256 expectedRewardPerVote = period.rewardPerPeriod.mulDiv(1e18, ACCOUNT_VOTES);
 
         assertEq(period.startTimestamp, votemarket.currentEpoch());
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);

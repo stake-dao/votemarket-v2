@@ -7,6 +7,7 @@ import "@forge-std/src/Test.sol";
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
+import "@solady/src/utils/EnumerableSetLib.sol";
 import "@solady/src/utils/FixedPointMathLib.sol";
 
 /// Project Interfaces & Libraries
@@ -21,6 +22,7 @@ import "src/interfaces/IOracleLens.sol";
 /// @custom:contact contact@stakedao.org
 contract Votemarket is ReentrancyGuard {
     using FixedPointMathLib for uint256;
+    using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     ////////////////////////////////////////////////////////////////
     /// --- CONSTANT VALUES
@@ -85,16 +87,10 @@ contract Votemarket is ReentrancyGuard {
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) public totalClaimedByAccount;
 
     /// @notice Whitelisted/Blacklisted addresses per campaign.
-    mapping(uint256 => address[]) public addressesById;
+    mapping(uint256 => EnumerableSetLib.AddressSet) public addressesSet;
 
     /// @notice Mapping of campaign ids that are whitelist only.
     mapping(uint256 => bool) public whitelistOnly;
-
-    /// @notice Blacklisted addresses per campaign that aren't counted for rewards arithmetics.
-    mapping(uint256 => mapping(address => bool)) public isBlacklisted;
-
-    /// @notice Whitelisted addresses per campaign that are exclusively counted for rewards arithmetics.
-    mapping(uint256 => mapping(address => bool)) public isWhitelisted;
 
     ////////////////////////////////////////////////////////////////
     /// ---  EVENTS & ERRORS
@@ -145,15 +141,14 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
-    modifier checkWhitelist(uint256 campaignId, address account) {
-        if (whitelistOnly[campaignId]) {
-            if (!isWhitelisted[campaignId][account]) revert AUTH_WHITELIST_ONLY();
+    modifier checkWhitelistOrBlacklist(uint256 campaignId, address account) {
+        EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
+        bool contains = addressesSet_.contains(account);
+        if (whitelistOnly[campaignId] && !contains) {
+            revert AUTH_WHITELIST_ONLY();
+        } else if (!whitelistOnly[campaignId] && contains) {
+            revert AUTH_BLACKLISTED();
         }
-        _;
-    }
-
-    modifier checkBlacklist(uint256 campaignId, address account) {
-        if (isBlacklisted[campaignId][account]) revert AUTH_BLACKLISTED();
         _;
     }
 
@@ -222,8 +217,7 @@ contract Votemarket is ReentrancyGuard {
     /// @return claimed The amount of rewards claimed
     function _claim(ClaimData memory data, bytes calldata hookData)
         internal
-        checkWhitelist(data.campaignId, data.account)
-        checkBlacklist(data.campaignId, data.account)
+        checkWhitelistOrBlacklist(data.campaignId, data.account)
         validEpoch(data.campaignId, data.epoch)
         returns (uint256 claimed)
     {
@@ -466,16 +460,17 @@ contract Votemarket is ReentrancyGuard {
     /// @param epoch The current epoch
     /// @return uint256 The adjusted total votes
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
-        // 1. Get the blacklist for the campaign
-        address[] memory addresses = getAddressesByCampaign(campaignId);
+        /// 1. Get the addresses set for the campaign
+        EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
 
         // 2. Get the total votes from the oracle
         uint256 totalVotes = IOracleLens(oracle).getTotalVotes(campaignById[campaignId].gauge, epoch);
 
         // 3. Calculate the sum of blacklisted votes
         uint256 addressesVotes;
-        for (uint256 i = 0; i < addresses.length; i++) {
-            addressesVotes += IOracleLens(oracle).getAccountVotes(addresses[i], campaignById[campaignId].gauge, epoch);
+        for (uint256 i = 0; i < addressesSet_.length(); i++) {
+            addressesVotes +=
+                IOracleLens(oracle).getAccountVotes(addressesSet_.at(i), campaignById[campaignId].gauge, epoch);
         }
 
         if (whitelistOnly[campaignId]) {
@@ -554,19 +549,12 @@ contract Votemarket is ReentrancyGuard {
         hookByCampaignId[campaignId] = hook;
 
         // Store blacklisted or whitelisted addresses
-        if (isWhitelist) {
-            for (uint256 i = 0; i < blacklist.length; i++) {
-                isWhitelisted[campaignId][blacklist[i]] = true;
-            }
-            whitelistOnly[campaignId] = true;
-        } else {
-            for (uint256 i = 0; i < blacklist.length; i++) {
-                isBlacklisted[campaignId][blacklist[i]] = true;
-            }
+        for (uint256 i = 0; i < blacklist.length; i++) {
+            addressesSet[campaignId].add(blacklist[i]);
         }
 
-        /// Store the blacklisted or whitelisted addresses.
-        addressesById[campaignId] = blacklist;
+        /// Flag if the campaign is whitelist only.
+        whitelistOnly[campaignId] = isWhitelist;
 
         // Initialize the first period
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
@@ -800,7 +788,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param campaignId The ID of the campaign
     /// @return address[] The array of blacklisted addresses
     function getAddressesByCampaign(uint256 campaignId) public view returns (address[] memory) {
-        return addressesById[campaignId];
+        return addressesSet[campaignId].values();
     }
 
     /// @notice Gets a period for a campaign
