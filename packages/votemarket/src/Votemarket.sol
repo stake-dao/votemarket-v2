@@ -182,21 +182,24 @@ contract Votemarket is ReentrancyGuard {
         if (msg.sender != campaignById[campaignId].manager && msg.sender != remote) revert AUTH_MANAGER_ONLY();
     }
 
-    constructor() {
-        /// TODO: Put it as a parameter for create3 deployment.
-        governance = msg.sender;
-        feeCollector = msg.sender;
+    constructor(
+        address _governance,
+        address _feeCollector,
+        uint256 _closeDeadline,
+        uint256 _claimDeadline,
+        uint256 _epochLength
+    ) {
+        governance = _governance;
+        feeCollector = _feeCollector;
 
         /// 6 months.
-        closeDeadline = 24 weeks;
-
-        /// 1 month.
-        claimDeadline = 4 weeks;
+        closeDeadline = _closeDeadline;
+        claimDeadline = _claimDeadline;
 
         /// Default fee is 4%.
         fee = 4e16;
 
-        EPOCH_LENGTH = 1 weeks;
+        EPOCH_LENGTH = _epochLength;
     }
 
     ////////////////////////////////////////////////////////////////
