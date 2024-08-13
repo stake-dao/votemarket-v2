@@ -184,9 +184,11 @@ contract Votemarket is ReentrancyGuard {
         governance = msg.sender;
         feeCollector = msg.sender;
 
-        /// 3 months.
-        closeDeadline = 12 weeks;
-        claimDeadline = 12 weeks;
+        /// 6 months.
+        closeDeadline = 24 weeks;
+
+        /// 1 month.
+        claimDeadline = 4 weeks;
 
         /// Default fee is 4%.
         fee = 4e16;
