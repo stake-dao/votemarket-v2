@@ -148,13 +148,13 @@ contract ClaimTest is BaseTest {
         vm.expectRevert(Votemarket.AUTH_WHITELIST_ONLY.selector);
         votemarket.claim(campaignId, address(this), currentEpoch, "");
 
-        uint expectedClaim = ACCOUNT_VOTES.mulDiv(MAX_REWARD_PER_VOTE, 1e18);
-        uint claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
-        
+        uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, ACCOUNT_VOTES);
+        uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
+        uint256 claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
+
         /// Since the recipient and the fee collector are the same, it should be the same as the expected claim.
         assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
         assertEq(rewardToken.balanceOf(address(this)), expectedClaim);
-
     }
 
     function testReentrancyWithHook() public {

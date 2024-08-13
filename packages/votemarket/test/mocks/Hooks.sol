@@ -7,7 +7,7 @@ contract MockHook {
         return true;
     }
 
-    function doSomething(uint campaignId, uint epoch, bytes calldata) external pure {}
+    function doSomething(uint256 campaignId, uint256 epoch, bytes calldata) external pure {}
 }
 
 contract MockInvalidHook {
@@ -15,5 +15,5 @@ contract MockInvalidHook {
         return false;
     }
 
-    function doSomething(uint campaignId, uint epoch, bytes calldata) external pure {}
+    function doSomething(uint256 campaignId, uint256 epoch, bytes calldata) external pure {}
 }
