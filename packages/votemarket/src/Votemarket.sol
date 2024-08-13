@@ -131,13 +131,9 @@ contract Votemarket is ReentrancyGuard {
         uint256 totalRewardAmount
     );
 
-    event CampaignUpgradeQueued(
-        uint256 campaignId, uint8 numberOfPeriods, uint256 totalRewardAmount, uint256 maxRewardPerVote
-    );
+    event CampaignUpgradeQueued(uint256 campaignId, uint256 epoch);
 
-    event CampaignUpgraded(
-        uint256 campaignId, uint8 numberOfPeriods, uint256 totalRewardAmount, uint256 maxRewardPerVote
-    );
+    event CampaignUpgraded(uint256 campaignId, uint256 epoch);
 
     event CampaignClosed(uint256 campaignId);
 
@@ -669,7 +665,7 @@ contract Votemarket is ReentrancyGuard {
         // Store the campaign upgrade in queue
         campaignUpgradeById[epoch][campaignId] = campaignUpgrade;
 
-        emit CampaignUpgradeQueued(campaignId, numberOfPeriods, totalRewardAmount, updatedMaxRewardPerVote);
+        emit CampaignUpgradeQueued(campaignId, epoch);
     }
 
     /// @notice Increases the total reward amount for a campaign
@@ -709,12 +705,7 @@ contract Votemarket is ReentrancyGuard {
 
         campaignUpgradeById[epoch][campaignId] = campaignUpgrade;
 
-        emit CampaignUpgradeQueued(
-            campaignId,
-            campaignUpgrade.numberOfPeriods,
-            campaignUpgrade.totalRewardAmount,
-            campaignUpgrade.maxRewardPerVote
-        );
+        emit CampaignUpgradeQueued(campaignId, epoch);
     }
 
     /// @notice Closes a campaign
@@ -807,12 +798,7 @@ contract Votemarket is ReentrancyGuard {
             campaign.maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
             campaign.totalRewardAmount = campaignUpgrade.totalRewardAmount;
 
-            emit CampaignUpgraded(
-                campaignId,
-                campaignUpgrade.numberOfPeriods,
-                campaignUpgrade.totalRewardAmount,
-                campaignUpgrade.maxRewardPerVote
-            );
+            emit CampaignUpgraded(campaignId, epoch);
         }
     }
 
