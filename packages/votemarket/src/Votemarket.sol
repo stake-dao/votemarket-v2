@@ -59,6 +59,14 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Close deadline in seconds.
     uint256 public closeDeadline;
 
+    /// @notice Protected addresses.
+    /// @dev Smart Contracts addresses that cannot set recipients by themselves, or didn't manage to replicate the address on L2.
+    /// Example: Yearn yCRV Locker, Convex VoterProxy, StakeDAO Locker.
+    mapping(address => bool) public isProtected;
+
+    /// @notice Recipients.
+    mapping(address => address) public recipients;
+
     /// @notice Custom fee per manager.
     mapping(address => uint256) public customFeeByManager;
 
@@ -86,11 +94,11 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Total claimed per user per campaign Id and period Id.
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) public totalClaimedByAccount;
 
-    /// @notice Whitelisted/Blacklisted addresses per campaign.
-    mapping(uint256 => EnumerableSetLib.AddressSet) public addressesSet;
-
     /// @notice Mapping of campaign ids that are whitelist only.
     mapping(uint256 => bool) public whitelistOnly;
+
+    /// @notice Whitelisted/Blacklisted addresses per campaign.
+    mapping(uint256 => EnumerableSetLib.AddressSet) public addressesSet;
 
     ////////////////////////////////////////////////////////////////
     /// ---  EVENTS & ERRORS
@@ -100,6 +108,7 @@ contract Votemarket is ReentrancyGuard {
     error ZERO_ADDRESS();
     error INVALID_TOKEN();
     error INVALID_INPUT();
+    error PROTECTED_ACCOUNT();
     error PREVIOUS_STATE_MISSING();
     error CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
 
@@ -187,13 +196,37 @@ contract Votemarket is ReentrancyGuard {
     /// --- CLAIM LOGIC
     ///////////////////////////////////////////////////////////////
 
+    function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
+        external
+        nonReentrant
+        returns (uint256 claimed)
+    {
+        /// 1. Check if the account is protected.
+        if (isProtected[account] && recipients[account] == address(0)) revert PROTECTED_ACCOUNT();
+
+        /// 2. Set the receiver.
+        address receiver = recipients[account] == address(0) ? account : recipients[account];
+
+        return _claim(
+            ClaimData({
+                campaignId: campaignId,
+                account: account,
+                receiver: receiver,
+                epoch: epoch,
+                amountToClaim: 0,
+                feeAmount: 0
+            }),
+            hookData
+        );
+    }
+
     /// @notice Allows a user to claim rewards for a campaign
     /// @param campaignId The ID of the campaign
     /// @param receiver The address to receive the rewards
     /// @param epoch The epoch for which to claim rewards
     /// @param hookData Additional data for hooks
     /// @return claimed The amount of rewards claimed
-    function claim(uint256 campaignId, address receiver, uint256 epoch, bytes calldata hookData)
+    function claim(uint256 campaignId, uint256 epoch, bytes calldata hookData, address receiver)
         external
         nonReentrant
         returns (uint256 claimed)

@@ -18,7 +18,7 @@ contract ClaimTest is BaseTest {
         skip(1 weeks);
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        uint256 claimed = votemarket.claim(campaignId, recipient, currentEpoch, "");
+        uint256 claimed = votemarket.claim(campaignId, currentEpoch, "", recipient);
 
         uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, TOTAL_VOTES);
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
@@ -33,7 +33,7 @@ contract ClaimTest is BaseTest {
         skip(1 weeks);
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        uint256 claimed = votemarket.claim(campaignId, recipient, currentEpoch, "");
+        uint256 claimed = votemarket.claim(campaignId, currentEpoch, "", recipient);
 
         uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, TOTAL_VOTES);
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
@@ -44,7 +44,7 @@ contract ClaimTest is BaseTest {
         uint256 claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, currentEpoch, address(this));
         assertEq(claimedPerAccount, expectedClaim);
 
-        claimed = votemarket.claim(campaignId, recipient, currentEpoch, "");
+        claimed = votemarket.claim(campaignId, currentEpoch, "", recipient);
         claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, currentEpoch, address(this));
         assertEq(claimed, 0);
         assertEq(claimedPerAccount, expectedClaim);
@@ -58,7 +58,7 @@ contract ClaimTest is BaseTest {
         skip(1 weeks);
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        uint256 claimed = votemarket.claim(campaignId, recipient, currentEpoch, "");
+        uint256 claimed = votemarket.claim(campaignId, currentEpoch, "", recipient);
 
         uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, TOTAL_VOTES);
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
@@ -75,7 +75,7 @@ contract ClaimTest is BaseTest {
         uint256 balanceBefore = rewardToken.balanceOf(recipient);
         uint256 feeBefore = rewardToken.balanceOf(address(this));
 
-        claimed = votemarket.claim(campaignId, recipient, currentEpoch, "");
+        claimed = votemarket.claim(campaignId, currentEpoch, "", recipient);
         claimedPerAccount = votemarket.totalClaimedByAccount(campaignId, currentEpoch, address(this));
 
         assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
@@ -90,10 +90,10 @@ contract ClaimTest is BaseTest {
         uint256 currentEpoch = votemarket.currentEpoch();
 
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
-        votemarket.claim(campaignId, address(this), currentEpoch, "");
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
 
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
-        votemarket.claim(campaignId, address(this), currentEpoch, "");
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
     function testClaimAfterCampaignEnd() public {
@@ -103,7 +103,7 @@ contract ClaimTest is BaseTest {
         _updateEpochs(campaignId);
 
         uint256 lastClaimEpoch = votemarket.currentEpoch() - 1 weeks;
-        uint256 claimed = votemarket.claim(campaignId, address(this), lastClaimEpoch, "");
+        uint256 claimed = votemarket.claim(campaignId, lastClaimEpoch, "", address(this));
 
         uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, TOTAL_VOTES);
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
@@ -125,7 +125,7 @@ contract ClaimTest is BaseTest {
         _updateEpochs(campaignId);
 
         Campaign memory campaign = votemarket.getCampaign(campaignId);
-        uint256 claimed = votemarket.claim(campaignId, address(this), campaign.endTimestamp - 1 weeks, "");
+        uint256 claimed = votemarket.claim(campaignId,  campaign.endTimestamp - 1 weeks, "", address(this));
         assertEq(claimed, 0);
     }
 
@@ -146,11 +146,11 @@ contract ClaimTest is BaseTest {
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_WHITELIST_ONLY.selector);
-        votemarket.claim(campaignId, address(this), currentEpoch, "");
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
 
         uint256 expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, ACCOUNT_VOTES);
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
-        uint256 claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
+        uint256 claimed = votemarket.claim(campaignId, currentEpoch, "", address(this));
 
         /// Since the recipient and the fee collector are the same, it should be the same as the expected claim.
         assertApproxEqRel(claimed, expectedClaim, votemarket.fee());
@@ -172,7 +172,7 @@ contract ClaimTest is BaseTest {
         bytes memory data = abi.encode(campaignId, currentEpoch);
 
         vm.expectRevert(ReentrancyGuard.Reentrancy.selector);
-        votemarket.claim(campaignId, address(this), currentEpoch, data);
+        votemarket.claim(campaignId, currentEpoch, data, address(this));
     }
 }
 
@@ -185,10 +185,10 @@ contract ReentrancyAttacker {
 
     function doSomething(bytes calldata data) external {
         (uint256 campaignId, uint256 epoch) = abi.decode(data, (uint256, uint256));
-        votemarket.claim(campaignId, address(this), epoch, "");
+        votemarket.claim(campaignId, epoch, "", address(this));
     }
 
     fallback() external {
-        votemarket.claim(0, address(this), 0, "");
+        votemarket.claim(0,  0, "", address(this));
     }
 }
