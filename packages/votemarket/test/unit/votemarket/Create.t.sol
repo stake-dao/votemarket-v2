@@ -193,6 +193,36 @@ contract CreateCampaignTest is BaseTest {
         assertEq(blacklistArray[1], address(0xBEEF));
     }
 
+    function testCreateCampaignWithIdenticalBlacklist() public {
+        deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        address[] memory testBlacklist = new address[](2);
+        testBlacklist[0] = address(0xDEAD);
+        testBlacklist[1] = address(0xDEAD);
+
+        votemarket.createCampaign(
+            CHAIN_ID,
+            GAUGE,
+            MANAGER,
+            address(rewardToken),
+            VALID_PERIODS,
+            MAX_REWARD_PER_VOTE,
+            TOTAL_REWARD_AMOUNT,
+            testBlacklist,
+            HOOK,
+            false
+        );
+
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId);
+
+        assertFalse(votemarket.whitelistOnly(campaignId));
+        assertEq(blacklistArray.length, 1);
+        assertEq(blacklistArray[0], address(0xDEAD));
+    }
+
     function testCreateCampaignWithWhitelist() public {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
