@@ -192,7 +192,7 @@ contract CreateCampaignTest is BaseTest {
         assertFalse(votemarket.isWhitelisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isWhitelisted(campaignId, address(0x1234)));
 
-        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaign(campaignId);
+        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId);
         assertEq(campaignBlacklist.length, 2);
         assertEq(campaignBlacklist[0], address(0xDEAD));
         assertEq(campaignBlacklist[1], address(0xBEEF));
@@ -229,8 +229,8 @@ contract CreateCampaignTest is BaseTest {
         assertFalse(votemarket.isBlacklisted(campaignId, address(0xBEEF)));
         assertFalse(votemarket.isBlacklisted(campaignId, address(0x1234)));
 
-        address[] memory campaignBlacklist = votemarket.getBlacklistByCampaign(campaignId);
-        assertEq(campaignBlacklist.length, 0);
+        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId);
+        assertEq(campaignBlacklist.length, 2);
     }
 
     function testCreateCampaignWithoutHook() public {

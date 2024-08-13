@@ -84,8 +84,8 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Total claimed per user per campaign Id and period Id.
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) public totalClaimedByAccount;
 
-    /// @notice Blacklisted addresses per campaign.
-    mapping(uint256 => address[]) public blacklistById;
+    /// @notice Whitelisted/Blacklisted addresses per campaign.
+    mapping(uint256 => address[]) public addressesById;
 
     /// @notice Mapping of campaign ids that are whitelist only.
     mapping(uint256 => bool) public whitelistOnly;
@@ -105,6 +105,7 @@ contract Votemarket is ReentrancyGuard {
     error INVALID_TOKEN();
     error INVALID_INPUT();
     error PREVIOUS_STATE_MISSING();
+    error CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
 
     error CAMPAIGN_ENDED();
     error CAMPAIGN_NOT_ENDED();
@@ -226,13 +227,22 @@ contract Votemarket is ReentrancyGuard {
         validEpoch(data.campaignId, data.epoch)
         returns (uint256 claimed)
     {
+        /// Update the epoch if needed.
         data.epoch = _updateEpoch(data.campaignId, data.epoch, hookData);
 
+        /// Check if the account respect the conditions to claim.
         if (!_canClaim(data)) return 0;
 
+        /// Get the amount to claim and the fee amount.
         (data.amountToClaim, data.feeAmount) = _calculateClaimAndFee(data);
 
+        /// Check if the total claimed amount plus the claimed amount exceeds the total reward amount.
+        if (totalClaimedByCampaignId[data.campaignId] + data.amountToClaim > campaignById[data.campaignId].totalRewardAmount) revert CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
+
+        /// Update the total claimed amount for the account in this campaign and epoch.
         _updateClaimState(data);
+
+        /// Transfer the tokens to the receiver.
         _transferTokens(data);
 
         return data.amountToClaim;
@@ -413,12 +423,13 @@ contract Votemarket is ReentrancyGuard {
         // 1. Initialize reward per vote to 1 (minimum value)
         uint256 rewardPerVote = 1;
 
+        /// 2. Get total adjusted votes
+        uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
+
         // 2. If whitelist only, set to max reward per vote
         if (whitelistOnly[campaignId]) {
             rewardPerVote = campaignById[campaignId].maxRewardPerVote;
         } else {
-            // 3. Get total adjusted votes
-            uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
             if (totalVotes != 0) {
                 // 4. Calculate reward per vote
@@ -440,7 +451,7 @@ contract Votemarket is ReentrancyGuard {
                             amount: leftOver
                         });
                         // Trigger the hook
-                        IHook(hookByCampaignId[campaignId]).doSomething(hookData);
+                        IHook(hookByCampaignId[campaignId]).doSomething(campaignId, epoch, hookData);
                     } else {
                         // Store leftover in the period
                         period.leftover = leftOver;
@@ -459,7 +470,7 @@ contract Votemarket is ReentrancyGuard {
     /// @return uint256 The adjusted total votes
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
         // 1. Get the blacklist for the campaign
-        address[] memory blacklist = getBlacklistByCampaign(campaignId);
+        address[] memory blacklist = getAddressesByCampaign(campaignId);
 
         // 2. Get the total votes from the oracle
         uint256 totalVotes = IOracleLens(oracle).getTotalVotes(campaignById[campaignId].gauge, epoch);
@@ -551,8 +562,11 @@ contract Votemarket is ReentrancyGuard {
             for (uint256 i = 0; i < blacklist.length; i++) {
                 isBlacklisted[campaignId][blacklist[i]] = true;
             }
-            blacklistById[campaignId] = blacklist;
+
         }
+
+        /// Store the blacklisted or whitelisted addresses.
+        addressesById[campaignId] = blacklist;
 
         // Initialize the first period
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
@@ -785,8 +799,8 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Gets the blacklist for a campaign
     /// @param campaignId The ID of the campaign
     /// @return address[] The array of blacklisted addresses
-    function getBlacklistByCampaign(uint256 campaignId) public view returns (address[] memory) {
-        return blacklistById[campaignId];
+    function getAddressesByCampaign(uint256 campaignId) public view returns (address[] memory) {
+        return addressesById[campaignId];
     }
 
     /// @notice Gets a period for a campaign

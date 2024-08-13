@@ -3,5 +3,5 @@ pragma solidity 0.8.19;
 
 interface IHook {
     function validateHook() external view returns (bool);
-    function doSomething(bytes calldata) external;
+    function doSomething(uint campaignId, uint epoch, bytes calldata) external;
 }
