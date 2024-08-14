@@ -88,9 +88,6 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Total claimed per campaign Id.
     mapping(uint256 => uint256) public totalClaimedByCampaignId;
 
-    /// @notice Total claimed per period Id.
-    mapping(uint256 => mapping(uint256 => uint256)) public totalClaimedByPeriodId;
-
     /// @notice Total claimed per user per campaign Id and period Id.
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) public totalClaimedByAccount;
 
@@ -335,9 +332,6 @@ contract Votemarket is ReentrancyGuard {
     function _updateClaimState(ClaimData memory data) internal {
         // 1. Update the total claimed amount for the account in this campaign and epoch
         totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim + data.feeAmount;
-
-        // 2. Update total claimed amount for the epoch
-        totalClaimedByPeriodId[data.campaignId][data.epoch] += data.amountToClaim + data.feeAmount;
 
         // 3. Update the total claimed amount for the campaign
         totalClaimedByCampaignId[data.campaignId] += data.amountToClaim + data.feeAmount;
