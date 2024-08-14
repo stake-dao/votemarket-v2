@@ -47,6 +47,8 @@ struct Period {
     uint256 startTimestamp;
     /// @notice Amount of reward reserved for the period.
     uint256 rewardPerPeriod;
+    /// @notice Reward Per Vote.
+    uint256 rewardPerVote;
     /// @notice  Leftover amount.
     uint256 leftover;
     /// @notice Flag to indicate if the period is updated.

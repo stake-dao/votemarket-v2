@@ -1,0 +1,2 @@
+@solady=node_modules/solady/
+@forge-std=node_modules/forge-std/

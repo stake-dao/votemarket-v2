@@ -79,9 +79,6 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Periods by campaign Id and Epoch.
     mapping(uint256 => mapping(uint256 => Period)) public periodByCampaignId;
 
-    /// @notice Reward Per Vote by campaign Id and Epoch.
-    mapping(uint256 => mapping(uint256 => uint256)) public rewardPerVoteByCampaignId;
-
     /// @notice Campaign Upgrades in queue by Id. To be applied at the next action. (claim, upgrade)
     mapping(uint256 => mapping(uint256 => CampaignUpgrade)) public campaignUpgradeById;
 
@@ -293,7 +290,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Check if the account has not claimed before or if there's a new reward available
         bool notClaimedOrNewReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
-            || rewardPerVoteByCampaignId[data.campaignId][data.epoch] == 1;
+            || periodByCampaignId[data.campaignId][data.epoch].rewardPerVote == 1;
 
         // 5. Return true if all conditions are met
         return canClaimFromOracle && withinClaimDeadline && notClaimedOrNewReward;
@@ -315,7 +312,7 @@ contract Votemarket is ReentrancyGuard {
         uint256 accountVote = IOracleLens(oracle).getAccountVotes(data.account, campaign.gauge, data.epoch);
 
         // 3. Calculate the amount to claim based on the account's votes and the reward per vote
-        amountToClaim = accountVote.mulDiv(rewardPerVoteByCampaignId[data.campaignId][data.epoch], 1e18);
+        amountToClaim = accountVote.mulDiv(periodByCampaignId[data.campaignId][data.epoch].rewardPerVote, 1e18);
 
         // 4. Determine the fee percentage (custom fee for the manager or default fee)
         uint256 feeBps = customFeeByManager[campaign.manager] > 0 ? customFeeByManager[campaign.manager] : fee;
@@ -482,7 +479,7 @@ contract Votemarket is ReentrancyGuard {
         }
 
         // 8. Save the calculated reward per vote
-        rewardPerVoteByCampaignId[campaignId][epoch] = rewardPerVote;
+        period.rewardPerVote = rewardPerVote;
     }
 
     /// @notice Calculates the adjusted total votes for a campaign
@@ -591,6 +588,7 @@ contract Votemarket is ReentrancyGuard {
         periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH] = Period({
             startTimestamp: currentEpoch_ + EPOCH_LENGTH,
             rewardPerPeriod: rewardPerPeriod,
+            rewardPerVote: 0,
             leftover: 0,
             updated: false
         });
