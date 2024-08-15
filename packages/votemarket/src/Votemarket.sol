@@ -748,6 +748,8 @@ contract Votemarket is ReentrancyGuard {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
         } else if (block.timestamp >= closeDeadline_) {
+            _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
+
             receiver = feeCollector;
         }
 
