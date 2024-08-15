@@ -54,6 +54,9 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Governance address.
     address public governance;
 
+    /// @notice Future governance address.
+    address public futureGovernance;
+
     /// @notice Address of the remote cross-chain message handler.
     address public remote;
 
@@ -877,25 +880,39 @@ contract Votemarket is ReentrancyGuard {
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
 
-    /// @notice Sets the remote address
-    /// @param _remote The new remote address
+    /// @notice Sets the remote address.
+    /// @param _remote The new remote address.
     function setRemote(address _remote) external onlyGovernance {
         if (_remote == address(0)) revert ZERO_ADDRESS();
         remote = _remote;
     }
 
-    /// @notice Sets the fee
-    /// @param _fee The new fee (in basis points)
+    /// @notice Sets the fee.
+    /// @param _fee The new fee (in basis points).
     function setFee(uint256 _fee) external onlyGovernance {
         // Fee cannot be higher than 10%
         if (_fee > 10e16) revert INVALID_INPUT();
         fee = _fee;
     }
 
-    /// @notice Sets the fee collector address
-    /// @param _feeCollector The new fee collector address
+    /// @notice Sets the fee collector address.
+    /// @param _feeCollector The new fee collector address.
     function setFeeCollector(address _feeCollector) external onlyGovernance {
         if (_feeCollector == address(0)) revert ZERO_ADDRESS();
         feeCollector = _feeCollector;
+    }
+
+    /// @notice Sets the future governance address.
+    /// @param _futureGovernance The new future governance address.
+    function transferGovernance(address _futureGovernance) external onlyGovernance {
+        if (_futureGovernance == address(0)) revert ZERO_ADDRESS();
+        futureGovernance = _futureGovernance;
+    }
+
+    /// @notice Accepts the governance role via the future governance address.
+    function acceptGovernance() external {
+        if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
+        governance = futureGovernance;
+        futureGovernance = address(0);
     }
 }
