@@ -56,6 +56,42 @@ contract CloseCampaignTest is BaseTest {
         votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
+    function testCloseCampaignThatHasNotStartedWithAnUpgradeInQueue() public {
+        uint256 campaignId = votemarket.campaignCount() - 1;
+
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        /// Increase the total reward amount.
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT);
+
+        /// With random address.
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// With Manager.
+        votemarket.closeCampaign(campaignId);
+
+        /// Check the campaign.
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+
+        assertEq(campaign.manager, address(0));
+        assertEq(balance, 0);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
+
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        /// Since the campaign is deleted, it should revert with EPOCH_NOT_VALID as start timestamp = 0.
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
+    }
+
     function testCloseOngoingCampaign() public {
         uint256 campaignId = votemarket.campaignCount() - 1;
 

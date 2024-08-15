@@ -625,7 +625,7 @@ contract Votemarket is ReentrancyGuard {
         Campaign storage campaign = campaignById[campaignId];
 
         // Check if there's a campaign upgrade in queue
-        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[epoch][campaignId];
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         if (totalRewardAmount != 0) {
             SafeTransferLib.safeTransferFrom({
@@ -660,7 +660,7 @@ contract Votemarket is ReentrancyGuard {
         }
 
         // Store the campaign upgrade in queue
-        campaignUpgradeById[epoch][campaignId] = campaignUpgrade;
+        campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
     }
@@ -676,7 +676,7 @@ contract Votemarket is ReentrancyGuard {
         // Get the campaign
         Campaign memory campaign = campaignById[campaignId];
         // Check if there's a campaign upgrade in queue
-        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[epoch][campaignId];
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         /// Cache the end timestamp.
         uint256 endTimestamp = campaign.endTimestamp;
@@ -710,7 +710,7 @@ contract Votemarket is ReentrancyGuard {
             revert CAMPAIGN_ENDED();
         }
 
-        campaignUpgradeById[epoch][campaignId] = campaignUpgrade;
+        campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
     }
@@ -799,7 +799,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param epoch The current epoch
     function _checkForUpgrade(uint256 campaignId, uint256 epoch) internal {
         // Get the campaign upgrade
-        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[epoch][campaignId];
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         // Check if there is an upgrade in queue
         if (campaignUpgrade.totalRewardAmount != 0) {
@@ -861,7 +861,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param epoch The epoch of the upgrade
     /// @return CampaignUpgrade The campaign upgrade data
     function getCampaignUpgrade(uint256 campaignId, uint256 epoch) public view returns (CampaignUpgrade memory) {
-        return campaignUpgradeById[epoch][campaignId];
+        return campaignUpgradeById[campaignId][epoch];
     }
 
     /// @notice Gets the blacklist for a campaign
