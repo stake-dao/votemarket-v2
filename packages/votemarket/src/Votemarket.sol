@@ -362,7 +362,6 @@ contract Votemarket is ReentrancyGuard {
         validEpoch(campaignId, epoch)
         returns (uint256 epoch_)
     {
-        if (epoch < campaignById[campaignId].startTimestamp) revert EPOCH_NOT_VALID();
         epoch_ = _updateEpoch(campaignId, epoch, hookData);
     }
 
