@@ -709,41 +709,37 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Closes a campaign
     /// @param campaignId The ID of the campaign to close
     function closeCampaign(uint256 campaignId) external nonReentrant notClosed(campaignId) {
-        // Get the campaign
         Campaign storage campaign = campaignById[campaignId];
-
-        uint256 claimDeadline_ = campaign.endTimestamp + CLAIM_WINDOW_LENGTH;
-        uint256 closeDeadline_ = claimDeadline_ + CLOSE_WINDOW_LENGTH;
-        uint256 startTimestamp = campaign.startTimestamp;
-
-        // Check if the campaign can be closed
-        if (block.timestamp >= startTimestamp && block.timestamp < claimDeadline_) {
-            revert CAMPAIGN_NOT_ENDED();
-        }
-
+        uint256 currentTime = block.timestamp;
+        uint256 claimWindow = campaign.endTimestamp + CLAIM_WINDOW_LENGTH;
+        uint256 closeWindow = claimWindow + CLOSE_WINDOW_LENGTH;
         address receiver = campaign.manager;
 
-        if (block.timestamp < startTimestamp) {
+        /// 1. The campaign is closeable if the campaign didn't start yet.
+        if (currentTime < campaign.startTimestamp) {
             _isManagerOrRemote(campaignId);
 
-            /// Check if there's a campaign upgrade in queue and apply it.
-            _checkForUpgrade(campaignId, startTimestamp);
-        } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
+            /// Apply any pending upgrades of the first period.
+            _checkForUpgrade(campaignId, campaign.startTimestamp);
+        }
+        /// 2. If on-going or within claim window, revert.
+        else if (currentTime < campaign.endTimestamp || currentTime < claimWindow) {
+            // Active campaign or within claim window
+            revert CAMPAIGN_NOT_ENDED();
+        }
+        /// 3. If within close window, only manager can close the campaign. The state should be validated beforehand.
+        else if (currentTime < closeWindow) {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
-        } else if (block.timestamp >= closeDeadline_) {
+        }
+        /// 4. If after close window, function is public and funds are sent to the fee collector.
+        else {
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
-
             receiver = feeCollector;
         }
 
-        // Close the campaign
-        _closeCampaign({
-            campaignId: campaignId,
-            totalRewardAmount: campaign.totalRewardAmount,
-            rewardToken: campaign.rewardToken,
-            receiver: receiver
-        });
+        // 5. Close the campaign
+        _closeCampaign(campaignId, campaign.totalRewardAmount, campaign.rewardToken, receiver);
     }
 
     /// @notice Internal function to close a campaign
@@ -784,7 +780,7 @@ contract Votemarket is ReentrancyGuard {
                     campaignUpgrade.totalRewardAmount.mulDiv(1, campaign.numberOfPeriods);
             } else {
                 // Add to the leftover amount the newly added reward amount
-                periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover =
+                periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover +=
                     campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
             }
 
