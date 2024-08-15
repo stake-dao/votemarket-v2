@@ -702,8 +702,8 @@ contract Votemarket is ReentrancyGuard {
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: campaign.maxRewardPerVote,
                 endTimestamp: campaign.endTimestamp,
-                hook: address(0),
-                addresses: new address[](0)
+                hook: hookByCampaignId[campaignId],
+                addresses: getAddressesByCampaign(campaignId)
             });
         }
 
