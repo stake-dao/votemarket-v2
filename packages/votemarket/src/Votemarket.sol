@@ -741,7 +741,7 @@ contract Votemarket is ReentrancyGuard {
             doDelete = true;
 
             /// Check if there's a campaign upgrade in queue
-            CampaignUpgrade storage campaignUpgrade = campaignUpgradeById[campaignId][startTimestamp + EPOCH_LENGTH];
+            CampaignUpgrade storage campaignUpgrade = campaignUpgradeById[campaignId][startTimestamp];
 
             /// If there's a campaign upgrade in queue, it should be applied and deleted.
             if (campaignUpgrade.totalRewardAmount != 0) {
@@ -749,7 +749,7 @@ contract Votemarket is ReentrancyGuard {
             }
 
             /// Delete the campaign upgrade.
-            delete campaignUpgradeById[campaignId][startTimestamp + EPOCH_LENGTH];
+            delete campaignUpgradeById[campaignId][startTimestamp];
         } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
