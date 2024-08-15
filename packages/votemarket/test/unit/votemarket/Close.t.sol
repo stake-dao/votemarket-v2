@@ -47,7 +47,7 @@ contract CloseCampaignTest is BaseTest {
 
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        vm.expectRevert(Votemarket.CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT.selector);
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
@@ -78,7 +78,7 @@ contract CloseCampaignTest is BaseTest {
 
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        vm.expectRevert(Votemarket.CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT.selector);
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
 
 

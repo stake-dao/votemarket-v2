@@ -164,6 +164,11 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
+    modifier notClosed(uint256 campaignId) {
+        if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
+        _;
+    }
+
     modifier onlyManagerOrRemote(uint256 campaignId) {
         _isManagerOrRemote(campaignId);
         _;
@@ -254,8 +259,9 @@ contract Votemarket is ReentrancyGuard {
     /// @return claimed The amount of rewards claimed
     function _claim(ClaimData memory data, bytes calldata hookData)
         internal
-        checkWhitelistOrBlacklist(data.campaignId, data.account)
+        notClosed(data.campaignId)
         validEpoch(data.campaignId, data.epoch)
+        checkWhitelistOrBlacklist(data.campaignId, data.account)
         returns (uint256 claimed)
     {
         /// Update the epoch if needed.
@@ -620,9 +626,9 @@ contract Votemarket is ReentrancyGuard {
         uint256 maxRewardPerVote,
         address hook,
         address[] calldata addresses
-    ) external nonReentrant onlyManagerOrRemote(campaignId) {
+    ) external nonReentrant onlyManagerOrRemote(campaignId)         notClosed(campaignId) {
         // Check if the campaign is ended
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0 || isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
 
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
@@ -673,9 +679,8 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Increases the total reward amount for a campaign
     /// @param campaignId The ID of the campaign
     /// @param totalRewardAmount Total reward amount to add
-    function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant {
+    function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant notClosed(campaignId) {
         if (totalRewardAmount == 0) revert ZERO_INPUT();
-        if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
 
         /// Update will be applied at the next epoch.
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
@@ -712,10 +717,9 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Closes a campaign
     /// @param campaignId The ID of the campaign to close
-    function closeCampaign(uint256 campaignId) external nonReentrant {
+    function closeCampaign(uint256 campaignId) external nonReentrant notClosed(campaignId) {
         // Get the campaign
         Campaign storage campaign = campaignById[campaignId];
-        if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
 
         uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
         uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
