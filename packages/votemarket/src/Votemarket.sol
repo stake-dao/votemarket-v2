@@ -111,23 +111,49 @@ contract Votemarket is ReentrancyGuard {
     /// ---  EVENTS & ERRORS
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Thrown when a zero value is provided where a non-zero value is required.
     error ZERO_INPUT();
+
+    /// @notice Thrown when a zero address is provided where a non-zero address is required.
     error ZERO_ADDRESS();
+
+    /// @notice Thrown when an invalid token address is provided.
     error INVALID_TOKEN();
+
+    /// @notice Thrown when an input parameter is invalid.
     error INVALID_INPUT();
+
+    /// @notice Thrown when a protected account attempts an unauthorized action.
     error PROTECTED_ACCOUNT();
+
+    /// @notice Thrown when the previous state of a campaign is missing.
     error PREVIOUS_STATE_MISSING();
+
+    /// @notice Thrown when a claim amount exceeds the available reward amount.
     error CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
 
+    /// @notice Thrown when attempting to interact with an ended campaign.
     error CAMPAIGN_ENDED();
+
+    /// @notice Thrown when attempting to close a campaign that has not ended.
     error CAMPAIGN_NOT_ENDED();
+
+    /// @notice Thrown when an invalid epoch is provided.
     error EPOCH_NOT_VALID();
 
+    /// @notice Thrown when a blacklisted address attempts an unauthorized action.
     error AUTH_BLACKLISTED();
+
+    /// @notice Thrown when a non-manager attempts a manager-only action.
     error AUTH_MANAGER_ONLY();
+
+    /// @notice Thrown when a non-whitelisted address attempts an action in a whitelist-only campaign.
     error AUTH_WHITELIST_ONLY();
+
+    /// @notice Thrown when a non-governance address attempts a governance-only action.
     error AUTH_GOVERNANCE_ONLY();
 
+    /// @notice Emitted when a new campaign is created.
     event CampaignCreated(
         uint256 campaignId,
         address gauge,
@@ -138,21 +164,26 @@ contract Votemarket is ReentrancyGuard {
         uint256 totalRewardAmount
     );
 
+    /// @notice Emitted when a campaign upgrade is queued.
     event CampaignUpgradeQueued(uint256 campaignId, uint256 epoch);
 
+    /// @notice Emitted when a campaign is upgraded.
     event CampaignUpgraded(uint256 campaignId, uint256 epoch);
 
+    /// @notice Emitted when a campaign is closed.
     event CampaignClosed(uint256 campaignId);
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Ensures that only the governance address can call the function.
     modifier onlyGovernance() {
         if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
         _;
     }
 
+    /// @notice Checks if an account is whitelisted or blacklisted for a campaign.
     modifier checkWhitelistOrBlacklist(uint256 campaignId, address account) {
         EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
         bool contains = addressesSet_.contains(account);
@@ -164,6 +195,7 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
+    /// @notice Ensures that the provided epoch is valid for the given campaign.
     modifier validEpoch(uint256 campaignId, uint256 epoch) {
         if (
             epoch > block.timestamp || epoch < campaignById[campaignId].startTimestamp
@@ -172,21 +204,30 @@ contract Votemarket is ReentrancyGuard {
         _;
     }
 
+    /// @notice Ensures that the campaign is not closed.
     modifier notClosed(uint256 campaignId) {
         if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
         _;
     }
 
+    /// @notice Ensures that only the campaign manager or remote address can call the function.
     modifier onlyManagerOrRemote(uint256 campaignId) {
         _isManagerOrRemote(campaignId);
         _;
     }
 
     /// @notice Check if the manager or remote is calling the function.
+    /// @param campaignId The ID of the campaign.
     function _isManagerOrRemote(uint256 campaignId) internal view {
         if (msg.sender != campaignById[campaignId].manager && msg.sender != remote) revert AUTH_MANAGER_ONLY();
     }
 
+    /// @notice Contract constructor.
+    /// @param _governance The address of the governance.
+    /// @param _oracle The address of the oracle.
+    /// @param _feeCollector The address of the fee collector.
+    /// @param _epochLength The length of an epoch in seconds.
+    /// @param _minimumPeriods The minimum number of periods for a campaign.
     constructor(
         address _governance,
         address _oracle,
@@ -209,6 +250,12 @@ contract Votemarket is ReentrancyGuard {
     /// --- CLAIM LOGIC
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Allows claiming rewards for a specified account.
+    /// @param campaignId The ID of the campaign.
+    /// @param account The account to claim for.
+    /// @param epoch The epoch to claim for.
+    /// @param hookData Additional data for hooks.
+    /// @return claimed The amount of rewards claimed.
     function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
         external
         nonReentrant
@@ -347,7 +394,7 @@ contract Votemarket is ReentrancyGuard {
         // 1. Update the total claimed amount for the account in this campaign and epoch
         totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim + data.feeAmount;
 
-        // 3. Update the total claimed amount for the campaign
+        // 2. Update the total claimed amount for the campaign
         totalClaimedByCampaignId[data.campaignId] += data.amountToClaim + data.feeAmount;
     }
 
@@ -439,7 +486,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param campaignId The ID of the campaign
     /// @param epoch The current epoch
     /// @param remainingPeriods The number of remaining periods
-    /// @return totalReward totalReward The total reward for remaining periods
+    /// @return totalReward The total reward for remaining periods
     function _calculateTotalReward(uint256 campaignId, uint256 epoch, uint256 remainingPeriods)
         internal
         view
@@ -460,23 +507,23 @@ contract Votemarket is ReentrancyGuard {
     function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period, bytes calldata hookData)
         internal
     {
-        /// 2. Get total adjusted votes
+        // 1. Get total adjusted votes
         uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
         if (totalVotes != 0) {
             Campaign storage campaign = campaignById[campaignId];
 
-            // 4. Calculate reward per vote
+            // 2. Calculate reward per vote
             uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
 
-            // 5. Cap reward per vote at max reward per vote
+            // 3. Cap reward per vote at max reward per vote
             if (rewardPerVote > campaign.maxRewardPerVote) {
                 rewardPerVote = campaign.maxRewardPerVote;
 
-                // 6. Calculate leftover rewards
+                // 4. Calculate leftover rewards
                 uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
 
-                // 7. Handle leftover rewards
+                // 5. Handle leftover rewards
                 address hook = hookByCampaignId[campaignId];
                 if (hook != address(0)) {
                     // Transfer leftover to hook contract
@@ -493,7 +540,7 @@ contract Votemarket is ReentrancyGuard {
                 }
             }
 
-            // 8. Save the calculated reward per vote
+            // 6. Save the calculated reward per vote
             period.rewardPerVote = rewardPerVote;
         }
     }
@@ -501,9 +548,9 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Calculates the adjusted total votes for a campaign
     /// @param campaignId The ID of the campaign
     /// @param epoch The current epoch
-    /// @return uint256 The adjusted total votes
+    /// @return The adjusted total votes
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
-        /// 1. Get the addresses set for the campaign
+        // 1. Get the addresses set for the campaign
         EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
 
         // 2. Get the total votes from the ORACLE
@@ -548,20 +595,20 @@ contract Votemarket is ReentrancyGuard {
         address hook,
         bool isWhitelist
     ) external nonReentrant returns (uint256 campaignId) {
-        // Input validation
+        // 1. Input validation
         if (numberOfPeriods < MINIMUM_PERIODS) revert INVALID_INPUT();
         if (totalRewardAmount == 0 || maxRewardPerVote == 0) revert ZERO_INPUT();
         if (rewardToken == address(0) || gauge == address(0)) revert ZERO_ADDRESS();
         if (addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
 
-        // Check if reward token is a contract
+        // 2. Check if reward token is a contract
         uint256 size;
         assembly {
             size := extcodesize(rewardToken)
         }
         if (size == 0) revert INVALID_TOKEN();
 
-        // Transfer reward token to this contract
+        // 3. Transfer reward token to this contract
         SafeTransferLib.safeTransferFrom({
             token: rewardToken,
             from: msg.sender,
@@ -569,14 +616,14 @@ contract Votemarket is ReentrancyGuard {
             amount: totalRewardAmount
         });
 
-        // Generate campaign Id
+        // 4. Generate campaign Id and get current epoch
         campaignId = campaignCount;
         uint256 currentEpoch_ = currentEpoch();
 
-        // Increment campaign count
+        // 5. Increment campaign count
         ++campaignCount;
 
-        // Store campaign
+        // 6. Store campaign
         campaignById[campaignId] = Campaign({
             chainId: chainId,
             gauge: gauge,
@@ -589,18 +636,18 @@ contract Votemarket is ReentrancyGuard {
             endTimestamp: currentEpoch_ + numberOfPeriods * EPOCH_LENGTH
         });
 
-        // Store the hook
+        // 7. Store the hook
         hookByCampaignId[campaignId] = hook;
 
-        // Store blacklisted or whitelisted addresses
+        // 8. Store blacklisted or whitelisted addresses
         for (uint256 i = 0; i < addresses.length; i++) {
             addressesSet[campaignId].add(addresses[i]);
         }
 
-        /// Flag if the campaign is whitelist only.
+        // 9. Flag if the campaign is whitelist only
         whitelistOnly[campaignId] = isWhitelist;
 
-        // Initialize the first period
+        // 10. Initialize the first period
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
         periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH] = Period({
             startTimestamp: currentEpoch_ + EPOCH_LENGTH,
@@ -620,6 +667,8 @@ contract Votemarket is ReentrancyGuard {
     /// @param numberOfPeriods Number of periods to add
     /// @param totalRewardAmount Total reward amount to add
     /// @param maxRewardPerVote Max reward per vote to set
+    /// @param hook The new hook address
+    /// @param addresses The new list of addresses for blacklist or whitelist
     function manageCampaign(
         uint256 campaignId,
         uint8 numberOfPeriods,
@@ -628,18 +677,20 @@ contract Votemarket is ReentrancyGuard {
         address hook,
         address[] calldata addresses
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
-        // Check if the campaign is ended
+        // 1. Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
         if (addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
 
+        // 2. Calculate the next epoch
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
-        // Get the campaign
+        // 3. Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
-        // Check if there's a campaign upgrade in queue
+        // 4. Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
+        // 5. Transfer additional reward tokens if needed
         if (totalRewardAmount != 0) {
             SafeTransferLib.safeTransferFrom({
                 token: campaign.rewardToken,
@@ -649,7 +700,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        // Update campaign upgrade
+        // 6. Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaignUpgrade.numberOfPeriods + numberOfPeriods,
@@ -670,7 +721,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        // Store the campaign upgrade in queue
+        // 7. Store the campaign upgrade in queue
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
@@ -684,15 +735,19 @@ contract Votemarket is ReentrancyGuard {
         nonReentrant
         notClosed(campaignId)
     {
+        // 1. Check for zero input
         if (totalRewardAmount == 0) revert ZERO_INPUT();
 
-        /// Update will be applied at the next epoch.
+        // 2. Calculate the next epoch
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
-        // Get the campaign
+
+        // 3. Get the campaign
         Campaign memory campaign = campaignById[campaignId];
-        // Check if there's a campaign upgrade in queue
+
+        // 4. Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
+        // 5. Transfer additional reward tokens
         SafeTransferLib.safeTransferFrom({
             token: campaign.rewardToken,
             from: msg.sender,
@@ -700,7 +755,7 @@ contract Votemarket is ReentrancyGuard {
             amount: totalRewardAmount
         });
 
-        // Update campaign upgrade
+        // 6. Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade.totalRewardAmount += totalRewardAmount;
         } else {
@@ -714,6 +769,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
+        // 7. Store the updated campaign upgrade
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
@@ -722,35 +778,32 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Closes a campaign
     /// @param campaignId The ID of the campaign to close
     function closeCampaign(uint256 campaignId) external nonReentrant notClosed(campaignId) {
+        // 1. Get campaign data and calculate time windows
         Campaign storage campaign = campaignById[campaignId];
         uint256 currentTime = block.timestamp;
         uint256 claimWindow = campaign.endTimestamp + CLAIM_WINDOW_LENGTH;
         uint256 closeWindow = claimWindow + CLOSE_WINDOW_LENGTH;
         address receiver = campaign.manager;
 
-        /// 1. The campaign is closeable if the campaign didn't start yet.
+        // 2. Handle different closing scenarios
         if (currentTime < campaign.startTimestamp) {
+            // 2a. Campaign hasn't started yet
             _isManagerOrRemote(campaignId);
-
-            /// Apply any pending upgrades of the first period.
             _checkForUpgrade(campaignId, campaign.startTimestamp);
-        }
-        /// 2. If on-going or within claim window, revert.
-        else if (currentTime < campaign.endTimestamp || currentTime < claimWindow) {
+        } else if (currentTime < campaign.endTimestamp || currentTime < claimWindow) {
+            // 2b. Campaign is ongoing or within claim window
             revert CAMPAIGN_NOT_ENDED();
-        }
-        /// 3. If within close window, only manager can close the campaign. The state should be validated beforehand.
-        else if (currentTime < closeWindow) {
+        } else if (currentTime < closeWindow) {
+            // 2c. Within close window, only manager can close
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
-        }
-        /// 4. If after close window, function is public and funds are sent to the fee collector.
-        else {
+        } else {
+            // 2d. After close window, anyone can close and funds go to fee collector
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
             receiver = feeCollector;
         }
 
-        // 5. Close the campaign
+        // 3. Close the campaign
         _closeCampaign(campaignId, campaign.totalRewardAmount, campaign.rewardToken, receiver);
     }
 
@@ -762,15 +815,16 @@ contract Votemarket is ReentrancyGuard {
     function _closeCampaign(uint256 campaignId, uint256 totalRewardAmount, address rewardToken, address receiver)
         internal
     {
+        // 1. Calculate leftover rewards
         uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
 
-        // Transfer the left over to the receiver
+        // 2. Transfer leftover rewards to the receiver
         SafeTransferLib.safeTransfer({token: rewardToken, to: receiver, amount: leftOver});
 
-        /// Update the total claimed amount.
+        // 3. Update the total claimed amount
         totalClaimedByCampaignId[campaignId] = totalRewardAmount;
 
-        /// Set the campaign as closed.
+        // 4. Set the campaign as closed
         isClosedCampaign[campaignId] = true;
 
         emit CampaignClosed(campaignId);
@@ -780,41 +834,41 @@ contract Votemarket is ReentrancyGuard {
     /// @param campaignId The ID of the campaign
     /// @param epoch The current epoch
     function _checkForUpgrade(uint256 campaignId, uint256 epoch) internal {
-        // Get the campaign upgrade
+        // 1. Get the campaign upgrade
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
-        // Check if there is an upgrade in queue
+        // 2. Check if there is an upgrade in queue
         if (campaignUpgrade.totalRewardAmount != 0) {
+            // 3. Get the campaign
             Campaign storage campaign = campaignById[campaignId];
 
+            // 4. Update period data
             if (epoch == campaign.startTimestamp) {
                 periodByCampaignId[campaignId][epoch].rewardPerPeriod =
                     campaignUpgrade.totalRewardAmount.mulDiv(1, campaign.numberOfPeriods);
             } else {
-                // Add to the leftover amount the newly added reward amount
                 periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover +=
                     campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
             }
 
-            // Update the hook.
+            // 5. Update the hook
             hookByCampaignId[campaignId] = campaignUpgrade.hook;
 
-            /// Update the addresses.
+            // 6. Update the addresses
             delete addressesSet[campaignId];
-
             if (campaignUpgrade.addresses.length > 0) {
                 for (uint256 i = 0; i < campaignUpgrade.addresses.length; i++) {
                     addressesSet[campaignId].add(campaignUpgrade.addresses[i]);
                 }
             }
 
-            // Save new values
+            // 7. Save new campaign values
             campaign.endTimestamp = campaignUpgrade.endTimestamp;
             campaign.numberOfPeriods = campaignUpgrade.numberOfPeriods;
             campaign.maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
             campaign.totalRewardAmount = campaignUpgrade.totalRewardAmount;
 
-            /// Delete the campaign upgrade.
+            // 8. Delete the applied campaign upgrade
             delete campaignUpgradeById[campaignId][epoch];
 
             emit CampaignUpgraded(campaignId, epoch);
@@ -867,9 +921,6 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Gets the current epoch
     /// @return uint256 The current epoch
     function currentEpoch() public view returns (uint256) {
-        // 1. Get the current timestamp
-        // 2. Divide it by the number of seconds in a week
-        // 3. Multiply by the number of seconds in a week to round down to the start of the week
         return block.timestamp / EPOCH_LENGTH * EPOCH_LENGTH;
     }
 
@@ -877,57 +928,59 @@ contract Votemarket is ReentrancyGuard {
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
 
-    /// @notice Sets the remote address.
-    /// @param _remote The new remote address.
+    /// @notice Sets the remote address
+    /// @param _remote The new remote address
     function setRemote(address _remote) external onlyGovernance {
+        // 1. Check for zero address
         if (_remote == address(0)) revert ZERO_ADDRESS();
+
+        // 2. Set the new remote address
         remote = _remote;
     }
 
-    /// @notice Sets the fee.
-    /// @param _fee The new fee (in basis points).
+    /// @notice Sets the fee
+    /// @param _fee The new fee (in basis points)
     function setFee(uint256 _fee) external onlyGovernance {
-        // Fee cannot be higher than 10%
         if (_fee > 10e16) revert INVALID_INPUT();
         fee = _fee;
     }
 
-    /// @notice Sets a custom fee for a manager.
-    /// @param _account The manager address.
-    /// @param _fee The new fee (in basis points).
+    /// @notice Sets a custom fee for a manager
+    /// @param _account The manager address
+    /// @param _fee The new fee (in basis points)
     function setCustomFee(address _account, uint256 _fee) external onlyGovernance {
         if (_fee > 10e16) revert INVALID_INPUT();
         customFeeByManager[_account] = _fee;
     }
 
-    /// @notice Sets a recipient for the sender.
-    /// @param _recipient The new recipient address.
+    /// @notice Sets a recipient for the sender
+    /// @param _recipient The new recipient address
     function setRecipient(address _recipient) external {
         recipients[msg.sender] = _recipient;
     }
 
-    /// @notice Sets a recipient for an account.
-    /// @param _account The account address.
-    /// @param _recipient The new recipient address.
+    /// @notice Sets a recipient for an account
+    /// @param _account The account address
+    /// @param _recipient The new recipient address
     function setRecipient(address _account, address _recipient) external onlyGovernance {
         recipients[_account] = _recipient;
     }
 
-    /// @notice Sets the fee collector address.
-    /// @param _feeCollector The new fee collector address.
+    /// @notice Sets the fee collector address
+    /// @param _feeCollector The new fee collector address
     function setFeeCollector(address _feeCollector) external onlyGovernance {
         if (_feeCollector == address(0)) revert ZERO_ADDRESS();
         feeCollector = _feeCollector;
     }
 
-    /// @notice Sets the future governance address.
-    /// @param _futureGovernance The new future governance address.
+    /// @notice Sets the future governance address
+    /// @param _futureGovernance The new future governance address
     function transferGovernance(address _futureGovernance) external onlyGovernance {
         if (_futureGovernance == address(0)) revert ZERO_ADDRESS();
         futureGovernance = _futureGovernance;
     }
 
-    /// @notice Accepts the governance role via the future governance address.
+    /// @notice Accepts the governance role via the future governance address
     function acceptGovernance() external {
         if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
         governance = futureGovernance;
