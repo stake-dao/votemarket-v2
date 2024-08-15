@@ -27,12 +27,6 @@ contract Votemarket is ReentrancyGuard {
     /// --- CONSTANT VALUES
     ///////////////////////////////////////////////////////////////
 
-    /// @notice Minimum duration for a campaign.
-    uint8 public immutable MINIMUM_PERIODS;
-
-    /// @notice Epoch length in seconds.
-    uint256 public immutable EPOCH_LENGTH;
-
     /// @notice Claim window length in seconds.
     /// 6 months.
     uint256 public constant CLAIM_WINDOW_LENGTH = 24 weeks;
@@ -42,7 +36,16 @@ contract Votemarket is ReentrancyGuard {
     uint256 public constant CLOSE_WINDOW_LENGTH = 4 weeks;
 
     /// @notice Maximum number of addresses per campaign.
-    uint256 public constant MAX_ADDRESSES_PER_CAMPAIGN = 100;
+    uint256 public constant MAX_ADDRESSES_PER_CAMPAIGN = 500;
+
+    /// @notice Minimum duration for a campaign.
+    uint8 public immutable MINIMUM_PERIODS;
+
+    /// @notice Epoch length in seconds.
+    uint256 public immutable EPOCH_LENGTH;
+
+    /// @notice Oracle address.
+    address public immutable ORACLE;
 
     ////////////////////////////////////////////////////////////////
     /// --- STORAGE VARIABLES
@@ -50,9 +53,6 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Governance address.
     address public governance;
-
-    /// @notice Oracle address.
-    address public oracle;
 
     /// @notice Address of the remote cross-chain message handler.
     address public remote;
@@ -184,13 +184,20 @@ contract Votemarket is ReentrancyGuard {
         if (msg.sender != campaignById[campaignId].manager && msg.sender != remote) revert AUTH_MANAGER_ONLY();
     }
 
-    constructor(address _governance, address _feeCollector, uint256 _epochLength, uint8 _minimumPeriods) {
+    constructor(
+        address _governance,
+        address _oracle,
+        address _feeCollector,
+        uint256 _epochLength,
+        uint8 _minimumPeriods
+    ) {
         governance = _governance;
         feeCollector = _feeCollector;
 
         /// Default fee is 4%.
         fee = 4e16;
 
+        ORACLE = _oracle;
         EPOCH_LENGTH = _epochLength;
         MINIMUM_PERIODS = _minimumPeriods;
     }
@@ -289,8 +296,8 @@ contract Votemarket is ReentrancyGuard {
         // 1. Retrieve the campaign from storage
         Campaign storage campaign = campaignById[data.campaignId];
 
-        // 2. Check if the account can claim using the oracle
-        bool canClaimFromOracle = IOracleLens(oracle).canClaim(data.account, campaign.gauge, data.epoch);
+        // 2. Check if the account can claim using the ORACLE
+        bool canClaimFromOracle = IOracleLens(ORACLE).canClaim(data.account, campaign.gauge, data.epoch);
 
         // 3. Check if the claim deadline has not passed
         bool withinClaimDeadline = campaign.endTimestamp + CLAIM_WINDOW_LENGTH > block.timestamp;
@@ -315,8 +322,8 @@ contract Votemarket is ReentrancyGuard {
         // 1. Retrieve the campaign from storage
         Campaign storage campaign = campaignById[data.campaignId];
 
-        // 2. Get the account's votes from the oracle
-        uint256 accountVote = IOracleLens(oracle).getAccountVotes(data.account, campaign.gauge, data.epoch);
+        // 2. Get the account's votes from the ORACLE
+        uint256 accountVote = IOracleLens(ORACLE).getAccountVotes(data.account, campaign.gauge, data.epoch);
 
         // 3. Calculate the amount to claim based on the account's votes and the reward per vote
         amountToClaim = accountVote.mulDiv(periodByCampaignId[data.campaignId][data.epoch].rewardPerVote, 1e18);
@@ -496,14 +503,14 @@ contract Votemarket is ReentrancyGuard {
         /// 1. Get the addresses set for the campaign
         EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
 
-        // 2. Get the total votes from the oracle
-        uint256 totalVotes = IOracleLens(oracle).getTotalVotes(campaignById[campaignId].gauge, epoch);
+        // 2. Get the total votes from the ORACLE
+        uint256 totalVotes = IOracleLens(ORACLE).getTotalVotes(campaignById[campaignId].gauge, epoch);
 
         // 3. Calculate the sum of blacklisted votes
         uint256 addressesVotes;
         for (uint256 i = 0; i < addressesSet_.length(); i++) {
             addressesVotes +=
-                IOracleLens(oracle).getAccountVotes(addressesSet_.at(i), campaignById[campaignId].gauge, epoch);
+                IOracleLens(ORACLE).getAccountVotes(addressesSet_.at(i), campaignById[campaignId].gauge, epoch);
         }
 
         if (whitelistOnly[campaignId]) {
@@ -583,7 +590,7 @@ contract Votemarket is ReentrancyGuard {
         hookByCampaignId[campaignId] = hook;
 
         // Store blacklisted or whitelisted addresses
-        for (uint256 i = 0; i < addresses .length; i++) {
+        for (uint256 i = 0; i < addresses.length; i++) {
             addressesSet[campaignId].add(addresses[i]);
         }
 
@@ -620,8 +627,7 @@ contract Votemarket is ReentrancyGuard {
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
         // Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
-        if(addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
-
+        if (addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
 
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
@@ -871,11 +877,11 @@ contract Votemarket is ReentrancyGuard {
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
 
-    /// @notice Sets the oracle address
-    /// @param _oracle The new oracle address
-    function setOracle(address _oracle) external onlyGovernance {
-        if (_oracle == address(0)) revert ZERO_ADDRESS();
-        oracle = _oracle;
+    /// @notice Sets the remote address
+    /// @param _remote The new remote address
+    function setRemote(address _remote) external onlyGovernance {
+        if (_remote == address(0)) revert ZERO_ADDRESS();
+        remote = _remote;
     }
 
     /// @notice Sets the fee
@@ -884,13 +890,6 @@ contract Votemarket is ReentrancyGuard {
         // Fee cannot be higher than 10%
         if (_fee > 10e16) revert INVALID_INPUT();
         fee = _fee;
-    }
-
-    /// @notice Sets the remote address
-    /// @param _remote The new remote address
-    function setRemote(address _remote) external onlyGovernance {
-        if (_remote == address(0)) revert ZERO_ADDRESS();
-        remote = _remote;
     }
 
     /// @notice Sets the fee collector address

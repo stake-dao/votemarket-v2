@@ -33,8 +33,7 @@ abstract contract BaseTest is Test {
     function setUp() public virtual {
         oracleLens = new MockOracleLens();
 
-        votemarket = new Votemarket(address(this), address(this), 1 weeks, 2);
-        votemarket.setOracle(address(oracleLens));
+        votemarket = new Votemarket(address(this), address(oracleLens), address(this), 1 weeks, 2);
 
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
