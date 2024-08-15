@@ -37,13 +37,9 @@ contract CloseCampaignTest is BaseTest {
         /// With Manager.
         votemarket.closeCampaign(campaignId);
 
-        /// Check the campaign.
-        Campaign memory campaign = votemarket.getCampaign(campaignId);
-
         uint256 balance = rewardToken.balanceOf(address(votemarket));
         uint256 managerBalance = rewardToken.balanceOf(creator);
 
-        assertEq(campaign.manager, address(0));
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
 
@@ -72,13 +68,9 @@ contract CloseCampaignTest is BaseTest {
         /// With Manager.
         votemarket.closeCampaign(campaignId);
 
-        /// Check the campaign.
-        Campaign memory campaign = votemarket.getCampaign(campaignId);
-
         uint256 balance = rewardToken.balanceOf(address(votemarket));
         uint256 managerBalance = rewardToken.balanceOf(creator);
 
-        assertEq(campaign.manager, address(0));
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
 
@@ -140,13 +132,9 @@ contract CloseCampaignTest is BaseTest {
         vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.closeCampaign(campaignId);
 
-        /// Get the campaign.
-        Campaign memory campaign = votemarket.getCampaign(campaignId);
-
         uint256 balance = rewardToken.balanceOf(address(votemarket));
         uint256 managerBalance = rewardToken.balanceOf(creator);
 
-        assertEq(campaign.manager, address(0));
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
     }

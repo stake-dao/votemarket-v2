@@ -622,7 +622,7 @@ contract Votemarket is ReentrancyGuard {
         address[] calldata addresses
     ) external nonReentrant onlyManagerOrRemote(campaignId) {
         // Check if the campaign is ended
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, currentEpoch()) == 0 || isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
 
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
@@ -770,9 +770,6 @@ contract Votemarket is ReentrancyGuard {
 
         /// Update the total claimed amount.
         totalClaimedByCampaignId[campaignId] = totalRewardAmount;
-
-        /// We delete only the manager to avoid updates.
-        delete campaignById[campaignId].manager;
 
         /// Set the campaign as closed.
         isClosedCampaign[campaignId] = true;
