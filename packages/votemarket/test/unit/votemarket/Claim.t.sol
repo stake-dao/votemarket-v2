@@ -171,8 +171,10 @@ contract ClaimTest is BaseTest {
         uint256 currentEpoch = votemarket.currentEpoch();
         bytes memory data = abi.encode(campaignId, currentEpoch);
 
-        vm.expectRevert(ReentrancyGuard.Reentrancy.selector);
+        assertEq(votemarket.hookByCampaignId(campaignId), address(reentrancyAttacker));
         votemarket.claim(campaignId, currentEpoch, data, address(this));
+        assertEq(votemarket.hookByCampaignId(campaignId), address(0));
+
     }
 }
 

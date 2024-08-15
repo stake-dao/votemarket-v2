@@ -26,7 +26,7 @@ contract Votemarket is ReentrancyGuard {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Minimum duration for a campaign.
-    uint8 public constant MINIMUM_PERIODS = 2;
+    uint8 public immutable MINIMUM_PERIODS;
 
     /// @notice Epoch length in seconds.
     uint256 public immutable EPOCH_LENGTH;
@@ -174,7 +174,8 @@ contract Votemarket is ReentrancyGuard {
         address _feeCollector,
         uint256 _closeDeadline,
         uint256 _claimDeadline,
-        uint256 _epochLength
+        uint256 _epochLength,
+        uint8 _minimumPeriods
     ) {
         governance = _governance;
         feeCollector = _feeCollector;
@@ -187,6 +188,7 @@ contract Votemarket is ReentrancyGuard {
         fee = 4e16;
 
         EPOCH_LENGTH = _epochLength;
+        MINIMUM_PERIODS = _minimumPeriods;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -290,7 +292,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Check if the account has not claimed before or if there's a new reward available
         bool notClaimedOrNewReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
-            || periodByCampaignId[data.campaignId][data.epoch].rewardPerVote == 1;
+            || periodByCampaignId[data.campaignId][data.epoch].rewardPerVote == 0;
 
         // 5. Return true if all conditions are met
         return canClaimFromOracle && withinClaimDeadline && notClaimedOrNewReward;
@@ -444,19 +446,18 @@ contract Votemarket is ReentrancyGuard {
     function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period, bytes calldata hookData)
         internal
     {
-        // 1. Initialize reward per vote to 1 (minimum value)
-        uint256 rewardPerVote = 1;
-
         /// 2. Get total adjusted votes
         uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
         if (totalVotes != 0) {
+            Campaign storage campaign = campaignById[campaignId];
+
             // 4. Calculate reward per vote
-            rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
+            uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
 
             // 5. Cap reward per vote at max reward per vote
-            if (rewardPerVote > campaignById[campaignId].maxRewardPerVote) {
-                rewardPerVote = campaignById[campaignId].maxRewardPerVote;
+            if (rewardPerVote > campaign.maxRewardPerVote) {
+                rewardPerVote = campaign.maxRewardPerVote;
 
                 // 6. Calculate leftover rewards
                 uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
@@ -465,21 +466,24 @@ contract Votemarket is ReentrancyGuard {
                 if (hookByCampaignId[campaignId] != address(0)) {
                     // Transfer leftover to hook contract
                     SafeTransferLib.safeTransfer({
-                        token: campaignById[campaignId].rewardToken,
+                        token: campaign.rewardToken,
                         to: hookByCampaignId[campaignId],
                         amount: leftOver
                     });
                     // Trigger the hook
-                    IHook(hookByCampaignId[campaignId]).doSomething(campaignId, epoch, hookData);
+                    try IHook(hookByCampaignId[campaignId]).doSomething(campaignId, epoch, leftOver, hookData) {}
+                    catch {
+                        delete hookByCampaignId[campaignId];
+                    }
                 } else {
                     // Store leftover in the period
                     period.leftover = leftOver;
                 }
             }
-        }
 
-        // 8. Save the calculated reward per vote
-        period.rewardPerVote = rewardPerVote;
+            // 8. Save the calculated reward per vote
+            period.rewardPerVote = rewardPerVote;
+        }
     }
 
     /// @notice Calculates the adjusted total votes for a campaign
@@ -666,13 +670,15 @@ contract Votemarket is ReentrancyGuard {
     function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant {
         if (totalRewardAmount == 0) revert ZERO_INPUT();
 
+        /// Update will be applied at the next epoch.
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
-
         // Get the campaign
         Campaign memory campaign = campaignById[campaignId];
-
         // Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[epoch][campaignId];
+
+        /// Cache the end timestamp.
+        uint256 endTimestamp = campaign.endTimestamp;
 
         SafeTransferLib.safeTransferFrom({
             token: campaign.rewardToken,
@@ -684,6 +690,9 @@ contract Votemarket is ReentrancyGuard {
         // Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade.totalRewardAmount += totalRewardAmount;
+
+            /// If there's an upgrade in queue, check if the campaign duration has been increased.
+            endTimestamp = campaignUpgrade.endTimestamp;
         } else {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods,
@@ -693,6 +702,11 @@ contract Votemarket is ReentrancyGuard {
                 hook: address(0),
                 addresses: new address[](0)
             });
+        }
+
+        /// If the campaign ended, it should revert.
+        if (epoch >= endTimestamp) {
+            revert CAMPAIGN_ENDED();
         }
 
         campaignUpgradeById[epoch][campaignId] = campaignUpgrade;
@@ -716,9 +730,25 @@ contract Votemarket is ReentrancyGuard {
         }
 
         address receiver = campaign.manager;
+        uint256 totalRewardAmount = campaign.totalRewardAmount;
 
+        bool doDelete;
         if (block.timestamp < startTimestamp) {
             _isManagerOrRemote(campaignId);
+
+            /// If the campaign is not started, it should be deleted.
+            doDelete = true;
+
+            /// Check if there's a campaign upgrade in queue
+            CampaignUpgrade storage campaignUpgrade = campaignUpgradeById[campaignId][startTimestamp + EPOCH_LENGTH];
+
+            /// If there's a campaign upgrade in queue, it should be applied and deleted.
+            if (campaignUpgrade.totalRewardAmount != 0) {
+                totalRewardAmount = campaignUpgrade.totalRewardAmount;
+            }
+
+            /// Delete the campaign upgrade.
+            delete campaignUpgradeById[campaignId][startTimestamp + EPOCH_LENGTH];
         } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
@@ -729,9 +759,10 @@ contract Votemarket is ReentrancyGuard {
         // Close the campaign
         _closeCampaign({
             campaignId: campaignId,
-            totalRewardAmount: campaign.totalRewardAmount,
+            totalRewardAmount: totalRewardAmount,
             rewardToken: campaign.rewardToken,
-            receiver: receiver
+            receiver: receiver,
+            doDelete: doDelete
         });
     }
 
@@ -740,14 +771,24 @@ contract Votemarket is ReentrancyGuard {
     /// @param totalRewardAmount Total reward amount
     /// @param rewardToken The reward token address
     /// @param receiver The address to receive leftover rewards
-    function _closeCampaign(uint256 campaignId, uint256 totalRewardAmount, address rewardToken, address receiver)
-        internal
-    {
+    function _closeCampaign(
+        uint256 campaignId,
+        uint256 totalRewardAmount,
+        address rewardToken,
+        address receiver,
+        bool doDelete
+    ) internal {
         uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
 
         // Transfer the left over to the receiver
         SafeTransferLib.safeTransfer({token: rewardToken, to: receiver, amount: leftOver});
-        delete campaignById[campaignId].manager;
+
+        if (doDelete) {
+            delete campaignById[campaignId];
+        } else {
+            /// We delete only the manager to avoid updates.
+            delete campaignById[campaignId].manager;
+        }
 
         emit CampaignClosed(campaignId);
     }

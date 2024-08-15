@@ -211,9 +211,7 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
-
-        /// Even it no votes, the reward per vote should be 1.
-        assertEq(period.rewardPerVote, 1);
+        assertEq(period.rewardPerVote, 0);
     }
 
     function testUpdateEpochWithLowTotalVotes() public {
@@ -259,7 +257,7 @@ contract UpdateEpochTest is BaseTest {
 
     function testUpdateEpochWithHook() public {
         // Deploy a mock hook contract
-        MockHook mockHook = new MockHook();
+        MockHook mockHook = new MockHook(address(rewardToken));
 
         uint256 maxRewardPerVote = 0.1e18;
         uint256 hookCampaignId = _createCampaign({

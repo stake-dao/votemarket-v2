@@ -46,6 +46,14 @@ contract CloseCampaignTest is BaseTest {
         assertEq(campaign.manager, address(0));
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
+
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        /// Since the campaign is deleted, it should revert with EPOCH_NOT_VALID as start timestamp = 0.
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
     function testCloseOngoingCampaign() public {

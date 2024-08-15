@@ -276,7 +276,7 @@ contract CreateCampaignTest is BaseTest {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        address mockHook = address(new MockHook());
+        address mockHook = address(new MockHook(address(rewardToken)));
 
         votemarket.createCampaign(
             CHAIN_ID,
