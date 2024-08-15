@@ -41,6 +41,9 @@ contract Votemarket is ReentrancyGuard {
     /// 1 month.
     uint256 public constant CLOSE_WINDOW_LENGTH = 4 weeks;
 
+    /// @notice Maximum number of addresses per campaign.
+    uint256 public constant MAX_ADDRESSES_PER_CAMPAIGN = 100;
+
     ////////////////////////////////////////////////////////////////
     /// --- STORAGE VARIABLES
     ///////////////////////////////////////////////////////////////
@@ -519,7 +522,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param numberOfPeriods The number of periods for the campaign
     /// @param maxRewardPerVote The maximum reward per vote
     /// @param totalRewardAmount The total reward amount
-    /// @param blacklist The list of blacklisted addresses
+    /// @param addresses The list of addresses blacklist or whitelist
     /// @param hook The hook contract address
     /// @param isWhitelist Whether the campaign uses a whitelist
     /// @return campaignId The ID of the created campaign
@@ -531,7 +534,7 @@ contract Votemarket is ReentrancyGuard {
         uint8 numberOfPeriods,
         uint256 maxRewardPerVote,
         uint256 totalRewardAmount,
-        address[] calldata blacklist,
+        address[] calldata addresses,
         address hook,
         bool isWhitelist
     ) external nonReentrant returns (uint256 campaignId) {
@@ -539,6 +542,7 @@ contract Votemarket is ReentrancyGuard {
         if (numberOfPeriods < MINIMUM_PERIODS) revert INVALID_INPUT();
         if (totalRewardAmount == 0 || maxRewardPerVote == 0) revert ZERO_INPUT();
         if (rewardToken == address(0) || gauge == address(0)) revert ZERO_ADDRESS();
+        if (addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
 
         // Check if reward token is a contract
         uint256 size;
@@ -579,8 +583,8 @@ contract Votemarket is ReentrancyGuard {
         hookByCampaignId[campaignId] = hook;
 
         // Store blacklisted or whitelisted addresses
-        for (uint256 i = 0; i < blacklist.length; i++) {
-            addressesSet[campaignId].add(blacklist[i]);
+        for (uint256 i = 0; i < addresses .length; i++) {
+            addressesSet[campaignId].add(addresses[i]);
         }
 
         /// Flag if the campaign is whitelist only.
@@ -616,6 +620,8 @@ contract Votemarket is ReentrancyGuard {
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
         // Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if(addresses.length > MAX_ADDRESSES_PER_CAMPAIGN) revert INVALID_INPUT();
+
 
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
