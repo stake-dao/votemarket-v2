@@ -291,11 +291,11 @@ contract Votemarket is ReentrancyGuard {
         bool withinClaimDeadline = campaign.endTimestamp + claimDeadline > block.timestamp;
 
         // 4. Check if the account has not claimed before or if there's a new reward available
-        bool notClaimedOrNewReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
+        bool notClaimedOrNoReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
             || periodByCampaignId[data.campaignId][data.epoch].rewardPerVote == 0;
 
         // 5. Return true if all conditions are met
-        return canClaimFromOracle && withinClaimDeadline && notClaimedOrNewReward;
+        return canClaimFromOracle && withinClaimDeadline && notClaimedOrNoReward;
     }
 
     /// @notice Calculates the claim amount and fee
