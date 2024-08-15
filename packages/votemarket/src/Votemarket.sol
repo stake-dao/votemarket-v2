@@ -264,7 +264,7 @@ contract Votemarket is ReentrancyGuard {
 
         /// Check if the total claimed amount plus the claimed amount exceeds the total reward amount.
         if (
-            totalClaimedByCampaignId[data.campaignId] + data.amountToClaim
+            totalClaimedByCampaignId[data.campaignId] + data.amountToClaim + data.feeAmount
                 > campaignById[data.campaignId].totalRewardAmount
         ) revert CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
 
@@ -471,6 +471,7 @@ contract Votemarket is ReentrancyGuard {
                         amount: leftOver
                     });
                     // Trigger the hook
+                    // TODO: Not sure about this one.
                     try IHook(hookByCampaignId[campaignId]).doSomething(campaignId, epoch, leftOver, hookData) {}
                     catch {
                         delete hookByCampaignId[campaignId];
