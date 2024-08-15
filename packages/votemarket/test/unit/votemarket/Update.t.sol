@@ -161,6 +161,56 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, epoch, "");
     }
 
+
+    function testUpdateEpochWithUpgrade() public {
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        address[] memory addresses = new address[](1);
+        addresses[0] = address(0xCAFE);
+        address hook = address(0xBEEF);
+
+        /// Increase the total reward amount.
+        votemarket.manageCampaign({
+            campaignId: campaignId,
+            numberOfPeriods: 0,
+            totalRewardAmount: TOTAL_REWARD_AMOUNT,
+            maxRewardPerVote: 0,
+            hook: hook,
+            addresses: addresses
+        });
+
+        uint256 epoch = votemarket.currentEpoch() + 1 weeks;
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+
+        assertEq(period.startTimestamp, epoch);
+        assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        assertEq(period.leftover, 0);
+        assertEq(period.rewardPerVote, 0);
+        assertEq(period.updated, false);
+
+        skip(1 weeks);
+
+        assertEq(votemarket.hookByCampaignId(campaignId), HOOK);
+        assertEq(votemarket.getAddressesByCampaign(campaignId).length, 0);
+
+        uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT * 2) / VALID_PERIODS;
+        votemarket.updateEpoch(campaignId, epoch, "");
+
+        period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+
+        assertEq(period.startTimestamp, epoch);
+        assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
+        assertEq(period.leftover, 0);
+        assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
+        assertEq(period.updated, true);
+
+        assertEq(votemarket.hookByCampaignId(campaignId), hook);
+        assertEq(votemarket.getAddressesByCampaign(campaignId).length, 1);
+
+        votemarket.updateEpoch(campaignId, epoch, "");
+    }
+
     function testUpdateEpochAfterCampaignEnd() public {
         skip(VALID_PERIODS * 1 weeks);
         skip(votemarket.claimDeadline());

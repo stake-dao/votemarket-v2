@@ -644,8 +644,8 @@ contract Votemarket is ReentrancyGuard {
                 totalRewardAmount: campaignUpgrade.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: updatedMaxRewardPerVote,
                 endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
-                hook: campaignUpgrade.hook,
-                addresses: campaignUpgrade.addresses
+                hook: hook,
+                addresses: addresses
             });
         } else {
             campaignUpgrade = CampaignUpgrade({
