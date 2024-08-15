@@ -13,9 +13,6 @@ contract CloseCampaignTest is BaseTest {
         /// Create a default campaign.
         _createCampaign();
 
-        votemarket.setClaimDeadline(3 weeks);
-        votemarket.setCloseDeadline(3 weeks);
-
         votemarket.setFeeCollector(feeCollector);
     }
 
@@ -81,7 +78,6 @@ contract CloseCampaignTest is BaseTest {
         vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
 
-
         deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
@@ -120,7 +116,7 @@ contract CloseCampaignTest is BaseTest {
         _updateEpochs(campaignId);
 
         /// Skip to the end of the claim deadline.
-        skip(3 weeks);
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
@@ -153,14 +149,14 @@ contract CloseCampaignTest is BaseTest {
         _updateEpochs(campaignId);
 
         /// Skip to the end of the close deadline.
-        skip(3 weeks);
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
         votemarket.closeCampaign(campaignId);
 
         /// Skip to the end of the close deadline.
-        skip(3 weeks);
+        skip(votemarket.CLOSE_WINDOW_LENGTH());
 
         vm.prank(address(0xBEEF));
         /// The call is now permitted, and callable by anyone.
@@ -193,7 +189,7 @@ contract CloseCampaignTest is BaseTest {
         votemarket.closeCampaign(campaignId);
 
         /// Skip to the end of the claim deadline.
-        skip(3 weeks);
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);

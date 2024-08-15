@@ -33,7 +33,7 @@ abstract contract BaseTest is Test {
     function setUp() public virtual {
         oracleLens = new MockOracleLens();
 
-        votemarket = new Votemarket(address(this), address(this), 24 weeks, 4 weeks, 1 weeks, 2);
+        votemarket = new Votemarket(address(this), address(this), 1 weeks, 2);
         votemarket.setOracle(address(oracleLens));
 
         rewardToken = new MockERC20();
@@ -118,24 +118,6 @@ abstract contract BaseTest is Test {
 
         vm.expectRevert(Votemarket.INVALID_INPUT.selector);
         votemarket.setFee(1e18);
-
-        /// Claim deadline.
-        uint256 claimDeadline = 3 weeks;
-        votemarket.setClaimDeadline(claimDeadline);
-        assertEq(votemarket.claimDeadline(), claimDeadline);
-
-        vm.prank(address(0xBEEF));
-        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
-        votemarket.setClaimDeadline(claimDeadline);
-
-        /// Close deadline.
-        uint256 closeDeadline = 3 weeks;
-        votemarket.setCloseDeadline(closeDeadline);
-        assertEq(votemarket.closeDeadline(), closeDeadline);
-
-        vm.prank(address(0xBEEF));
-        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
-        votemarket.setCloseDeadline(closeDeadline);
 
         /// Fee collector.
         address remote = address(0xCAFE);

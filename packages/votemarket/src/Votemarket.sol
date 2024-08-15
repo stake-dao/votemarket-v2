@@ -33,6 +33,14 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Epoch length in seconds.
     uint256 public immutable EPOCH_LENGTH;
 
+    /// @notice Claim window length in seconds.
+    /// 6 months.
+    uint256 public constant CLAIM_WINDOW_LENGTH = 24 weeks;
+
+    /// @notice Close window length in seconds.
+    /// 1 month.
+    uint256 public constant CLOSE_WINDOW_LENGTH = 4 weeks;
+
     ////////////////////////////////////////////////////////////////
     /// --- STORAGE VARIABLES
     ///////////////////////////////////////////////////////////////
@@ -54,12 +62,6 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Campaigns count.
     uint256 public campaignCount;
-
-    /// @notice Claim deadline in seconds.
-    uint256 public claimDeadline;
-
-    /// @notice Close deadline in seconds.
-    uint256 public closeDeadline;
 
     /// @notice Protected addresses.
     /// @dev Smart Contracts addresses that cannot set recipients by themselves, or didn't manage to replicate the address on L2.
@@ -179,20 +181,9 @@ contract Votemarket is ReentrancyGuard {
         if (msg.sender != campaignById[campaignId].manager && msg.sender != remote) revert AUTH_MANAGER_ONLY();
     }
 
-    constructor(
-        address _governance,
-        address _feeCollector,
-        uint256 _closeDeadline,
-        uint256 _claimDeadline,
-        uint256 _epochLength,
-        uint8 _minimumPeriods
-    ) {
+    constructor(address _governance, address _feeCollector, uint256 _epochLength, uint8 _minimumPeriods) {
         governance = _governance;
         feeCollector = _feeCollector;
-
-        /// 6 months.
-        closeDeadline = _closeDeadline;
-        claimDeadline = _claimDeadline;
 
         /// Default fee is 4%.
         fee = 4e16;
@@ -299,7 +290,7 @@ contract Votemarket is ReentrancyGuard {
         bool canClaimFromOracle = IOracleLens(oracle).canClaim(data.account, campaign.gauge, data.epoch);
 
         // 3. Check if the claim deadline has not passed
-        bool withinClaimDeadline = campaign.endTimestamp + claimDeadline > block.timestamp;
+        bool withinClaimDeadline = campaign.endTimestamp + CLAIM_WINDOW_LENGTH > block.timestamp;
 
         // 4. Check if the account has not claimed before or if there's a new reward available
         bool notClaimedOrNoReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
@@ -477,11 +468,7 @@ contract Votemarket is ReentrancyGuard {
                 address hook = hookByCampaignId[campaignId];
                 if (hook != address(0)) {
                     // Transfer leftover to hook contract
-                    SafeTransferLib.safeTransfer({
-                        token: campaign.rewardToken,
-                        to: hook,
-                        amount: leftOver
-                    });
+                    SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
                     // Trigger the hook
                     // TODO: Not sure about this one.
                     try IHook(hook).doSomething(campaignId, epoch, leftOver, hookData) {}
@@ -627,7 +614,7 @@ contract Votemarket is ReentrancyGuard {
         uint256 maxRewardPerVote,
         address hook,
         address[] calldata addresses
-    ) external nonReentrant onlyManagerOrRemote(campaignId)         notClosed(campaignId) {
+    ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
         // Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
 
@@ -680,7 +667,11 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Increases the total reward amount for a campaign
     /// @param campaignId The ID of the campaign
     /// @param totalRewardAmount Total reward amount to add
-    function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant notClosed(campaignId) {
+    function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount)
+        external
+        nonReentrant
+        notClosed(campaignId)
+    {
         if (totalRewardAmount == 0) revert ZERO_INPUT();
 
         /// Update will be applied at the next epoch.
@@ -722,8 +713,8 @@ contract Votemarket is ReentrancyGuard {
         // Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
-        uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
-        uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
+        uint256 claimDeadline_ = campaign.endTimestamp + CLAIM_WINDOW_LENGTH;
+        uint256 closeDeadline_ = claimDeadline_ + CLOSE_WINDOW_LENGTH;
         uint256 startTimestamp = campaign.startTimestamp;
 
         // Check if the campaign can be closed
@@ -738,7 +729,6 @@ contract Votemarket is ReentrancyGuard {
 
             /// Check if there's a campaign upgrade in queue and apply it.
             _checkForUpgrade(campaignId, startTimestamp);
-
         } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
@@ -762,12 +752,9 @@ contract Votemarket is ReentrancyGuard {
     /// @param totalRewardAmount Total reward amount
     /// @param rewardToken The reward token address
     /// @param receiver The address to receive leftover rewards
-    function _closeCampaign(
-        uint256 campaignId,
-        uint256 totalRewardAmount,
-        address rewardToken,
-        address receiver
-    ) internal {
+    function _closeCampaign(uint256 campaignId, uint256 totalRewardAmount, address rewardToken, address receiver)
+        internal
+    {
         uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
 
         // Transfer the left over to the receiver
@@ -910,17 +897,5 @@ contract Votemarket is ReentrancyGuard {
     function setFeeCollector(address _feeCollector) external onlyGovernance {
         if (_feeCollector == address(0)) revert ZERO_ADDRESS();
         feeCollector = _feeCollector;
-    }
-
-    /// @notice Sets the close deadline
-    /// @param _closeDeadline The new close deadline
-    function setCloseDeadline(uint256 _closeDeadline) external onlyGovernance {
-        closeDeadline = _closeDeadline;
-    }
-
-    /// @notice Sets the claim deadline
-    /// @param _claimDeadline The new claim deadline
-    function setClaimDeadline(uint256 _claimDeadline) external onlyGovernance {
-        claimDeadline = _claimDeadline;
     }
 }

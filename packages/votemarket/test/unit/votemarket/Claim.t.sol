@@ -120,7 +120,7 @@ contract ClaimTest is BaseTest {
 
     function testClaimAfterClaimDeadline() public {
         skip(VALID_PERIODS * 1 weeks);
-        skip(votemarket.claimDeadline());
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         _updateEpochs(campaignId);
 
@@ -174,7 +174,6 @@ contract ClaimTest is BaseTest {
         assertEq(votemarket.hookByCampaignId(campaignId), address(reentrancyAttacker));
         votemarket.claim(campaignId, currentEpoch, data, address(this));
         assertEq(votemarket.hookByCampaignId(campaignId), address(0));
-
     }
 }
 

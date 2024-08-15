@@ -161,7 +161,6 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, epoch, "");
     }
 
-
     function testUpdateEpochWithUpgrade() public {
         deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
@@ -213,7 +212,7 @@ contract UpdateEpochTest is BaseTest {
 
     function testUpdateEpochAfterCampaignEnd() public {
         skip(VALID_PERIODS * 1 weeks);
-        skip(votemarket.claimDeadline());
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
