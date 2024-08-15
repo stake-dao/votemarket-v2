@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "forge-std/src/Test.sol";
+
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
@@ -731,7 +733,6 @@ contract Votemarket is ReentrancyGuard {
         }
 
         address receiver = campaign.manager;
-        uint256 totalRewardAmount = campaign.totalRewardAmount;
 
         bool doDelete;
         if (block.timestamp < startTimestamp) {
@@ -740,16 +741,9 @@ contract Votemarket is ReentrancyGuard {
             /// If the campaign is not started, it should be deleted.
             doDelete = true;
 
-            /// Check if there's a campaign upgrade in queue
-            CampaignUpgrade storage campaignUpgrade = campaignUpgradeById[campaignId][startTimestamp];
+            /// Check if there's a campaign upgrade in queue and apply it.
+            _checkForUpgrade(campaignId, startTimestamp);
 
-            /// If there's a campaign upgrade in queue, it should be applied and deleted.
-            if (campaignUpgrade.totalRewardAmount != 0) {
-                totalRewardAmount = campaignUpgrade.totalRewardAmount;
-            }
-
-            /// Delete the campaign upgrade.
-            delete campaignUpgradeById[campaignId][startTimestamp];
         } else if (block.timestamp >= claimDeadline_ && block.timestamp < closeDeadline_) {
             _isManagerOrRemote(campaignId);
             _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
@@ -760,7 +754,7 @@ contract Votemarket is ReentrancyGuard {
         // Close the campaign
         _closeCampaign({
             campaignId: campaignId,
-            totalRewardAmount: totalRewardAmount,
+            totalRewardAmount: campaign.totalRewardAmount,
             rewardToken: campaign.rewardToken,
             receiver: receiver,
             doDelete: doDelete
@@ -831,6 +825,9 @@ contract Votemarket is ReentrancyGuard {
             campaign.numberOfPeriods = campaignUpgrade.numberOfPeriods;
             campaign.maxRewardPerVote = campaignUpgrade.maxRewardPerVote;
             campaign.totalRewardAmount = campaignUpgrade.totalRewardAmount;
+
+            /// Delete the campaign upgrade.
+            delete campaignUpgradeById[campaignId][epoch];
 
             emit CampaignUpgraded(campaignId, epoch);
         }
