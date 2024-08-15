@@ -51,8 +51,7 @@ contract CloseCampaignTest is BaseTest {
 
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        /// Since the campaign is deleted, it should revert with EPOCH_NOT_VALID as start timestamp = 0.
-        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        vm.expectRevert(Votemarket.CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
@@ -87,8 +86,7 @@ contract CloseCampaignTest is BaseTest {
 
         uint256 currentEpoch = votemarket.currentEpoch();
 
-        /// Since the campaign is deleted, it should revert with EPOCH_NOT_VALID as start timestamp = 0.
-        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        vm.expectRevert(Votemarket.CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
 
 
@@ -139,7 +137,7 @@ contract CloseCampaignTest is BaseTest {
         votemarket.closeCampaign(campaignId);
 
         /// Try to close the campaign again.
-        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.closeCampaign(campaignId);
 
         /// Get the campaign.

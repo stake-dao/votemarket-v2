@@ -78,6 +78,9 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Hook by campaign Id.
     mapping(uint256 => address) public hookByCampaignId;
 
+    /// @notice If campaign is closed.
+    mapping(uint256 => bool) public isClosedCampaign;
+
     /// @notice Periods by campaign Id and Epoch.
     mapping(uint256 => mapping(uint256 => Period)) public periodByCampaignId;
 
@@ -672,6 +675,7 @@ contract Votemarket is ReentrancyGuard {
     /// @param totalRewardAmount Total reward amount to add
     function increaseTotalRewardAmount(uint256 campaignId, uint256 totalRewardAmount) external nonReentrant {
         if (totalRewardAmount == 0) revert ZERO_INPUT();
+        if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
 
         /// Update will be applied at the next epoch.
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
@@ -679,9 +683,6 @@ contract Votemarket is ReentrancyGuard {
         Campaign memory campaign = campaignById[campaignId];
         // Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
-
-        /// Cache the end timestamp.
-        uint256 endTimestamp = campaign.endTimestamp;
 
         SafeTransferLib.safeTransferFrom({
             token: campaign.rewardToken,
@@ -693,9 +694,6 @@ contract Votemarket is ReentrancyGuard {
         // Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade.totalRewardAmount += totalRewardAmount;
-
-            /// If there's an upgrade in queue, check if the campaign duration has been increased.
-            endTimestamp = campaignUpgrade.endTimestamp;
         } else {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods,
@@ -705,11 +703,6 @@ contract Votemarket is ReentrancyGuard {
                 hook: hookByCampaignId[campaignId],
                 addresses: getAddressesByCampaign(campaignId)
             });
-        }
-
-        /// If the campaign ended, it should revert.
-        if (epoch >= endTimestamp) {
-            revert CAMPAIGN_ENDED();
         }
 
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
@@ -722,6 +715,7 @@ contract Votemarket is ReentrancyGuard {
     function closeCampaign(uint256 campaignId) external nonReentrant {
         // Get the campaign
         Campaign storage campaign = campaignById[campaignId];
+        if (isClosedCampaign[campaignId]) revert CAMPAIGN_ENDED();
 
         uint256 claimDeadline_ = campaign.endTimestamp + claimDeadline;
         uint256 closeDeadline_ = claimDeadline_ + closeDeadline;
@@ -734,12 +728,8 @@ contract Votemarket is ReentrancyGuard {
 
         address receiver = campaign.manager;
 
-        bool doDelete;
         if (block.timestamp < startTimestamp) {
             _isManagerOrRemote(campaignId);
-
-            /// If the campaign is not started, it should be deleted.
-            doDelete = true;
 
             /// Check if there's a campaign upgrade in queue and apply it.
             _checkForUpgrade(campaignId, startTimestamp);
@@ -758,8 +748,7 @@ contract Votemarket is ReentrancyGuard {
             campaignId: campaignId,
             totalRewardAmount: campaign.totalRewardAmount,
             rewardToken: campaign.rewardToken,
-            receiver: receiver,
-            doDelete: doDelete
+            receiver: receiver
         });
     }
 
@@ -772,20 +761,21 @@ contract Votemarket is ReentrancyGuard {
         uint256 campaignId,
         uint256 totalRewardAmount,
         address rewardToken,
-        address receiver,
-        bool doDelete
+        address receiver
     ) internal {
         uint256 leftOver = totalRewardAmount - totalClaimedByCampaignId[campaignId];
 
         // Transfer the left over to the receiver
         SafeTransferLib.safeTransfer({token: rewardToken, to: receiver, amount: leftOver});
 
-        if (doDelete) {
-            delete campaignById[campaignId];
-        } else {
-            /// We delete only the manager to avoid updates.
-            delete campaignById[campaignId].manager;
-        }
+        /// Update the total claimed amount.
+        totalClaimedByCampaignId[campaignId] = totalRewardAmount;
+
+        /// We delete only the manager to avoid updates.
+        delete campaignById[campaignId].manager;
+
+        /// Set the campaign as closed.
+        isClosedCampaign[campaignId] = true;
 
         emit CampaignClosed(campaignId);
     }
