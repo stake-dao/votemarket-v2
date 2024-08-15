@@ -151,9 +151,8 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Thrown when a non-governance address attempts a governance-only action.
     error AUTH_GOVERNANCE_ONLY();
 
-
     /// @notice Emitted when a claim is made.
-    event Claim(uint256 indexed campaignId, address indexed account, uint256 amount, uint fee, uint256 epoch);
+    event Claim(uint256 indexed campaignId, address indexed account, uint256 amount, uint256 fee, uint256 epoch);
 
     /// @notice Emitted when a new campaign is created.
     event CampaignCreated(
@@ -533,9 +532,14 @@ contract Votemarket is ReentrancyGuard {
                     // Transfer leftover to hook contract
                     SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
                     // Trigger the hook
-                    // TODO: Not sure about this one.
-                    try IHook(hook).doSomething(campaignId, epoch, leftOver, hookData) {}
-                    catch {
+                    try IHook(hook).doSomething({
+                        campaignId: campaignId,
+                        chainId: campaign.chainId,
+                        rewardToken: campaign.rewardToken,
+                        epoch: epoch,
+                        amount: leftOver,
+                        hookData: hookData
+                    }) {} catch {
                         delete hookByCampaignId[campaignId];
                     }
                 } else {

@@ -13,7 +13,7 @@ contract MockHook {
         return true;
     }
 
-    function doSomething(uint256, uint256, uint256 amount, bytes calldata) external {}
+    function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
 }
 
 contract MockInvalidHook {
@@ -27,5 +27,5 @@ contract MockInvalidHook {
         return false;
     }
 
-    function doSomething(uint256, uint256, uint256 amount, bytes calldata) external {}
+    function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
 }
