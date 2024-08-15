@@ -121,7 +121,7 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Thrown when an input parameter is invalid.
     error INVALID_INPUT();
 
-    /// @notice Thrown when a protected account attempts an unauthorized action.
+    /// @notice Thrown when a claim is made for an account that is protected.
     error PROTECTED_ACCOUNT();
 
     /// @notice Thrown when the previous state of a campaign is missing.
@@ -150,6 +150,10 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Thrown when a non-governance address attempts a governance-only action.
     error AUTH_GOVERNANCE_ONLY();
+
+
+    /// @notice Emitted when a claim is made.
+    event Claim(uint256 indexed campaignId, address indexed account, uint256 amount, uint fee, uint256 epoch);
 
     /// @notice Emitted when a new campaign is created.
     event CampaignCreated(
@@ -333,6 +337,8 @@ contract Votemarket is ReentrancyGuard {
 
         /// Transfer the tokens to the receiver.
         _transferTokens(data);
+
+        emit Claim(data.campaignId, data.account, data.amountToClaim, data.feeAmount, data.epoch);
 
         return data.amountToClaim;
     }
