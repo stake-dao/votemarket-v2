@@ -474,16 +474,17 @@ contract Votemarket is ReentrancyGuard {
                 uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
 
                 // 7. Handle leftover rewards
-                if (hookByCampaignId[campaignId] != address(0)) {
+                address hook = hookByCampaignId[campaignId];
+                if (hook != address(0)) {
                     // Transfer leftover to hook contract
                     SafeTransferLib.safeTransfer({
                         token: campaign.rewardToken,
-                        to: hookByCampaignId[campaignId],
+                        to: hook,
                         amount: leftOver
                     });
                     // Trigger the hook
                     // TODO: Not sure about this one.
-                    try IHook(hookByCampaignId[campaignId]).doSomething(campaignId, epoch, leftOver, hookData) {}
+                    try IHook(hook).doSomething(campaignId, epoch, leftOver, hookData) {}
                     catch {
                         delete hookByCampaignId[campaignId];
                     }
