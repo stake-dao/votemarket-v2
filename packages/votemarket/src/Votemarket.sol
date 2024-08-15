@@ -895,6 +895,27 @@ contract Votemarket is ReentrancyGuard {
         fee = _fee;
     }
 
+    /// @notice Sets a custom fee for a manager.
+    /// @param _account The manager address.
+    /// @param _fee The new fee (in basis points).
+    function setCustomFee(address _account, uint256 _fee) external onlyGovernance {
+        if (_fee > 10e16) revert INVALID_INPUT();
+        customFeeByManager[_account] = _fee;
+    }
+
+    /// @notice Sets a recipient for the sender.
+    /// @param _recipient The new recipient address.
+    function setRecipient(address _recipient) external {
+        recipients[msg.sender] = _recipient;
+    }
+
+    /// @notice Sets a recipient for an account.
+    /// @param _account The account address.
+    /// @param _recipient The new recipient address.
+    function setRecipient(address _account, address _recipient) external onlyGovernance {
+        recipients[_account] = _recipient;
+    }
+
     /// @notice Sets the fee collector address.
     /// @param _feeCollector The new fee collector address.
     function setFeeCollector(address _feeCollector) external onlyGovernance {
