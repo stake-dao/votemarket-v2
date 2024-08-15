@@ -649,14 +649,12 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        uint256 updatedMaxRewardPerVote = maxRewardPerVote > 0 ? maxRewardPerVote : campaign.maxRewardPerVote;
-
         // Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaignUpgrade.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaignUpgrade.totalRewardAmount + totalRewardAmount,
-                maxRewardPerVote: updatedMaxRewardPerVote,
+                maxRewardPerVote: maxRewardPerVote > 0 ? maxRewardPerVote : campaignUpgrade.maxRewardPerVote,
                 endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
                 hook: hook,
                 addresses: addresses
@@ -665,7 +663,7 @@ contract Votemarket is ReentrancyGuard {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
-                maxRewardPerVote: updatedMaxRewardPerVote,
+                maxRewardPerVote: maxRewardPerVote > 0 ? maxRewardPerVote : campaign.maxRewardPerVote,
                 endTimestamp: campaign.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
                 hook: hook,
                 addresses: addresses
@@ -739,7 +737,6 @@ contract Votemarket is ReentrancyGuard {
         }
         /// 2. If on-going or within claim window, revert.
         else if (currentTime < campaign.endTimestamp || currentTime < claimWindow) {
-            // Active campaign or within claim window
             revert CAMPAIGN_NOT_ENDED();
         }
         /// 3. If within close window, only manager can close the campaign. The state should be validated beforehand.
