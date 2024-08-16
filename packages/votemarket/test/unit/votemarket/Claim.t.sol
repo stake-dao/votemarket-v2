@@ -171,9 +171,10 @@ contract ClaimTest is BaseTest {
         uint256 currentEpoch = votemarket.currentEpoch();
         bytes memory data = abi.encode(campaignId, currentEpoch);
 
-        assertEq(votemarket.hookByCampaignId(campaignId), address(reentrancyAttacker));
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
+
+        assertEq(period.hook, address(reentrancyAttacker));
         votemarket.claim(campaignId, currentEpoch, data, address(this));
-        assertEq(votemarket.hookByCampaignId(campaignId), address(0));
     }
 }
 

@@ -81,9 +81,6 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Campaigns by Id.
     mapping(uint256 => Campaign) public campaignById;
 
-    /// @notice Hook by campaign Id.
-    mapping(uint256 => address) public hookByCampaignId;
-
     /// @notice If campaign is closed.
     mapping(uint256 => bool) public isClosedCampaign;
 
@@ -522,7 +519,7 @@ contract Votemarket is ReentrancyGuard {
                 uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
 
                 // 5. Handle leftover rewards
-                address hook = hookByCampaignId[campaignId];
+                address hook = period.hook;
                 if (hook != address(0)) {
                     // Transfer leftover to hook contract
                     SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
@@ -534,9 +531,7 @@ contract Votemarket is ReentrancyGuard {
                         epoch: epoch,
                         amount: leftOver,
                         hookData: hookData
-                    }) {} catch {
-                        delete hookByCampaignId[campaignId];
-                    }
+                    }) {} catch {}
                 } else {
                     // Store leftover in the period
                     period.leftover = leftOver;

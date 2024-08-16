@@ -180,7 +180,7 @@ contract UpdateEpochTest is BaseTest {
 
         skip(1 weeks);
 
-        assertEq(votemarket.hookByCampaignId(campaignId), HOOK);
+        assertEq(period.hook, HOOK);
         assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 0);
 
         uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT * 2) / VALID_PERIODS;
@@ -192,8 +192,8 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
         assertEq(period.updated, true);
+        assertEq(period.hook, hook);
 
-        assertEq(votemarket.hookByCampaignId(campaignId), hook);
         assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 1);
 
         votemarket.updateEpoch(campaignId, epoch, "");

@@ -268,7 +268,8 @@ contract CreateCampaignTest is BaseTest {
             false
         );
 
-        assertEq(votemarket.hookByCampaignId(campaignId), address(0));
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, votemarket.currentEpoch() + 1 weeks);
+        assertEq(period.hook, address(0));
     }
 
     function testCreateCampaignWithHook() public {
@@ -291,7 +292,8 @@ contract CreateCampaignTest is BaseTest {
         );
 
         uint256 campaignId = votemarket.campaignCount() - 1;
-        assertEq(votemarket.hookByCampaignId(campaignId), mockHook);
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, votemarket.currentEpoch() + 1 weeks);
+        assertEq(period.hook, mockHook);
     }
 
     function testCurrentPeriod() public view {
