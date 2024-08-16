@@ -176,8 +176,6 @@ contract ManageCampaignTest is BaseTest {
         assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods + 2);
         assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp + 2 weeks);
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
-        assertEq(campaignUpgrade.hook, address(0));
-        assertEq(campaignUpgrade.addresses.length, 0);
 
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
@@ -205,8 +203,6 @@ contract ManageCampaignTest is BaseTest {
         assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods + 4);
         assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp + 4 weeks);
         assertEq(campaignUpgrade.maxRewardPerVote, campaign.maxRewardPerVote);
-        assertEq(campaignUpgrade.hook, address(0xBEEF));
-        assertEq(campaignUpgrade.addresses.length, 1);
     }
 
     function testIncreaseTotalRewardAmount() public {

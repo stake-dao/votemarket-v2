@@ -102,9 +102,6 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Mapping of campaign ids that are whitelist only.
     mapping(uint256 => bool) public whitelistOnly;
 
-    /// @notice Whitelisted/Blacklisted addresses per campaign.
-    mapping(uint256 => EnumerableSetLib.AddressSet) public addressesSet;
-
     ////////////////////////////////////////////////////////////////
     /// ---  EVENTS & ERRORS
     ///////////////////////////////////////////////////////////////
@@ -185,9 +182,8 @@ contract Votemarket is ReentrancyGuard {
     }
 
     /// @notice Checks if an account is whitelisted or blacklisted for a campaign.
-    modifier checkWhitelistOrBlacklist(uint256 campaignId, address account) {
-        EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
-        bool contains = addressesSet_.contains(account);
+    modifier checkWhitelistOrBlacklist(uint256 campaignId, address account, uint256 epoch) {
+        bool contains = periodByCampaignId[campaignId][epoch].addresses.contains(account);
         if (whitelistOnly[campaignId] && !contains) {
             revert AUTH_WHITELIST_ONLY();
         } else if (!whitelistOnly[campaignId] && contains) {
@@ -313,7 +309,7 @@ contract Votemarket is ReentrancyGuard {
         internal
         notClosed(data.campaignId)
         validEpoch(data.campaignId, data.epoch)
-        checkWhitelistOrBlacklist(data.campaignId, data.account)
+        checkWhitelistOrBlacklist(data.campaignId, data.account, data.epoch)
         returns (uint256 claimed)
     {
         /// Update the epoch if needed.
@@ -558,7 +554,7 @@ contract Votemarket is ReentrancyGuard {
     /// @return The adjusted total votes
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
         // 1. Get the addresses set for the campaign
-        EnumerableSetLib.AddressSet storage addressesSet_ = addressesSet[campaignId];
+        EnumerableSetLib.AddressSet storage addressesSet_ = periodByCampaignId[campaignId][epoch].addresses;
 
         // 2. Get the total votes from the ORACLE
         uint256 totalVotes = IOracleLens(ORACLE).getTotalVotes(campaignById[campaignId].gauge, epoch);
@@ -625,7 +621,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Generate campaign Id and get current epoch
         campaignId = campaignCount;
-        uint256 currentEpoch_ = currentEpoch();
+        uint256 startTimestamp = currentEpoch() + EPOCH_LENGTH;
 
         // 5. Increment campaign count
         ++campaignCount;
@@ -639,26 +635,24 @@ contract Votemarket is ReentrancyGuard {
             numberOfPeriods: numberOfPeriods,
             maxRewardPerVote: maxRewardPerVote,
             totalRewardAmount: totalRewardAmount,
-            startTimestamp: currentEpoch_ + EPOCH_LENGTH,
-            endTimestamp: currentEpoch_ + numberOfPeriods * EPOCH_LENGTH
+            startTimestamp: startTimestamp,
+            endTimestamp: startTimestamp + numberOfPeriods * EPOCH_LENGTH
         });
-
-        // 7. Store the hook
-        hookByCampaignId[campaignId] = hook;
-
-        // 9. Flag if the campaign is whitelist only
-        whitelistOnly[campaignId] = isWhitelist;
 
         // 10. Initialize the first period
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
-        periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].rewardPerPeriod = rewardPerPeriod;
-        periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].hook = hook;
+        periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = rewardPerPeriod;
+        /// TODO: Should it carry over the hook to next epoch until the campaign is closed?
+        periodByCampaignId[campaignId][startTimestamp].hook = hook;
 
         // 8. Store blacklisted or whitelisted addresses
         for (uint256 i = 0; i < addresses.length; i++) {
-            periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].addresses.add(addresses[i]);
+            periodByCampaignId[campaignId][startTimestamp].addresses.add(addresses[i]);
         }
+
+        // 9. Flag if the campaign is whitelist only
+        whitelistOnly[campaignId] = isWhitelist;
 
         emit CampaignCreated(
             campaignId, gauge, manager, rewardToken, numberOfPeriods, maxRewardPerVote, totalRewardAmount
@@ -690,6 +684,8 @@ contract Votemarket is ReentrancyGuard {
         // 3. Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
+        Period storage period = periodByCampaignId[campaignId][epoch];
+
         // 4. Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
@@ -709,19 +705,27 @@ contract Votemarket is ReentrancyGuard {
                 numberOfPeriods: campaignUpgrade.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaignUpgrade.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: maxRewardPerVote > 0 ? maxRewardPerVote : campaignUpgrade.maxRewardPerVote,
-                endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
-                hook: hook,
-                addresses: addresses
+                endTimestamp: campaignUpgrade.endTimestamp + (numberOfPeriods * EPOCH_LENGTH)
             });
         } else {
             campaignUpgrade = CampaignUpgrade({
                 numberOfPeriods: campaign.numberOfPeriods + numberOfPeriods,
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: maxRewardPerVote > 0 ? maxRewardPerVote : campaign.maxRewardPerVote,
-                endTimestamp: campaign.endTimestamp + (numberOfPeriods * EPOCH_LENGTH),
-                hook: hook,
-                addresses: addresses
+                endTimestamp: campaign.endTimestamp + (numberOfPeriods * EPOCH_LENGTH)
             });
+        }
+
+        // 5. Update the hook
+        period.hook = hook;
+
+        // 6. Update the addresses
+        delete period.addresses;
+
+        if (addresses.length > 0) {
+            for (uint256 i = 0; i < addresses.length; i++) {
+                period.addresses.add(addresses[i]);
+            }
         }
 
         // 7. Store the campaign upgrade in queue
@@ -766,9 +770,7 @@ contract Votemarket is ReentrancyGuard {
                 numberOfPeriods: campaign.numberOfPeriods,
                 totalRewardAmount: campaign.totalRewardAmount + totalRewardAmount,
                 maxRewardPerVote: campaign.maxRewardPerVote,
-                endTimestamp: campaign.endTimestamp,
-                hook: hookByCampaignId[campaignId],
-                addresses: getAddressesByCampaign(campaignId)
+                endTimestamp: campaign.endTimestamp
             });
         }
 
@@ -854,17 +856,6 @@ contract Votemarket is ReentrancyGuard {
                     campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
             }
 
-            // 5. Update the hook
-            hookByCampaignId[campaignId] = campaignUpgrade.hook;
-
-            // 6. Update the addresses
-            delete addressesSet[campaignId];
-            if (campaignUpgrade.addresses.length > 0) {
-                for (uint256 i = 0; i < campaignUpgrade.addresses.length; i++) {
-                    addressesSet[campaignId].add(campaignUpgrade.addresses[i]);
-                }
-            }
-
             // 7. Save new campaign values
             campaign.endTimestamp = campaignUpgrade.endTimestamp;
             campaign.numberOfPeriods = campaignUpgrade.numberOfPeriods;
@@ -909,8 +900,8 @@ contract Votemarket is ReentrancyGuard {
     /// @notice Gets the blacklist for a campaign
     /// @param campaignId The ID of the campaign
     /// @return address[] The array of blacklisted addresses
-    function getAddressesByCampaign(uint256 campaignId) public view returns (address[] memory) {
-        return addressesSet[campaignId].values();
+    function getAddressesByCampaign(uint256 campaignId, uint256 epoch) public view returns (address[] memory) {
+        return periodByCampaignId[campaignId][epoch].addresses.values();
     }
 
     /// @notice Gets a period for a campaign

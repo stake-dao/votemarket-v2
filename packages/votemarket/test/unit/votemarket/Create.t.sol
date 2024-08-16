@@ -184,7 +184,7 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId);
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
 
         assertFalse(votemarket.whitelistOnly(campaignId));
         assertEq(blacklistArray.length, 2);
@@ -215,7 +215,7 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId);
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
 
         assertFalse(votemarket.whitelistOnly(campaignId));
         assertEq(blacklistArray.length, 1);
@@ -243,7 +243,7 @@ contract CreateCampaignTest is BaseTest {
             true
         );
 
-        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId);
+        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
 
         assertTrue(votemarket.whitelistOnly(campaignId));
         assertEq(campaignBlacklist.length, 2);
