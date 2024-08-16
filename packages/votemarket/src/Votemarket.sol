@@ -459,6 +459,30 @@ contract Votemarket is ReentrancyGuard {
         return epoch;
     }
 
+    /// Inserts the hook in all the periods of the campaign until the end timestamp.
+    function _insertHook(uint256 campaignId, uint256 epoch, address hook) internal {
+        Campaign storage campaign = campaignById[campaignId];
+
+        uint256 endTimestamp = campaign.endTimestamp;
+        for (uint256 i = epoch; i < endTimestamp; i += EPOCH_LENGTH) {
+            periodByCampaignId[campaignId][i].hook = hook;
+        }
+    }
+
+    function _insertAddresses(uint256 campaignId, uint256 epoch, address[] memory addresses) internal {
+        Campaign storage campaign = campaignById[campaignId];
+
+        uint256 endTimestamp = campaign.endTimestamp;
+        for (uint256 i = epoch; i < endTimestamp; i += EPOCH_LENGTH) {
+            /// Reset the addresses set.
+            delete periodByCampaignId[campaignId][i].addresses;
+
+            for (uint256 j = 0; j < addresses.length; j++) {
+                periodByCampaignId[campaignId][i].addresses.add(addresses[j]);
+            }
+        }
+    }
+
     /// @notice Validates the previous state of a campaign
     /// @param campaignId The ID of the campaign
     /// @param epoch The current epoch
@@ -639,12 +663,8 @@ contract Votemarket is ReentrancyGuard {
 
         periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = rewardPerPeriod;
         /// TODO: Should it carry over the hook to next epoch until the campaign is closed?
-        periodByCampaignId[campaignId][startTimestamp].hook = hook;
-
-        // 8. Store blacklisted or whitelisted addresses
-        for (uint256 i = 0; i < addresses.length; i++) {
-            periodByCampaignId[campaignId][startTimestamp].addresses.add(addresses[i]);
-        }
+        _insertHook(campaignId, startTimestamp, hook);
+        _insertAddresses(campaignId, startTimestamp, addresses);
 
         // 9. Flag if the campaign is whitelist only
         whitelistOnly[campaignId] = isWhitelist;
@@ -679,8 +699,6 @@ contract Votemarket is ReentrancyGuard {
         // 3. Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
-        Period storage period = periodByCampaignId[campaignId][epoch];
-
         // 4. Check if there's a campaign upgrade in queue
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
@@ -711,17 +729,8 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        // 5. Update the hook
-        period.hook = hook;
-
-        // 6. Update the addresses
-        delete period.addresses;
-
-        if (addresses.length > 0) {
-            for (uint256 i = 0; i < addresses.length; i++) {
-                period.addresses.add(addresses[i]);
-            }
-        }
+        _insertHook(campaignId, epoch, hook);
+        _insertAddresses(campaignId, epoch, addresses);
 
         // 7. Store the campaign upgrade in queue
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
