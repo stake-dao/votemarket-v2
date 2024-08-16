@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "@forge-std/src/Test.sol";
+
 /// External Libraries
 import "@solady/src/utils/ReentrancyGuard.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
@@ -460,20 +462,14 @@ contract Votemarket is ReentrancyGuard {
     }
 
     /// Inserts the hook in all the periods of the campaign until the end timestamp.
-    function _insertHook(uint256 campaignId, uint256 epoch, address hook) internal {
-        Campaign storage campaign = campaignById[campaignId];
-
-        uint256 endTimestamp = campaign.endTimestamp;
-        for (uint256 i = epoch; i < endTimestamp; i += EPOCH_LENGTH) {
+    function _insertHook(uint256 campaignId, address hook, uint256 start, uint256 end) internal {
+        for (uint256 i = start; i < end; i += EPOCH_LENGTH) {
             periodByCampaignId[campaignId][i].hook = hook;
         }
     }
 
-    function _insertAddresses(uint256 campaignId, uint256 epoch, address[] memory addresses) internal {
-        Campaign storage campaign = campaignById[campaignId];
-
-        uint256 endTimestamp = campaign.endTimestamp;
-        for (uint256 i = epoch; i < endTimestamp; i += EPOCH_LENGTH) {
+    function _insertAddresses(uint256 campaignId, address[] memory addresses, uint256 start, uint256 end) internal {
+        for (uint256 i = start; i < end; i += EPOCH_LENGTH) {
             /// Reset the addresses set.
             delete periodByCampaignId[campaignId][i].addresses;
 
@@ -640,10 +636,10 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Generate campaign Id and get current epoch
         campaignId = campaignCount;
-        uint256 startTimestamp = currentEpoch() + EPOCH_LENGTH;
-
         // 5. Increment campaign count
         ++campaignCount;
+
+        uint256 startTimestamp = currentEpoch() + EPOCH_LENGTH;
 
         // 6. Store campaign
         campaignById[campaignId] = Campaign({
@@ -658,13 +654,11 @@ contract Votemarket is ReentrancyGuard {
             endTimestamp: startTimestamp + numberOfPeriods * EPOCH_LENGTH
         });
 
-        // 10. Initialize the first period
-        uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
+        periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
-        periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = rewardPerPeriod;
         /// TODO: Should it carry over the hook to next epoch until the campaign is closed?
-        _insertHook(campaignId, startTimestamp, hook);
-        _insertAddresses(campaignId, startTimestamp, addresses);
+        _insertHook(campaignId, hook, startTimestamp, startTimestamp + numberOfPeriods * EPOCH_LENGTH);
+        _insertAddresses(campaignId, addresses, startTimestamp, startTimestamp + numberOfPeriods * EPOCH_LENGTH);
 
         // 9. Flag if the campaign is whitelist only
         whitelistOnly[campaignId] = isWhitelist;
@@ -729,8 +723,8 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        _insertHook(campaignId, epoch, hook);
-        _insertAddresses(campaignId, epoch, addresses);
+        _insertHook(campaignId, hook, epoch, campaignUpgrade.endTimestamp);
+        _insertAddresses(campaignId, addresses, epoch, campaignUpgrade.endTimestamp);
 
         // 7. Store the campaign upgrade in queue
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
@@ -799,7 +793,7 @@ contract Votemarket is ReentrancyGuard {
             // 2a. Campaign hasn't started yet
             _isManagerOrRemote(campaignId);
             _checkForUpgrade(campaignId, campaign.startTimestamp);
-        } else if (currentTime < campaign.endTimestamp || currentTime < claimWindow) {
+        } else if (currentTime < claimWindow) {
             // 2b. Campaign is ongoing or within claim window
             revert CAMPAIGN_NOT_ENDED();
         } else if (currentTime < closeWindow) {

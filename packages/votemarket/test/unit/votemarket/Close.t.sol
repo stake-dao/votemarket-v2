@@ -103,6 +103,8 @@ contract CloseCampaignTest is BaseTest {
     }
 
     function testCloseEndedCampaignInClaimDeadline() public {
+        skip(1 weeks);
+
         uint256 campaignId = votemarket.campaignCount() - 1;
 
         /// Skip to the end of the campaign.
@@ -136,6 +138,8 @@ contract CloseCampaignTest is BaseTest {
     }
 
     function testCloseEndedCampaignInCloseDeadline() public {
+        skip(1 weeks);
+
         uint256 campaignId = votemarket.campaignCount() - 1;
 
         /// Skip to the end of the campaign.
@@ -172,6 +176,8 @@ contract CloseCampaignTest is BaseTest {
     }
 
     function testCloseCampaignWithAnUpgradeInQueue() public {
+        skip(1 weeks);
+
         uint256 campaignId = votemarket.campaignCount() - 1;
 
         deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);

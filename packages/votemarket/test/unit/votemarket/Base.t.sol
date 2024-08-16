@@ -130,6 +130,10 @@ abstract contract BaseTest is Test {
 
     function testGetters() public {
         _createCampaign();
+
+        /// Skip to the start timestamp.
+        skip(1 weeks);
+
         uint256 campaignId = votemarket.campaignCount() - 1;
 
         assertEq(votemarket.getRemainingPeriods(campaignId, votemarket.currentEpoch()), 4);
@@ -150,6 +154,25 @@ abstract contract BaseTest is Test {
             campaign = votemarket.getCampaign(campaignId);
             endTimestamp = campaign.endTimestamp;
         }
+    }
+
+    function _checkHookAndAddresses(uint256 campaignId, address hook, address[] memory addresses, uint256 start, uint256 end)
+        internal
+        view
+    {
+        address[] memory addresses_;
+        Period memory period;
+        for (uint256 i = start; i < end; i += 1 weeks) {
+            period = votemarket.getPeriodPerCampaign(campaignId, i);
+            addresses_ = votemarket.getAddressesByCampaign(campaignId, i);
+            assertEq(period.hook, hook);
+            assertEq(addresses.length, addresses.length);
+        }
+
+        period = votemarket.getPeriodPerCampaign(campaignId, end + votemarket.EPOCH_LENGTH());
+        addresses_ = votemarket.getAddressesByCampaign(campaignId, end + votemarket.EPOCH_LENGTH());
+        assertEq(period.hook, address(0));
+        assertEq(addresses_.length, 0);
     }
 
     function _mockGaugeData(uint256 campaignId, address gauge) internal {

@@ -15,9 +15,7 @@ contract CreateCampaignTest is BaseTest {
         deal(address(rewardToken), creator, TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        uint256 initialCampaignCount = votemarket.campaignCount();
-
-        votemarket.createCampaign(
+        uint256 campaignId = votemarket.createCampaign(
             CHAIN_ID,
             GAUGE,
             MANAGER,
@@ -30,7 +28,7 @@ contract CreateCampaignTest is BaseTest {
             false
         );
 
-        assertEq(votemarket.campaignCount(), initialCampaignCount + 1);
+        assertEq(votemarket.campaignCount(), campaignId + 1);
 
         (
             uint256 chainId,
@@ -42,7 +40,7 @@ contract CreateCampaignTest is BaseTest {
             uint256 totalRewardAmount,
             uint256 startTimestamp,
             uint256 endTimestamp
-        ) = votemarket.campaignById(initialCampaignCount);
+        ) = votemarket.campaignById(campaignId);
 
         assertEq(chainId, CHAIN_ID);
         assertEq(gauge, GAUGE);
@@ -51,12 +49,14 @@ contract CreateCampaignTest is BaseTest {
         assertEq(numberOfPeriods, VALID_PERIODS);
         assertEq(maxRewardPerVote, MAX_REWARD_PER_VOTE);
         assertEq(totalRewardAmount, TOTAL_REWARD_AMOUNT);
+
         assertEq(startTimestamp, votemarket.currentEpoch() + 1 weeks);
-        assertEq(endTimestamp, (block.timestamp / 1 weeks * 1 weeks) + VALID_PERIODS * 1 weeks);
+        assertEq(endTimestamp, startTimestamp + VALID_PERIODS * 1 weeks);
 
-        Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, startTimestamp);
-
+        Period memory period = votemarket.getPeriodPerCampaign(campaignId, startTimestamp);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
+        _checkHookAndAddresses(campaignId, HOOK, blacklist, startTimestamp, endTimestamp);
+
     }
 
     function testCreateCampaignWithInvalidPeriods() public {
@@ -184,7 +184,7 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch() + 1 weeks);
 
         assertFalse(votemarket.whitelistOnly(campaignId));
         assertEq(blacklistArray.length, 2);
@@ -215,7 +215,7 @@ contract CreateCampaignTest is BaseTest {
 
         uint256 campaignId = votemarket.campaignCount() - 1;
 
-        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
+        address[] memory blacklistArray = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch() + 1 weeks);
 
         assertFalse(votemarket.whitelistOnly(campaignId));
         assertEq(blacklistArray.length, 1);
@@ -243,7 +243,7 @@ contract CreateCampaignTest is BaseTest {
             true
         );
 
-        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch());
+        address[] memory campaignBlacklist = votemarket.getAddressesByCampaign(campaignId, votemarket.currentEpoch() + 1 weeks);
 
         assertTrue(votemarket.whitelistOnly(campaignId));
         assertEq(campaignBlacklist.length, 2);

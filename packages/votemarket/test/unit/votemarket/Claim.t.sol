@@ -97,7 +97,7 @@ contract ClaimTest is BaseTest {
     }
 
     function testClaimAfterCampaignEnd() public {
-        skip(VALID_PERIODS * 1 weeks);
+        skip(5 * 1 weeks);
 
         /// Update previous epoch
         _updateEpochs(campaignId);
@@ -119,7 +119,7 @@ contract ClaimTest is BaseTest {
     }
 
     function testClaimAfterClaimDeadline() public {
-        skip(VALID_PERIODS * 1 weeks);
+        skip(5 * 1 weeks);
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         _updateEpochs(campaignId);

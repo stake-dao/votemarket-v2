@@ -180,8 +180,10 @@ contract UpdateEpochTest is BaseTest {
 
         skip(1 weeks);
 
-        assertEq(period.hook, HOOK);
-        assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 0);
+        assertEq(period.hook, hook);
+        assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 1);
+
+        assertEq(period.updated, false);
 
         uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT * 2) / VALID_PERIODS;
         votemarket.updateEpoch(campaignId, epoch, "");
@@ -192,7 +194,6 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
         assertEq(period.updated, true);
-        assertEq(period.hook, hook);
 
         assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 1);
 
@@ -200,14 +201,15 @@ contract UpdateEpochTest is BaseTest {
     }
 
     function testUpdateEpochAfterCampaignEnd() public {
-        skip(VALID_PERIODS * 1 weeks);
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+
+        skip(campaign.endTimestamp);
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
         vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
 
         uint256 epoch = votemarket.currentEpoch();
-        Campaign memory campaign = votemarket.getCampaign(campaignId);
 
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         votemarket.updateEpoch(campaignId, epoch, "");
@@ -233,9 +235,9 @@ contract UpdateEpochTest is BaseTest {
 
         votemarket.updateEpoch(campaignId, campaign.startTimestamp + 2 weeks, "");
 
-        vm.expectRevert();
-        /// The campaign is over. Meaning there's no periods left. Meaning division by zero.
-        votemarket.updateEpoch(campaignId, campaign.startTimestamp + 3 weeks, "");
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        votemarket.updateEpoch(campaignId, campaign.endTimestamp, "");
+
         votemarket.closeCampaign(campaignId);
     }
 
