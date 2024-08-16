@@ -453,7 +453,6 @@ contract Votemarket is ReentrancyGuard {
             uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
 
             // 5. Update the period data
-            period.startTimestamp = epoch;
             period.rewardPerPeriod = remainingPeriods > 0
                 ? totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods)
                 : totalRewardForRemainingPeriods;
@@ -647,23 +646,19 @@ contract Votemarket is ReentrancyGuard {
         // 7. Store the hook
         hookByCampaignId[campaignId] = hook;
 
-        // 8. Store blacklisted or whitelisted addresses
-        for (uint256 i = 0; i < addresses.length; i++) {
-            addressesSet[campaignId].add(addresses[i]);
-        }
-
         // 9. Flag if the campaign is whitelist only
         whitelistOnly[campaignId] = isWhitelist;
 
         // 10. Initialize the first period
         uint256 rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
-        periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH] = Period({
-            startTimestamp: currentEpoch_ + EPOCH_LENGTH,
-            rewardPerPeriod: rewardPerPeriod,
-            rewardPerVote: 0,
-            leftover: 0,
-            updated: false
-        });
+
+        periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].rewardPerPeriod = rewardPerPeriod;
+        periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].hook = hook;
+
+        // 8. Store blacklisted or whitelisted addresses
+        for (uint256 i = 0; i < addresses.length; i++) {
+            periodByCampaignId[campaignId][currentEpoch_ + EPOCH_LENGTH].addresses.add(addresses[i]);
+        }
 
         emit CampaignCreated(
             campaignId, gauge, manager, rewardToken, numberOfPeriods, maxRewardPerVote, totalRewardAmount

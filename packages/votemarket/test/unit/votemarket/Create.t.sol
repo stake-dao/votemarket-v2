@@ -56,7 +56,6 @@ contract CreateCampaignTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(initialCampaignCount, startTimestamp);
 
-        assertEq(period.startTimestamp, votemarket.currentEpoch() + 1 weeks);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
     }
 

@@ -19,7 +19,6 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-        assertEq(period.startTimestamp, 0);
         assertEq(period.rewardPerPeriod, 0);
         assertEq(period.leftover, 0);
 
@@ -35,7 +34,6 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, 0);
@@ -44,7 +42,6 @@ contract UpdateEpochTest is BaseTest {
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -54,7 +51,6 @@ contract UpdateEpochTest is BaseTest {
 
         period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -78,7 +74,6 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
 
         assertEq(period.leftover, 0);
@@ -90,7 +85,6 @@ contract UpdateEpochTest is BaseTest {
 
         uint256 expectedLeftOver = period.rewardPerPeriod - maxRewardPerVote.mulDiv(TOTAL_VOTES, 1e18);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT.mulDiv(1, VALID_PERIODS));
         assertEq(period.leftover, expectedLeftOver);
         assertEq(period.rewardPerVote, maxRewardPerVote);
@@ -114,7 +108,6 @@ contract UpdateEpochTest is BaseTest {
 
         expectedLeftOver = expectedRewardPerPeriod - maxRewardPerVote.mulDiv(TOTAL_VOTES, 1e18);
 
-        assertEq(period.startTimestamp, currentEpoch);
         assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
         assertEq(period.leftover, expectedLeftOver);
         assertEq(period.rewardPerVote, maxRewardPerVote);
@@ -139,7 +132,6 @@ contract UpdateEpochTest is BaseTest {
         uint256 epoch = votemarket.currentEpoch() + 1 weeks;
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, epoch);
 
-        assertEq(period.startTimestamp, epoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, 0);
@@ -152,7 +144,6 @@ contract UpdateEpochTest is BaseTest {
 
         period = votemarket.getPeriodPerCampaign(campaignId, epoch);
 
-        assertEq(period.startTimestamp, epoch);
         assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -182,7 +173,6 @@ contract UpdateEpochTest is BaseTest {
         uint256 epoch = votemarket.currentEpoch() + 1 weeks;
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, epoch);
 
-        assertEq(period.startTimestamp, epoch);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, 0);
@@ -198,7 +188,6 @@ contract UpdateEpochTest is BaseTest {
 
         period = votemarket.getPeriodPerCampaign(campaignId, epoch);
 
-        assertEq(period.startTimestamp, epoch);
         assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -229,7 +218,7 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, campaign.startTimestamp, "");
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, campaign.startTimestamp);
-        assertEq(period.startTimestamp, campaign.startTimestamp);
+
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -237,7 +226,7 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, campaign.startTimestamp + 1 weeks, "");
 
         period = votemarket.getPeriodPerCampaign(campaignId, campaign.startTimestamp + 1 weeks);
-        assertEq(period.startTimestamp, campaign.startTimestamp + 1 weeks);
+
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -256,7 +245,7 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, votemarket.currentEpoch(), "");
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, votemarket.currentEpoch());
-        assertEq(period.startTimestamp, votemarket.currentEpoch());
+
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -271,7 +260,6 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(campaignId, votemarket.currentEpoch());
 
-        assertEq(period.startTimestamp, votemarket.currentEpoch());
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -297,7 +285,6 @@ contract UpdateEpochTest is BaseTest {
         Period memory period = votemarket.getPeriodPerCampaign(whitelistCampaignId, votemarket.currentEpoch());
         uint256 expectedRewardPerVote = period.rewardPerPeriod.mulDiv(1e18, ACCOUNT_VOTES);
 
-        assertEq(period.startTimestamp, votemarket.currentEpoch());
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -321,7 +308,6 @@ contract UpdateEpochTest is BaseTest {
 
         Period memory period = votemarket.getPeriodPerCampaign(hookCampaignId, votemarket.currentEpoch());
 
-        assertEq(period.startTimestamp, votemarket.currentEpoch());
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.updated, true);
@@ -344,7 +330,6 @@ contract UpdateEpochTest is BaseTest {
 
             Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
 
-            assertEq(period.startTimestamp, currentEpoch);
             assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
             assertEq(period.leftover, 0);
             assertEq(period.updated, true);

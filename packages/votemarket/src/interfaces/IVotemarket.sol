@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "@solady/src/utils/EnumerableSetLib.sol";
+
 ////////////////////////////////////////////////////////////////
 /// --- DATA STRUCTURE DEFINITIONS
 ///////////////////////////////////////////////////////////////
@@ -43,14 +45,16 @@ struct ClaimData {
 }
 
 struct Period {
-    /// @notice Start timestamp of the period.
-    uint256 startTimestamp;
     /// @notice Amount of reward reserved for the period.
     uint256 rewardPerPeriod;
     /// @notice Reward Per Vote.
     uint256 rewardPerVote;
     /// @notice  Leftover amount.
     uint256 leftover;
+    /// @notice Hook address.
+    address hook;
+    /// @notice Addresses to add to the whitelist/blacklist.
+    EnumerableSetLib.AddressSet addresses;
     /// @notice Flag to indicate if the period is updated.
     bool updated;
 }
