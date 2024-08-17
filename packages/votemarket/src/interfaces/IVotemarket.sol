@@ -26,6 +26,8 @@ struct Campaign {
     uint256 startTimestamp;
     /// @notice End timestamp of the campaign.
     uint256 endTimestamp;
+    /// Hook address.
+    address hook;
 }
 
 /// @notice Claim data struct to avoid stack too deep errors.
@@ -51,10 +53,6 @@ struct Period {
     uint256 rewardPerVote;
     /// @notice  Leftover amount.
     uint256 leftover;
-    /// @notice Hook address.
-    address hook;
-    /// @notice Addresses to add to the whitelist/blacklist.
-    EnumerableSetLib.AddressSet addresses;
     /// @notice Flag to indicate if the period is updated.
     bool updated;
 }

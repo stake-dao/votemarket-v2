@@ -23,7 +23,7 @@ contract CreateCampaignTest is BaseCopyTest {
         bool whitelist;
     }
 
-    function testCreateCampaignCopy(CampaignCreationParams memory params) public {
+    function testCreateCampaign(CampaignCreationParams memory params) public {
         vm.assume(params.numberOfPeriods < 50);
 
         /// Clean addresses from Sentil Value (EnumerableSetLib.AddressSet)
@@ -42,7 +42,7 @@ contract CreateCampaignTest is BaseCopyTest {
             vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
         } else if (params.addresses.length > maxAddressesSize) {
             vm.expectRevert(Votemarket.INVALID_INPUT.selector);
-        } else if(params.rewardToken == address(0)) {
+        } else if (params.rewardToken == address(0)) {
             rewardToken = MockERC20(address(0));
             vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
         }
@@ -77,6 +77,7 @@ contract CreateCampaignTest is BaseCopyTest {
             assertEq(campaign.maxRewardPerVote, params.maxRewardPerVote);
             assertEq(campaign.totalRewardAmount, params.totalRewardAmount);
             assertEq(campaign.startTimestamp, currentEpoch + votemarket.EPOCH_LENGTH());
+            assertEq(campaign.hook, params.hook);
             assertEq(
                 campaign.endTimestamp, campaign.startTimestamp + params.numberOfPeriods * votemarket.EPOCH_LENGTH()
             );
@@ -84,10 +85,6 @@ contract CreateCampaignTest is BaseCopyTest {
             /// The first period before the start should be empty.
             Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
             assertEq(period.rewardPerPeriod, 0);
-            assertEq(period.hook, address(0));
-
-            address[] memory addresses = votemarket.getAddressesByCampaign(campaignId, currentEpoch);
-            assertEq(addresses.length, 0);
 
             uint256 length = _getRealNumberOfAddresses(params.addresses);
 
@@ -95,12 +92,8 @@ contract CreateCampaignTest is BaseCopyTest {
             uint256 rewardPerPeriod = FixedPointMathLib.mulDiv(params.totalRewardAmount, 1, params.numberOfPeriods);
             assertEq(period.rewardPerPeriod, rewardPerPeriod);
 
-            for (uint256 i = campaign.startTimestamp; i < campaign.endTimestamp; i += votemarket.EPOCH_LENGTH()) {
-                period = votemarket.getPeriodPerCampaign(campaignId, i);
-                addresses = votemarket.getAddressesByCampaign(campaignId, i);
-                assertEq(period.hook, params.hook);
-                assertEq(addresses.length, length);
-            }
+            address[] memory addresses = votemarket.getAddressesByCampaign(campaignId);
+            assertEq(addresses.length, length);
         }
     }
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "test/unit/votemarket/Base.t.sol";
 
-contract UpdateEpochTest is BaseTest {
+abstract contract UpdateEpochTest is BaseTest {
     using FixedPointMathLib for uint256;
 
     uint256 public campaignId;
@@ -156,18 +156,12 @@ contract UpdateEpochTest is BaseTest {
         deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        address[] memory addresses = new address[](1);
-        addresses[0] = address(0xCAFE);
-        address hook = address(0xBEEF);
-
         /// Increase the total reward amount.
         votemarket.manageCampaign({
             campaignId: campaignId,
             numberOfPeriods: 0,
             totalRewardAmount: TOTAL_REWARD_AMOUNT,
-            maxRewardPerVote: 0,
-            hook: hook,
-            addresses: addresses
+            maxRewardPerVote: 0
         });
 
         uint256 epoch = votemarket.currentEpoch() + 1 weeks;
@@ -180,9 +174,6 @@ contract UpdateEpochTest is BaseTest {
 
         skip(1 weeks);
 
-        assertEq(period.hook, hook);
-        assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 1);
-
         assertEq(period.updated, false);
 
         uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT * 2) / VALID_PERIODS;
@@ -194,8 +185,6 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(expectedRewardPerPeriod, 1e18, TOTAL_VOTES));
         assertEq(period.updated, true);
-
-        assertEq(votemarket.getAddressesByCampaign(campaignId, epoch).length, 1);
 
         votemarket.updateEpoch(campaignId, epoch, "");
     }

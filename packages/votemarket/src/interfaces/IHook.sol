@@ -11,4 +11,6 @@ interface IHook {
         uint256 amount,
         bytes calldata hookData
     ) external;
+
+    function returnFunds(address token, address to, uint256 amount) external;
 }

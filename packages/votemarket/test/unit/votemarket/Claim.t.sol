@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "test/unit/votemarket/Base.t.sol";
 
-contract ClaimTest is BaseTest {
+abstract contract ClaimTest is BaseTest {
     using FixedPointMathLib for uint256;
 
     uint256 public campaignId;
@@ -171,9 +171,8 @@ contract ClaimTest is BaseTest {
         uint256 currentEpoch = votemarket.currentEpoch();
         bytes memory data = abi.encode(campaignId, currentEpoch);
 
-        Period memory period = votemarket.getPeriodPerCampaign(campaignId, currentEpoch);
-
-        assertEq(period.hook, address(reentrancyAttacker));
+        Campaign memory campaign = votemarket.getCampaign(campaignId);
+        assertEq(campaign.hook, address(reentrancyAttacker));
         votemarket.claim(campaignId, currentEpoch, data, address(this));
     }
 }

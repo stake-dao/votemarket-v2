@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "@solady/src/utils/SafeTransferLib.sol";
+
 // Mock contracts for testing hooks
 contract MockHook {
     address public immutable rewardToken;
@@ -14,6 +16,10 @@ contract MockHook {
     }
 
     function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
+
+    function returnFunds(address token, address to, uint256 amount) external {
+        SafeTransferLib.safeTransfer(token, to, amount);
+    }
 }
 
 contract MockInvalidHook {
@@ -28,4 +34,8 @@ contract MockInvalidHook {
     }
 
     function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
+
+    function returnFunds(address token, address to, uint256 amount) external {
+        SafeTransferLib.safeTransfer(token, to, amount);
+    }
 }
