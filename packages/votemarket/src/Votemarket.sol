@@ -507,47 +507,48 @@ contract Votemarket is ReentrancyGuard {
         // 1. Get total adjusted votes
         uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
-        if (totalVotes != 0) {
-            Campaign storage campaign = campaignById[campaignId];
-
-            // 2. Calculate reward per vote
-            uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
-
-            // 3. Cap reward per vote at max reward per vote
-            if (rewardPerVote > campaign.maxRewardPerVote) {
-                rewardPerVote = campaign.maxRewardPerVote;
-
-                // 4. Calculate leftover rewards
-                uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
-
-                // 5. Handle leftover rewards
-                address hook = campaign.hook;
-                if (hook != address(0)) {
-                    // Transfer leftover to hook contract
-                    SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
-                    // Trigger the hook
-                    try IHook(hook).doSomething({
-                        campaignId: campaignId,
-                        chainId: campaign.chainId,
-                        rewardToken: campaign.rewardToken,
-                        epoch: epoch,
-                        amount: leftOver,
-                        hookData: hookData
-                    }) {} catch {
-                        /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
-                        delete campaign.hook;
-                    }
-                } else {
-                    // Store leftover in the period
-                    period.leftover += leftOver;
-                }
-            }
-            // 6. Save the calculated reward per vote
-            period.rewardPerVote = rewardPerVote;
-        } else {
-            /// If no vote, reward are distributed in the next epoch.
+        if (totalVotes == 0) {
             period.leftover = period.rewardPerPeriod;
+            return;
         }
+
+        Campaign storage campaign = campaignById[campaignId];
+
+        // 2. Calculate reward per vote
+        uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
+
+        // 3. Cap reward per vote at max reward per vote
+        if (rewardPerVote > campaign.maxRewardPerVote) {
+            rewardPerVote = campaign.maxRewardPerVote;
+
+            // 4. Calculate leftover rewards
+            uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
+
+            // 5. Handle leftover rewards
+            address hook = campaign.hook;
+            if (hook != address(0)) {
+                // Transfer leftover to hook contract
+                SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
+                // Trigger the hook
+                try IHook(hook).doSomething({
+                    campaignId: campaignId,
+                    chainId: campaign.chainId,
+                    rewardToken: campaign.rewardToken,
+                    epoch: epoch,
+                    amount: leftOver,
+                    hookData: hookData
+                }) {} catch {
+                    /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
+                    delete campaign.hook;
+                }
+            } else {
+                // Store leftover in the period
+                period.leftover += leftOver;
+            }
+        }
+
+        // 6. Save the calculated reward per vote
+        period.rewardPerVote = rewardPerVote;
     }
 
     /// @notice Calculates the adjusted total votes for a campaign

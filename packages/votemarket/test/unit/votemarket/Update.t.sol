@@ -166,16 +166,12 @@ contract UpdateEpochTest is BaseTest {
 
         address badHook = address(new MockInvalidHook(address(rewardToken)));
 
-        campaignId = _createCampaign({
-            hook: badHook,
-            maxRewardPerVote: 0.1e18,
-            addresses: new address[](0),
-            whitelist: false
-        });
+        campaignId =
+            _createCampaign({hook: badHook, maxRewardPerVote: 0.1e18, addresses: new address[](0), whitelist: false});
 
         oracleLens.setTotalVotes(GAUGE, epoch, TOTAL_VOTES);
 
-         /// Skip to the start of the campaign.
+        /// Skip to the start of the campaign.
         skip(epochLenght);
         epoch = votemarket.currentEpoch();
         votemarket.updateEpoch(campaignId, epoch, "");
@@ -189,7 +185,7 @@ contract UpdateEpochTest is BaseTest {
         uint256 epochLenght = votemarket.EPOCH_LENGTH();
         uint256 epoch = votemarket.currentEpoch();
         address[] memory addresses = new address[](10);
-        for (uint i = 1; i < addresses.length; i++) {
+        for (uint256 i = 1; i < addresses.length; i++) {
             addresses[i] = address(uint160(i + 1));
         }
 
@@ -200,7 +196,7 @@ contract UpdateEpochTest is BaseTest {
             whitelist: true
         });
 
-         /// Skip to the start of the campaign.
+        /// Skip to the start of the campaign.
         skip(epochLenght);
         epoch = votemarket.currentEpoch();
         votemarket.updateEpoch(campaignId, epoch, "");
@@ -214,10 +210,10 @@ contract UpdateEpochTest is BaseTest {
         assertEq(previousPeriod.rewardPerPeriod, 0);
         assertEq(previousPeriod.rewardPerVote, 0);
 
-        uint expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT) / VALID_PERIODS;
-        uint expectedRewardPerVote = 0;
+        uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT) / VALID_PERIODS;
+        uint256 expectedRewardPerVote = 0;
 
-        if(expectedRewardPerVote > MAX_REWARD_PER_VOTE) {
+        if (expectedRewardPerVote > MAX_REWARD_PER_VOTE) {
             expectedRewardPerVote = MAX_REWARD_PER_VOTE;
         }
 
@@ -227,17 +223,16 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.updated, true);
     }
 
-
     function testUpdateEpochWithWhitelist() public {
         uint256 epochLenght = votemarket.EPOCH_LENGTH();
         uint256 epoch = votemarket.currentEpoch();
 
         address[] memory addresses = new address[](10);
         uint256[] memory accountVotes = new uint256[](10);
-        uint totalVotes = 0;
-        for (uint i = 0; i < addresses.length; i++) {
+        uint256 totalVotes = 0;
+        for (uint256 i = 0; i < addresses.length; i++) {
             addresses[i] = address(uint160(i + 1));
-            accountVotes[i] = i**2 + 1e18;
+            accountVotes[i] = i ** 2 + 1e18;
             totalVotes += accountVotes[i];
             oracleLens.setAccountVotes(addresses[i], GAUGE, epoch, accountVotes[i]);
         }
@@ -251,7 +246,7 @@ contract UpdateEpochTest is BaseTest {
             whitelist: true
         });
 
-         /// Skip to the start of the campaign.
+        /// Skip to the start of the campaign.
         skip(epochLenght);
         epoch = votemarket.currentEpoch();
         votemarket.updateEpoch(campaignId, epoch, "");
@@ -265,19 +260,18 @@ contract UpdateEpochTest is BaseTest {
         assertEq(previousPeriod.rewardPerPeriod, 0);
         assertEq(previousPeriod.rewardPerVote, 0);
 
-        uint expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT) / VALID_PERIODS;
-        uint expectedRewardPerVote = expectedRewardPerPeriod.mulDiv(1e18, totalVotes);
+        uint256 expectedRewardPerPeriod = (TOTAL_REWARD_AMOUNT) / VALID_PERIODS;
+        uint256 expectedRewardPerVote = expectedRewardPerPeriod.mulDiv(1e18, totalVotes);
 
-        if(expectedRewardPerVote > MAX_REWARD_PER_VOTE) {
+        if (expectedRewardPerVote > MAX_REWARD_PER_VOTE) {
             expectedRewardPerVote = MAX_REWARD_PER_VOTE;
         }
 
-        uint expectedLeftOver = expectedRewardPerPeriod - expectedRewardPerVote.mulDiv(totalVotes, 1e18);
+        uint256 expectedLeftOver = expectedRewardPerPeriod - expectedRewardPerVote.mulDiv(totalVotes, 1e18);
 
         assertEq(period.rewardPerPeriod, expectedRewardPerPeriod);
         assertEq(period.leftover, expectedLeftOver, "Leftover should be updated");
         assertEq(period.rewardPerVote, expectedRewardPerVote);
         assertEq(period.updated, true);
-        
     }
 }

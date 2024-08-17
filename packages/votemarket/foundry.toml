@@ -10,9 +10,15 @@ ffi = true
 verbosity = 3
 optimizers_runs = 200
 
+gas_reports = [
+"Votemarket"
+]
+
 [fuzz]
 max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail
 runs = 5000
+
+
 
 
 [etherscan]
