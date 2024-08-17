@@ -198,7 +198,7 @@ contract Votemarket is ReentrancyGuard {
     modifier validEpoch(uint256 campaignId, uint256 epoch) {
         if (
             epoch > block.timestamp || epoch < campaignById[campaignId].startTimestamp
-                || epoch >= campaignById[campaignId].endTimestamp
+                || epoch >= campaignById[campaignId].endTimestamp || epoch % EPOCH_LENGTH != 0
         ) revert EPOCH_NOT_VALID();
         _;
     }
@@ -430,11 +430,8 @@ contract Votemarket is ReentrancyGuard {
     /// @param campaignId The ID of the campaign
     /// @param epoch The epoch to update
     /// @param hookData Additional data for hooks
-    /// @return epoch_ The updated epoch
-    function _updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
-        internal
-        returns (uint256 epoch_)
-    {
+    /// @return The updated epoch
+    function _updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData) internal returns (uint256) {
         // 1. Get the period for the current epoch
         Period storage period = _getPeriod(campaignId, epoch);
         if (period.updated) return epoch;
@@ -537,30 +534,19 @@ contract Votemarket is ReentrancyGuard {
                         amount: leftOver,
                         hookData: hookData
                     }) {} catch {
-                        uint256 balance = SafeTransferLib.balanceOf(campaign.rewardToken, address(this));
-
-                        /// Return the leftover from the hook contract.
-                        IHook(hook).returnFunds(campaign.rewardToken, address(this), leftOver);
-
-                        /// Check if the leftover has been returned.
-                        uint256 diff = SafeTransferLib.balanceOf(campaign.rewardToken, address(this)) - balance;
-
-                        if (diff == leftOver) {
-                            /// Rollover the leftover to the next epoch.
-                            period.leftover += leftOver;
-                        } else {
-                            /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
-                            delete campaign.hook;
-                        }
+                        /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
+                        delete campaign.hook;
                     }
                 } else {
                     // Store leftover in the period
                     period.leftover += leftOver;
                 }
             }
-
             // 6. Save the calculated reward per vote
             period.rewardPerVote = rewardPerVote;
+        } else {
+            /// If no vote, reward are distributed in the next epoch.
+            period.leftover = period.rewardPerPeriod;
         }
     }
 

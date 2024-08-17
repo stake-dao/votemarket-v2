@@ -20,12 +20,12 @@ abstract contract BaseTest is Test {
     // Test variables
     address HOOK;
     address[] blacklist;
-    uint256 constant CHAIN_ID = 1;
-    uint8 constant VALID_PERIODS = 4;
-    address constant GAUGE = address(0x1234);
-    address constant MANAGER = address(0x5678);
-    uint256 constant MAX_REWARD_PER_VOTE = 1e18;
-    uint256 constant TOTAL_REWARD_AMOUNT = 1000e18;
+    uint256 CHAIN_ID = 1;
+    uint8 VALID_PERIODS = 4;
+    address GAUGE = address(0x1234);
+    address MANAGER = address(0x5678);
+    uint256 MAX_REWARD_PER_VOTE = 1e18;
+    uint256 TOTAL_REWARD_AMOUNT = 1000e18;
 
     uint256 TOTAL_VOTES = 2000e18;
     uint256 ACCOUNT_VOTES = 1000e18;

@@ -16,9 +16,6 @@ contract MAnageCampaignTest is BaseCopyTest {
         campaignId = _createCampaign();
     }
 
-    EnumerableSetLib.AddressSet set;
-    uint256 private constant _ZERO_SENTINEL = 0xfbb67fda52d4bfb8bf;
-
     struct ManageCampaignParams {
         uint256 campaignId;
         uint8 numberOfPeriods;
@@ -75,7 +72,6 @@ contract MAnageCampaignTest is BaseCopyTest {
             assertEq(rewardToken.balanceOf(address(votemarket)), TOTAL_REWARD_AMOUNT + totalAmount);
         }
 
-
         /// Create a new default campaign.
         campaignId = _createCampaign();
 
@@ -99,8 +95,8 @@ contract MAnageCampaignTest is BaseCopyTest {
         deal(address(rewardToken), creator, params.totalRewardAmount * numberOfIncreases);
         rewardToken.approve(address(votemarket), params.totalRewardAmount * numberOfIncreases);
 
-        uint totalAmount = params.totalRewardAmount * numberOfIncreases;
-        uint totalNumberOfPeriods = params.numberOfPeriods * numberOfIncreases;
+        uint256 totalAmount = params.totalRewardAmount * numberOfIncreases;
+        uint256 totalNumberOfPeriods = params.numberOfPeriods * numberOfIncreases;
 
         for (uint8 i = 0; i < numberOfIncreases; i++) {
             if (params.campaignId != campaignId) {
@@ -125,9 +121,14 @@ contract MAnageCampaignTest is BaseCopyTest {
 
             campaignUpgrade = votemarket.getCampaignUpgrade(params.campaignId, currentEpoch + 1 weeks);
             assertEq(campaignUpgrade.totalRewardAmount, campaign.totalRewardAmount + totalAmount);
-            assertEq(campaignUpgrade.maxRewardPerVote, params.maxRewardPerVote > 0 ? params.maxRewardPerVote : campaign.maxRewardPerVote);
+            assertEq(
+                campaignUpgrade.maxRewardPerVote,
+                params.maxRewardPerVote > 0 ? params.maxRewardPerVote : campaign.maxRewardPerVote
+            );
             assertEq(campaignUpgrade.numberOfPeriods, campaign.numberOfPeriods + totalNumberOfPeriods);
-            assertEq(campaignUpgrade.endTimestamp, campaign.endTimestamp + (totalNumberOfPeriods* votemarket.EPOCH_LENGTH()));
+            assertEq(
+                campaignUpgrade.endTimestamp, campaign.endTimestamp + (totalNumberOfPeriods * votemarket.EPOCH_LENGTH())
+            );
 
             campaignUpgrade = votemarket.getCampaignUpgrade(params.campaignId, currentEpoch + 2 weeks);
             assertEq(campaignUpgrade.totalRewardAmount, 0);

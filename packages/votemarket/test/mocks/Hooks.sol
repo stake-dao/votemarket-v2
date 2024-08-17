@@ -47,7 +47,9 @@ contract MockInvalidHook {
         uint256 epoch,
         uint256 amount,
         bytes calldata hookData
-    ) external {}
+    ) external {
+        revert();
+    }
 
     function returnFunds(address token, address to, uint256 amount) external {
         SafeTransferLib.safeTransfer(token, to, amount);
