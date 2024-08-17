@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "test/unit/votemarket/Base.t.sol";
 
-abstract contract ClaimTest is BaseTest {
+contract ClaimTest is BaseTest {
     using FixedPointMathLib for uint256;
 
     uint256 public campaignId;
@@ -187,6 +187,10 @@ contract ReentrancyAttacker {
     function doSomething(bytes calldata data) external {
         (uint256 campaignId, uint256 epoch) = abi.decode(data, (uint256, uint256));
         votemarket.claim(campaignId, epoch, "", address(this));
+    }
+
+    function returnFunds(address token, address to, uint256 amount) external {
+        SafeTransferLib.safeTransfer(token, to, amount);
     }
 
     fallback() external {

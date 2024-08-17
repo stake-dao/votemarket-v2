@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 /// Testing contracts & libraries
 import "test/unit/votemarket/Base.t.sol";
 
-abstract contract CloseCampaignTest is BaseTest {
+contract CloseCampaignTest is BaseTest {
     address feeCollector = address(0xCAFE);
 
     function setUp() public override {

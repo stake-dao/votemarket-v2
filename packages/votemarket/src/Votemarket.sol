@@ -543,7 +543,7 @@ contract Votemarket is ReentrancyGuard {
                         IHook(hook).returnFunds(campaign.rewardToken, address(this), leftOver);
 
                         /// Check if the leftover has been returned.
-                        uint256 diff = balance - SafeTransferLib.balanceOf(campaign.rewardToken, address(this));
+                        uint256 diff = SafeTransferLib.balanceOf(campaign.rewardToken, address(this)) - balance;
 
                         if (diff == leftOver) {
                             /// Rollover the leftover to the next epoch.

@@ -15,7 +15,14 @@ contract MockHook {
         return true;
     }
 
-    function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
+    function doSomething(
+        uint256 campaignId,
+        uint256 chainId,
+        address rewardToken,
+        uint256 epoch,
+        uint256 amount,
+        bytes calldata hookData
+    ) external {}
 
     function returnFunds(address token, address to, uint256 amount) external {
         SafeTransferLib.safeTransfer(token, to, amount);
@@ -33,7 +40,14 @@ contract MockInvalidHook {
         return false;
     }
 
-    function doSomething(uint256, uint256, uint256, address, uint256 amount, bytes calldata) external {}
+    function doSomething(
+        uint256 campaignId,
+        uint256 chainId,
+        address rewardToken,
+        uint256 epoch,
+        uint256 amount,
+        bytes calldata hookData
+    ) external {}
 
     function returnFunds(address token, address to, uint256 amount) external {
         SafeTransferLib.safeTransfer(token, to, amount);

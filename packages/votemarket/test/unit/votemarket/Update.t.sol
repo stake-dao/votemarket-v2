@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "test/unit/votemarket/Base.t.sol";
 
-abstract contract UpdateEpochTest is BaseTest {
+contract UpdateEpochTest is BaseTest {
     using FixedPointMathLib for uint256;
 
     uint256 public campaignId;
