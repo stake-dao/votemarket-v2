@@ -36,7 +36,7 @@ contract Votemarket is ReentrancyGuard {
     uint256 public constant CLOSE_WINDOW_LENGTH = 4 weeks;
 
     /// @notice Maximum number of addresses per campaign.
-    uint256 public constant MAX_ADDRESSES_PER_CAMPAIGN = 500;
+    uint256 public constant MAX_ADDRESSES_PER_CAMPAIGN = 50;
 
     /// @notice Minimum duration for a campaign.
     uint8 public immutable MINIMUM_PERIODS;
@@ -462,19 +462,27 @@ contract Votemarket is ReentrancyGuard {
     }
 
     /// Inserts the hook in all the periods of the campaign until the end timestamp.
-    function _insertHook(uint256 campaignId, address hook, uint256 start, uint256 end) internal {
+    function _insertHookAndAddresses(
+        uint256 campaignId,
+        address hook,
+        address[] memory addresses,
+        uint256 start,
+        uint256 end
+    ) internal {
+        Period storage period;
         for (uint256 i = start; i < end; i += EPOCH_LENGTH) {
-            periodByCampaignId[campaignId][i].hook = hook;
-        }
-    }
+            period = periodByCampaignId[campaignId][i];
 
-    function _insertAddresses(uint256 campaignId, address[] memory addresses, uint256 start, uint256 end) internal {
-        for (uint256 i = start; i < end; i += EPOCH_LENGTH) {
+            period.hook = hook;
+
             /// Reset the addresses set.
-            delete periodByCampaignId[campaignId][i].addresses;
+            if (period.addresses.length() > 0) {
+                delete period.addresses;
+            }
 
             for (uint256 j = 0; j < addresses.length; j++) {
-                periodByCampaignId[campaignId][i].addresses.add(addresses[j]);
+                if(addresses[j] == address(0)) continue;
+                period.addresses.add(addresses[j]);
             }
         }
     }
@@ -654,11 +662,13 @@ contract Votemarket is ReentrancyGuard {
             endTimestamp: startTimestamp + numberOfPeriods * EPOCH_LENGTH
         });
 
+        /// Set the reward per period for the first period.
         periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
-        /// TODO: Should it carry over the hook to next epoch until the campaign is closed?
-        _insertHook(campaignId, hook, startTimestamp, startTimestamp + numberOfPeriods * EPOCH_LENGTH);
-        _insertAddresses(campaignId, addresses, startTimestamp, startTimestamp + numberOfPeriods * EPOCH_LENGTH);
+        /// Insert the hook and addresses in all the periods of the campaign until the end timestamp.
+        _insertHookAndAddresses(
+            campaignId, hook, addresses, startTimestamp, startTimestamp + numberOfPeriods * EPOCH_LENGTH
+        );
 
         // 9. Flag if the campaign is whitelist only
         whitelistOnly[campaignId] = isWhitelist;
@@ -723,8 +733,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        _insertHook(campaignId, hook, epoch, campaignUpgrade.endTimestamp);
-        _insertAddresses(campaignId, addresses, epoch, campaignUpgrade.endTimestamp);
+        _insertHookAndAddresses(campaignId, hook, addresses, epoch, campaignUpgrade.endTimestamp);
 
         // 7. Store the campaign upgrade in queue
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
@@ -904,10 +913,10 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Gets a period for a campaign
     /// @param campaignId The ID of the campaign
-    /// @param periodId The ID of the period
+    /// @param epoch The epoch of the period
     /// @return Period The period data
-    function getPeriodPerCampaign(uint256 campaignId, uint256 periodId) public view returns (Period memory) {
-        return periodByCampaignId[campaignId][periodId];
+    function getPeriodPerCampaign(uint256 campaignId, uint256 epoch) public view returns (Period memory) {
+        return periodByCampaignId[campaignId][epoch];
     }
 
     /// @notice Gets the current epoch

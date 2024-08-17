@@ -9,7 +9,7 @@ import "src/Votemarket.sol";
 import "test/mocks/Hooks.sol";
 import "test/mocks/OracleLens.sol";
 
-abstract contract BaseTest is Test {
+abstract contract BaseCopyTest is Test {
     address creator = address(this);
 
     MockOracleLens oracleLens;
@@ -30,6 +30,9 @@ abstract contract BaseTest is Test {
     uint256 TOTAL_VOTES = 2000e18;
     uint256 ACCOUNT_VOTES = 1000e18;
 
+    uint256 maxAddressesSize;
+    uint256 minimiumPeriodsSize;
+
     function setUp() public virtual {
         /// To avoid timestamp = 0.
         skip(1 weeks);
@@ -42,6 +45,9 @@ abstract contract BaseTest is Test {
             _epochLength: 1 weeks,
             _minimumPeriods: 2
         });
+
+        minimiumPeriodsSize = votemarket.MINIMUM_PERIODS();
+        maxAddressesSize = votemarket.MAX_ADDRESSES_PER_CAMPAIGN();
 
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
@@ -203,5 +209,13 @@ abstract contract BaseTest is Test {
         for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
             oracleLens.setAccountVotes(account, gauge, i, ACCOUNT_VOTES);
         }
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(account)
+        }
+        return size > 0;
     }
 }

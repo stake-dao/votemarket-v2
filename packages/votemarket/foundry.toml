@@ -10,6 +10,10 @@ ffi = true
 verbosity = 3
 optimizers_runs = 200
 
+[fuzz]
+runs = 5000
+
+
 [etherscan]
 bnb = { key = "${BNBSCAN_KEY}" }
 frax = { key = "${FRAXSCAN_KEY}" }
