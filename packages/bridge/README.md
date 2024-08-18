@@ -1,1 +1,0 @@
-# Pigeon, an attempt to messaging protocols aggregator.

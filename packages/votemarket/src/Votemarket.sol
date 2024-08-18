@@ -530,14 +530,18 @@ contract Votemarket is ReentrancyGuard {
                 // Transfer leftover to hook contract
                 SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
                 // Trigger the hook
-                try IHook(hook).doSomething({
-                    campaignId: campaignId,
-                    chainId: campaign.chainId,
-                    rewardToken: campaign.rewardToken,
-                    epoch: epoch,
-                    amount: leftOver,
-                    hookData: hookData
-                }) {} catch {
+                (bool success,) = hook.call(
+                    abi.encodeWithSelector(
+                        IHook.doSomething.selector,
+                        campaignId,
+                        campaign.chainId,
+                        campaign.rewardToken,
+                        epoch,
+                        leftOver,
+                        hookData
+                    )
+                );
+                if (!success) {
                     /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
                     delete campaign.hook;
                 }

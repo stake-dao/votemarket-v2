@@ -2,9 +2,9 @@
 pragma solidity 0.8.19;
 
 /// Testing contracts & libraries
-import "test/unit/votemarket/Base.t copy.sol";
+import "test/unit/votemarket/Base.t.sol";
 
-contract CreateCampaignTest is BaseCopyTest {
+contract CreateCampaignTest is BaseTest {
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     EnumerableSetLib.AddressSet set;

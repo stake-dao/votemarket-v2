@@ -30,6 +30,9 @@ abstract contract BaseTest is Test {
     uint256 TOTAL_VOTES = 2000e18;
     uint256 ACCOUNT_VOTES = 1000e18;
 
+    uint256 maxAddressesSize;
+    uint256 minimiumPeriodsSize;
+
     function setUp() public virtual {
         /// To avoid timestamp = 0.
         skip(1 weeks);
@@ -42,6 +45,9 @@ abstract contract BaseTest is Test {
             _epochLength: 1 weeks,
             _minimumPeriods: 2
         });
+
+        minimiumPeriodsSize = votemarket.MINIMUM_PERIODS();
+        maxAddressesSize = votemarket.MAX_ADDRESSES_PER_CAMPAIGN();
 
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
@@ -94,6 +100,24 @@ abstract contract BaseTest is Test {
         _mockAccountData(campaignId, address(this), GAUGE);
     }
 
+    function testInitialSetup() public {
+        Votemarket newVotemarket = new Votemarket({
+            _governance: address(this),
+            _oracle: address(oracleLens),
+            _feeCollector: address(this),
+            _epochLength: 1 weeks,
+            _minimumPeriods: 2
+        });
+
+        assertEq(newVotemarket.governance(), address(this));
+        assertEq(newVotemarket.feeCollector(), address(this));
+        assertEq(newVotemarket.fee(), 4e16);
+
+        assertEq(newVotemarket.ORACLE(), address(oracleLens));
+        assertEq(newVotemarket.EPOCH_LENGTH(), 1 weeks);
+        assertEq(newVotemarket.MINIMUM_PERIODS(), 2);
+    }
+
     function testSetters() public {
         /// Fee collector.
         address feeCollector = address(0xCAFE);
@@ -131,6 +155,44 @@ abstract contract BaseTest is Test {
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
         votemarket.setRemote(remote);
+
+        votemarket.setCustomFee(address(0xCAFE), 100);
+        assertEq(votemarket.customFeeByManager(address(0xCAFE)), 100);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setCustomFee(address(0xCAFE), 100);
+
+        vm.expectRevert(Votemarket.INVALID_INPUT.selector);
+        votemarket.setCustomFee(address(0xCAFE), 100e18);
+
+        votemarket.setRecipient(address(0xCAFE));
+        assertEq(votemarket.recipients(address(this)), address(0xCAFE));
+
+        votemarket.setRecipient(address(0xCAFE), address(0xBEEF));
+        assertEq(votemarket.recipients(address(0xCAFE)), address(0xBEEF));
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.setRecipient(address(0xCAFE), address(0xBEEF));
+
+        votemarket.transferGovernance(address(0xBEEF));
+
+        assertEq(votemarket.governance(), address(this));
+        assertEq(votemarket.futureGovernance(), address(0xBEEF));
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.transferGovernance(address(0xBEEF));
+
+        vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
+        votemarket.acceptGovernance();
+
+        vm.prank(address(0xBEEF));
+        votemarket.acceptGovernance();
+
+        assertEq(votemarket.governance(), address(0xBEEF));
+        assertEq(votemarket.futureGovernance(), address(0));
     }
 
     function testGetters() public {
@@ -181,5 +243,13 @@ abstract contract BaseTest is Test {
         for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
             oracleLens.setAccountVotes(account, gauge, i, ACCOUNT_VOTES);
         }
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(account)
+        }
+        return size > 0;
     }
 }

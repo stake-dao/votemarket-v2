@@ -25,3 +25,17 @@ contract MockOracleLens {
         return accountVotes[account][gauge];
     }
 }
+
+contract MockVulnerableOracleLens {
+    function canClaim(address, address, uint256) external pure returns (bool) {
+        return true;
+    }
+
+    function getAccountVotes(address, address, uint256) external pure returns (uint256) {
+        return 100e18;
+    }
+
+    function getTotalVotes(address, uint256) external pure returns (uint256) {
+        return 1000e18;
+    }
+}

@@ -45,7 +45,8 @@ test-%:
 	fi
 
 coverage:
-	@forge coverage --report debug > report.txt
+	@forge coverage --report lcov
+	@genhtml lcov.info --output-directory coverage
 
 simulate-%:
 	make default

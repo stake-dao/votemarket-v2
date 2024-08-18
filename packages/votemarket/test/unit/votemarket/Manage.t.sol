@@ -2,15 +2,15 @@
 pragma solidity 0.8.19;
 
 /// Testing contracts & libraries
-import "test/unit/votemarket/Base.t copy.sol";
+import "test/unit/votemarket/Base.t.sol";
 
-contract MAnageCampaignTest is BaseCopyTest {
+contract MAnageCampaignTest is BaseTest {
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
     uint256 public campaignId;
 
     function setUp() public override {
-        BaseCopyTest.setUp();
+        BaseTest.setUp();
 
         /// Create default campaign.
         campaignId = _createCampaign();

@@ -157,6 +157,67 @@ contract ClaimTest is BaseTest {
         assertEq(rewardToken.balanceOf(address(this)), expectedClaim);
     }
 
+    function testClaimExceedingRewardAmount() public {
+        skip(1 weeks);
+
+        ACCOUNT_VOTES = 400e18;
+        address[] memory addresses = new address[](10);
+        /// Let's say the oracle is vulnerable and returns 100 votes for an account.
+        for (uint256 i = 0; i < 9; i++) {
+            addresses[i] = address(uint160(i + 1));
+            oracleLens.setAccountVotes(addresses[i], GAUGE, votemarket.currentEpoch(), ACCOUNT_VOTES);
+        }
+        addresses[9] = address(this);
+
+        address random = address(0xBEEF);
+        oracleLens.setAccountVotes(random, GAUGE, votemarket.currentEpoch(), ACCOUNT_VOTES);
+
+        campaignId = _createCampaign({
+            hook: address(0),
+            maxRewardPerVote: MAX_REWARD_PER_VOTE,
+            addresses: new address[](0),
+            whitelist: false
+        });
+
+        oracleLens.setTotalVotes(GAUGE, votemarket.currentEpoch(), TOTAL_REWARD_AMOUNT);
+
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT * 3);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT * 3);
+        votemarket.increaseTotalRewardAmount(campaignId, TOTAL_REWARD_AMOUNT * 3);
+
+        skip(1 weeks);
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        for (uint256 i = 0; i < 10; i++) {
+            vm.prank(addresses[i]);
+            votemarket.claim(campaignId, currentEpoch, "", address(this));
+        }
+
+        vm.prank(random);
+        vm.expectRevert(Votemarket.CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT.selector);
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
+    }
+
+    function testClaimBlacklistOnlyCampaign() public {
+        blacklist = new address[](1);
+        blacklist[0] = address(this);
+
+        campaignId = _createCampaign({
+            hook: address(0),
+            maxRewardPerVote: MAX_REWARD_PER_VOTE,
+            addresses: blacklist,
+            whitelist: false
+        });
+
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+
+        vm.prank(address(this));
+        vm.expectRevert(Votemarket.AUTH_BLACKLISTED.selector);
+        votemarket.claim(campaignId, currentEpoch, "", address(this));
+    }
+
     function testReentrancyWithHook() public {
         ReentrancyAttacker reentrancyAttacker = new ReentrancyAttacker(address(votemarket));
         campaignId = _createCampaign({
