@@ -45,7 +45,7 @@ contract CreateCampaignTest is BaseTest {
         } else if (params.rewardToken == address(0)) {
             rewardToken = MockERC20(address(0));
             vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
-        }
+        } 
 
         uint256 campaignId = votemarket.createCampaign(
             params.chainId,
@@ -95,6 +95,22 @@ contract CreateCampaignTest is BaseTest {
             address[] memory addresses = votemarket.getAddressesByCampaign(campaignId);
             assertEq(addresses.length, length);
         }
+    }
+
+    function testCreateCampaignWithInvalidToken() public {
+        vm.expectRevert(Votemarket.INVALID_TOKEN.selector);
+        votemarket.createCampaign(
+            CHAIN_ID,
+            GAUGE,
+            creator,
+            address(0xCAFE),
+            VALID_PERIODS,
+            MAX_REWARD_PER_VOTE,
+            TOTAL_REWARD_AMOUNT,
+            blacklist,
+            HOOK,
+            false
+        );
     }
 
     function _getCleanAddresses(address[] memory addresses) internal pure returns (address[] memory) {

@@ -198,6 +198,25 @@ contract ClaimTest is BaseTest {
         votemarket.claim(campaignId, currentEpoch, "", address(this));
     }
 
+    function testClaimForProtectedAccount() public {
+        skip(1 weeks);
+
+        uint256 currentEpoch = votemarket.currentEpoch();
+        votemarket.setIsProtected(address(this), true);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.PROTECTED_ACCOUNT.selector);
+        votemarket.claim(campaignId, address(this), currentEpoch, "");
+
+        votemarket.setRecipient(address(this), address(0xCAFE));
+
+        vm.prank(address(0xBEEF));
+        uint256 claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
+
+        assertGt(claimed, 0);
+        assertEq(rewardToken.balanceOf(address(0xCAFE)), claimed);
+    }
+
     function testClaimBlacklistOnlyCampaign() public {
         blacklist = new address[](1);
         blacklist[0] = address(this);

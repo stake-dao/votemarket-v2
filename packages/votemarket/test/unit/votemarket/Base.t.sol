@@ -149,6 +149,10 @@ abstract contract BaseTest is Test {
 
         /// Fee collector.
         address remote = address(0xCAFE);
+
+        vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
+        votemarket.setRemote(address(0));
+
         votemarket.setRemote(feeCollector);
         assertEq(votemarket.remote(), remote);
 
@@ -176,6 +180,15 @@ abstract contract BaseTest is Test {
         vm.expectRevert(Votemarket.AUTH_GOVERNANCE_ONLY.selector);
         votemarket.setRecipient(address(0xCAFE), address(0xBEEF));
 
+        votemarket.setIsProtected(address(0xCAFE), true);
+        assertEq(votemarket.isProtected(address(0xCAFE)), true);
+
+        votemarket.setIsProtected(address(0xCAFE), false);
+        assertEq(votemarket.isProtected(address(0xCAFE)), false);
+
+        vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
+        votemarket.transferGovernance(address(0));
+
         votemarket.transferGovernance(address(0xBEEF));
 
         assertEq(votemarket.governance(), address(this));
@@ -193,6 +206,8 @@ abstract contract BaseTest is Test {
 
         assertEq(votemarket.governance(), address(0xBEEF));
         assertEq(votemarket.futureGovernance(), address(0));
+
+      
     }
 
     function testGetters() public {

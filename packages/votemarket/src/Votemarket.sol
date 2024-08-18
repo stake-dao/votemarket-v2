@@ -908,6 +908,13 @@ contract Votemarket is ReentrancyGuard {
     /// --- SETTERS
     ///////////////////////////////////////////////////////////////
 
+    /// @notice Sets if an account is protected
+    /// @param _account The account address
+    /// @param _isProtected The new is protected value
+    function setIsProtected(address _account, bool _isProtected) external onlyGovernance {
+        isProtected[_account] = _isProtected;
+    }
+
     /// @notice Sets the remote address
     /// @param _remote The new remote address
     function setRemote(address _remote) external onlyGovernance {
