@@ -62,3 +62,10 @@ make
 ```sh
 make test
 ```
+
+
+# Known Limitations
+
+* The Campaign Managers have a substantial amount of control over the campaigns and can decide to "rug" the votes of the voters.
+
+* Verifying a lot of proofs can be expensive, (still less much expensive than claiming the rewards on L1). We're starting with RLP decoding and storage proofs, but we're planning to add more verification methods such as ZK Verifiers. (Succinct SP1)

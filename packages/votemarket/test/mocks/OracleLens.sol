@@ -5,7 +5,7 @@ contract MockOracleLens {
     mapping(address => uint256) private totalVotes;
     mapping(address => mapping(address => uint256)) private accountVotes;
 
-    function canClaim(address, address, uint256) external pure returns (bool) {
+    function isVoteValid(address, address, uint256) external pure returns (bool) {
         return true;
     }
 
@@ -27,7 +27,7 @@ contract MockOracleLens {
 }
 
 contract MockVulnerableOracleLens {
-    function canClaim(address, address, uint256) external pure returns (bool) {
+    function isVoteValid(address, address, uint256) external pure returns (bool) {
         return true;
     }
 

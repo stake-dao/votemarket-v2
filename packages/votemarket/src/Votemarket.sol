@@ -277,12 +277,12 @@ contract Votemarket is ReentrancyGuard {
         );
     }
 
-    /// @notice Allows a user to claim rewards for a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param receiver The address to receive the rewards
-    /// @param epoch The epoch for which to claim rewards
-    /// @param hookData Additional data for hooks
-    /// @return claimed The amount of rewards claimed
+    /// @notice Allows a user to claim rewards for a campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @param receiver The address to receive the rewards.
+    /// @param epoch The epoch for which to claim rewards.
+    /// @param hookData Additional data for hooks.
+    /// @return claimed The amount of rewards claimed.
     function claim(uint256 campaignId, uint256 epoch, bytes calldata hookData, address receiver)
         external
         nonReentrant
@@ -301,10 +301,10 @@ contract Votemarket is ReentrancyGuard {
         );
     }
 
-    /// @notice Internal function to process a claim
-    /// @param data The claim data
-    /// @param hookData Additional data for hooks
-    /// @return claimed The amount of rewards claimed
+    /// @notice Internal function to process a claim.
+    /// @param data The claim data.
+    /// @param hookData Additional data for hooks.
+    /// @return claimed The amount of rewards claimed.
     function _claim(ClaimData memory data, bytes calldata hookData)
         internal
         notClosed(data.campaignId)
@@ -338,83 +338,83 @@ contract Votemarket is ReentrancyGuard {
         return data.amountToClaim;
     }
 
-    /// @notice Checks if a claim is valid
-    /// @param data The claim data
-    /// @return bool True if the claim is valid, false otherwise
+    /// @notice Checks if a claim is valid.
+    /// @param data The claim data.
+    /// @return bool True if the claim is valid, false otherwise.
     function _canClaim(ClaimData memory data) internal view returns (bool) {
-        // 1. Retrieve the campaign from storage
+        // 1. Retrieve the campaign from storage.
         Campaign storage campaign = campaignById[data.campaignId];
 
-        // 2. Check if the account can claim using the ORACLE
-        bool canClaimFromOracle = IOracleLens(ORACLE).canClaim(data.account, campaign.gauge, data.epoch);
+        // 2. Check if the vote is valid using the ORACLE.
+        bool canClaimFromOracle = IOracleLens(ORACLE).isVoteValid(data.account, campaign.gauge, data.epoch);
 
-        // 3. Check if the claim deadline has not passed
+        // 3. Check if the claim deadline has not passed.
         bool withinClaimDeadline = campaign.endTimestamp + CLAIM_WINDOW_LENGTH > block.timestamp;
 
-        // 4. Check if the account has not claimed before or if there's a new reward available
+        // 4. Check if the account has not claimed before or if there's a new reward available.
         bool notClaimedOrNoReward = totalClaimedByAccount[data.campaignId][data.epoch][data.account] == 0
             || periodByCampaignId[data.campaignId][data.epoch].rewardPerVote == 0;
 
-        // 5. Return true if all conditions are met
+        // 5. Return true if all conditions are met.
         return canClaimFromOracle && withinClaimDeadline && notClaimedOrNoReward;
     }
 
-    /// @notice Calculates the claim amount and fee
-    /// @param data The claim data
-    /// @return amountToClaim The amount of rewards to claim
-    /// @return feeAmount The fee amount
+    /// @notice Calculates the claim amount and fee.
+    /// @param data The claim data.
+    /// @return amountToClaim The amount of rewards to claim.
+    /// @return feeAmount The fee amount.
     function _calculateClaimAndFee(ClaimData memory data)
         internal
         view
         returns (uint256 amountToClaim, uint256 feeAmount)
     {
-        // 1. Retrieve the campaign from storage
+        // 1. Retrieve the campaign from storage.
         Campaign storage campaign = campaignById[data.campaignId];
 
-        // 2. Get the account's votes from the ORACLE
+        // 2. Get the account's votes from the ORACLE.
         uint256 accountVote = IOracleLens(ORACLE).getAccountVotes(data.account, campaign.gauge, data.epoch);
 
-        // 3. Calculate the amount to claim based on the account's votes and the reward per vote
+        // 3. Calculate the amount to claim based on the account's votes and the reward per vote.
         amountToClaim = accountVote.mulDiv(periodByCampaignId[data.campaignId][data.epoch].rewardPerVote, 1e18);
 
-        // 4. Determine the fee percentage (custom fee for the manager or default fee)
+        // 4. Determine the fee percentage (custom fee for the manager or default fee).
         uint256 feeBps = customFeeByManager[campaign.manager] > 0 ? customFeeByManager[campaign.manager] : fee;
 
-        // 5. Calculate the fee amount
+        // 5. Calculate the fee amount.
         feeAmount = amountToClaim.mulDiv(feeBps, 1e18);
 
-        // 6. Subtract the fee from the amount to claim
+        // 6. Subtract the fee from the amount to claim.
         amountToClaim -= feeAmount;
     }
 
-    /// @notice Updates the claim state
-    /// @param data The claim data
+    /// @notice Updates the claim state.
+    /// @param data The claim data.
     function _updateClaimState(ClaimData memory data) internal {
-        // 1. Update the total claimed amount for the account in this campaign and epoch
+        // 1. Update the total claimed amount for the account in this campaign and epoch.
         totalClaimedByAccount[data.campaignId][data.epoch][data.account] = data.amountToClaim + data.feeAmount;
 
-        // 2. Update the total claimed amount for the campaign
+        // 2. Update the total claimed amount for the campaign.
         totalClaimedByCampaignId[data.campaignId] += data.amountToClaim + data.feeAmount;
     }
 
-    /// @notice Transfers tokens for a claim
-    /// @param data The claim data
+    /// @notice Transfers tokens for a claim.
+    /// @param data The claim data.
     function _transferTokens(ClaimData memory data) internal {
-        // 1. Get the reward token for the campaign
+        // 1. Get the reward token for the campaign.
         address rewardToken = campaignById[data.campaignId].rewardToken;
 
-        // 2. Transfer the claimed amount to the receiver
+        // 2. Transfer the claimed amount to the receiver.
         SafeTransferLib.safeTransfer(rewardToken, data.receiver, data.amountToClaim);
 
-        // 3. Transfer the fee to the fee collector
+        // 3. Transfer the fee to the fee collector.
         SafeTransferLib.safeTransfer(rewardToken, feeCollector, data.feeAmount);
     }
 
-    /// @notice Updates the epoch for a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The epoch to update
-    /// @param hookData Additional data for hooks
-    /// @return epoch_ The updated epoch
+    /// @notice Updates the epoch for a campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The epoch to update.
+    /// @param hookData Additional data for hooks.
+    /// @return epoch_ The updated epoch.
     function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
         external
         nonReentrant
@@ -424,28 +424,28 @@ contract Votemarket is ReentrancyGuard {
         epoch_ = _updateEpoch(campaignId, epoch, hookData);
     }
 
-    /// @notice Internal function to update the epoch
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The epoch to update
-    /// @param hookData Additional data for hooks
-    /// @return The updated epoch
+    /// @notice Internal function to update the epoch.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The epoch to update.
+    /// @param hookData Additional data for hooks.
+    /// @return The updated epoch.
     function _updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData) internal returns (uint256) {
-        // 1. Get the period for the current epoch
+        // 1. Get the period for the current epoch.
         Period storage period = _getPeriod(campaignId, epoch);
         if (period.updated) return epoch;
 
-        // 2. Check for any pending upgrades
+        // 2. Check for any pending upgrades.
         _checkForUpgrade(campaignId, epoch);
 
-        // 3. Validate the previous state if not the first period
+        // 3. Validate the previous state if not the first period.
         if (epoch >= campaignById[campaignId].startTimestamp + EPOCH_LENGTH) {
             _validatePreviousState(campaignId, epoch);
 
-            // 4. Calculate remaining periods and total reward
+            // 4. Calculate remaining periods and total reward.
             uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
             uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
 
-            // 5. Update the period data
+            // 5. Update the period data.
             period.rewardPerPeriod = remainingPeriods > 0
                 ? totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods)
                 : totalRewardForRemainingPeriods;
@@ -459,9 +459,9 @@ contract Votemarket is ReentrancyGuard {
         return epoch;
     }
 
-    /// @notice Validates the previous state of a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The current epoch
+    /// @notice Validates the previous state of a campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The current epoch.
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - EPOCH_LENGTH];
         if (!previousPeriod.updated) {
@@ -469,19 +469,19 @@ contract Votemarket is ReentrancyGuard {
         }
     }
 
-    /// @notice Gets the period for a campaign and epoch
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The epoch
-    /// @return Period The period data
+    /// @notice Gets the period for a campaign and epoch.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The epoch.
+    /// @return Period The period data.
     function _getPeriod(uint256 campaignId, uint256 epoch) internal view returns (Period storage) {
         return periodByCampaignId[campaignId][epoch];
     }
 
-    /// @notice Calculates the total reward for remaining periods
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The current epoch
-    /// @param remainingPeriods The number of remaining periods
-    /// @return totalReward The total reward for remaining periods
+    /// @notice Calculates the total reward for remaining periods.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The current epoch.
+    /// @param remainingPeriods The number of remaining periods.
+    /// @return totalReward The total reward for remaining periods.
     function _calculateTotalReward(uint256 campaignId, uint256 epoch, uint256 remainingPeriods)
         internal
         view
@@ -494,17 +494,18 @@ contract Votemarket is ReentrancyGuard {
         return previousPeriod.leftover + totalReward;
     }
 
-    /// @notice Updates the reward per vote for a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The current epoch
-    /// @param period The period data
-    /// @param hookData Additional data for hooks
+    /// @notice Updates the reward per vote for a campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The current epoch.
+    /// @param period The period data.
+    /// @param hookData Additional data for hooks.
     function _updateRewardPerVote(uint256 campaignId, uint256 epoch, Period storage period, bytes calldata hookData)
         internal
     {
         // 1. Get total adjusted votes
         uint256 totalVotes = _getAdjustedVote(campaignId, epoch);
 
+        // 2. If no votes, rollover the leftover to the next epoch.
         if (totalVotes == 0) {
             period.leftover = period.rewardPerPeriod;
             return;
@@ -544,19 +545,19 @@ contract Votemarket is ReentrancyGuard {
                     delete campaign.hook;
                 }
             } else {
-                // Store leftover in the period
+                // Store leftover in the period.
                 period.leftover += leftOver;
             }
         }
 
-        // 6. Save the calculated reward per vote
+        // 6. Save the calculated reward per vote.
         period.rewardPerVote = rewardPerVote;
     }
 
-    /// @notice Calculates the adjusted total votes for a campaign
-    /// @param campaignId The ID of the campaign
-    /// @param epoch The current epoch
-    /// @return The adjusted total votes
+    /// @notice Calculates the adjusted total votes for a campaign.
+    /// @param campaignId The ID of the campaign.
+    /// @param epoch The current epoch.
+    /// @return The adjusted total votes.
     function _getAdjustedVote(uint256 campaignId, uint256 epoch) internal view returns (uint256) {
         // 1. Get the addresses set for the campaign
         EnumerableSetLib.AddressSet storage addressesSet_ = addressesByCampaignId[campaignId];
@@ -564,7 +565,7 @@ contract Votemarket is ReentrancyGuard {
         // 2. Get the total votes from the ORACLE
         uint256 totalVotes = IOracleLens(ORACLE).getTotalVotes(campaignById[campaignId].gauge, epoch);
 
-        // 3. Calculate the sum of blacklisted votes
+        // 3. Calculate the sum of blacklisted votes.
         uint256 addressesVotes;
         for (uint256 i = 0; i < addressesSet_.length(); i++) {
             addressesVotes +=
@@ -575,22 +576,22 @@ contract Votemarket is ReentrancyGuard {
             return addressesVotes;
         }
 
-        // 4. Return the adjusted total votes
+        // 4. Return the adjusted total votes.
         return totalVotes - addressesVotes;
     }
 
-    /// @notice Creates a new incentive campaign
-    /// @param chainId The chain ID for the campaign
-    /// @param gauge The gauge address
-    /// @param manager The manager address
-    /// @param rewardToken The reward token address
-    /// @param numberOfPeriods The number of periods for the campaign
-    /// @param maxRewardPerVote The maximum reward per vote
-    /// @param totalRewardAmount The total reward amount
-    /// @param addresses The list of addresses blacklist or whitelist
-    /// @param hook The hook contract address
-    /// @param isWhitelist Whether the campaign uses a whitelist
-    /// @return campaignId The ID of the created campaign
+    /// @notice Creates a new incentive campaign.
+    /// @param chainId The chain ID for the campaign.
+    /// @param gauge The gauge address.
+    /// @param manager The manager address.
+    /// @param rewardToken The reward token address.
+    /// @param numberOfPeriods The number of periods for the campaign.
+    /// @param maxRewardPerVote The maximum reward per vote.
+    /// @param totalRewardAmount The total reward amount.
+    /// @param addresses The list of addresses blacklist or whitelist.
+    /// @param hook The hook contract address.
+    /// @param isWhitelist Whether the campaign uses a whitelist.
+    /// @return campaignId The ID of the created campaign.
     function createCampaign(
         uint256 chainId,
         address gauge,
@@ -626,6 +627,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Generate campaign Id and get current epoch
         campaignId = campaignCount;
+
         // 5. Increment campaign count
         ++campaignCount;
 
@@ -645,10 +647,10 @@ contract Votemarket is ReentrancyGuard {
             hook: hook
         });
 
-        /// Set the reward per period for the first period.
+        /// 7. Set the reward per period for the first period.
         periodByCampaignId[campaignId][startTimestamp].rewardPerPeriod = totalRewardAmount.mulDiv(1, numberOfPeriods);
 
-        /// Add the addresses to the campaign.
+        /// 8. Add the addresses to the campaign.
         EnumerableSetLib.AddressSet storage addresses_ = addressesByCampaignId[campaignId];
         for (uint256 i = 0; i < addresses.length; i++) {
             if (addresses[i] == address(0)) continue;
@@ -663,30 +665,30 @@ contract Votemarket is ReentrancyGuard {
         );
     }
 
-    /// @notice Manages the campaign duration, total reward amount, and max reward per vote
-    /// @param campaignId The ID of the campaign
-    /// @param numberOfPeriods Number of periods to add
-    /// @param totalRewardAmount Total reward amount to add
-    /// @param maxRewardPerVote Max reward per vote to set
+    /// @notice Manages the campaign duration, total reward amount, and max reward per vote.
+    /// @param campaignId The ID of the campaign.
+    /// @param numberOfPeriods Number of periods to add.
+    /// @param totalRewardAmount Total reward amount to add.
+    /// @param maxRewardPerVote Max reward per vote to set.
     function manageCampaign(
         uint256 campaignId,
         uint8 numberOfPeriods,
         uint256 totalRewardAmount,
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
-        // 1. Check if the campaign is ended
+        // 1. Check if the campaign is ended.
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
 
-        // 2. Calculate the next epoch
+        // 2. Calculate the next epoch.
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
 
-        // 3. Get the campaign
+        // 3. Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
-        // 4. Check if there's a campaign upgrade in queue
+        // 4. Check if there's a campaign upgrade in queue.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
-        // 5. Transfer additional reward tokens if needed
+        // 5. Transfer additional reward tokens if needed.
         if (totalRewardAmount != 0) {
             SafeTransferLib.safeTransferFrom({
                 token: campaign.rewardToken,
@@ -727,9 +729,8 @@ contract Votemarket is ReentrancyGuard {
         nonReentrant
         notClosed(campaignId)
     {
-        // 1. Check for zero input
+        // 1. Check for zero input and check if the campaign is ended.
         if (totalRewardAmount == 0) revert ZERO_INPUT();
-        // 1. Check if the campaign is ended
         if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
 
         // 2. Calculate the next epoch

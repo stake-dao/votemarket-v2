@@ -22,7 +22,7 @@ contract OracleLens {
     /// @param gauge Gauge address.
     /// @param epoch Epoch number.
     /// @return bool True if the account can claim, false otherwise.
-    function canClaim(address account, address gauge, uint256 epoch) external view returns (bool) {
+    function isVoteValid(address account, address gauge, uint256 epoch) external view returns (bool) {
         IOracle.VotedSlope memory account_ = IOracle(oracle).votedSlopeByEpoch(account, gauge, epoch);
         if (account_.lastUpdate == 0) revert STATE_NOT_UPDATED();
         if (account_.slope == 0 || epoch >= account_.end || epoch <= account_.lastVote) return false;

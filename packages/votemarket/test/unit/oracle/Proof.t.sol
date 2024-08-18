@@ -156,7 +156,7 @@ abstract contract ProofCorrectnessTest is Test {
         oracleLens.getTotalVotes(gauge, epoch);
 
         vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
-        oracleLens.canClaim(account, gauge, epoch);
+        oracleLens.isVoteValid(account, gauge, epoch);
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
 
@@ -175,9 +175,9 @@ abstract contract ProofCorrectnessTest is Test {
         }
 
         if (userSlope.slope > 0 && epoch <= userSlope.end && epoch > userSlope.lastVote) {
-            assertTrue(oracleLens.canClaim(account, gauge, epoch));
+            assertTrue(oracleLens.isVoteValid(account, gauge, epoch));
         } else {
-            assertFalse(oracleLens.canClaim(account, gauge, epoch));
+            assertFalse(oracleLens.isVoteValid(account, gauge, epoch));
         }
     }
 
