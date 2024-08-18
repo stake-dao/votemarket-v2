@@ -24,10 +24,13 @@ Test coverage is 100%.
 
 ## Getting Started
 
+This project is a monorepo managed by [pnpm](https://pnpm.io/). Each package is in its own directory.
+
 ### Prerequisites
 
 Before you begin, ensure you have met the following requirements:
 
+* pnpm installed
 * [Foundry](https://book.getfoundry.sh/getting-started/installation.html) installed
 * Python 3.7 or higher installed
 * [pip](https://pip.pypa.io/en/stable/installation/) (Python package installer) installed
@@ -43,7 +46,7 @@ git clone https://github.com/stake-dao/votemarket-v2.git
 2. Install the dependencies:
 
 ```sh
-cd votemarket-v2
+cd votemarket-v2/packages/votemarket
 pip install web3 rlp eth_abi python-dotenv
 make install
 ```
