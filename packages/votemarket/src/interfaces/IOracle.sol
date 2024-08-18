@@ -14,7 +14,6 @@ interface IOracle {
 
     struct Point {
         uint256 bias;
-        uint256 slope;
         uint256 lastUpdate;
     }
 

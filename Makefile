@@ -46,6 +46,7 @@ test-%:
 
 coverage:
 	@forge coverage --report lcov
+	@lcov --remove lcov.info 'test/*' -o lcov.info
 	@genhtml lcov.info --output-directory coverage
 
 simulate-%:

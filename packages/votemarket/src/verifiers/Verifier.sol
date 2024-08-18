@@ -66,8 +66,6 @@ contract Verifier is RLPDecoder {
         if (epochBlockHeader.stateRootHash != bytes32(0)) revert ALREADY_REGISTERED();
 
         stateRootHash = _registerBlockHeader(epoch, blockHeader_, proof.toRlpItem().toList());
-
-        return stateRootHash;
     }
 
     /// @notice Sets account data for a specific gauge and epoch
@@ -85,7 +83,6 @@ contract Verifier is RLPDecoder {
 
         userSlope = _extractAccountData(account, gauge, epoch, proof);
         ORACLE.insertAddressEpochData(account, gauge, epoch, userSlope);
-        return userSlope;
     }
 
     /// @notice Sets point data for a specific gauge and epoch
@@ -102,7 +99,6 @@ contract Verifier is RLPDecoder {
 
         weight = _extractPointData(gauge, epoch, proof);
         ORACLE.insertPoint(gauge, epoch, weight);
-        return weight;
     }
 
     /// @notice Extracts account data from the provided proof
@@ -164,15 +160,14 @@ contract Verifier is RLPDecoder {
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
-        if (proofs.length != 2) revert INVALID_PROOF_LENGTH();
+        if (proofs.length != 1) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the weight data
         weight = _extractWeight({
             gauge: gauge,
             epoch: epoch,
             stateRootHash: stateRootHash,
-            proofBias: proofs[0].toList(),
-            proofSlope: proofs[1].toList()
+            proofBias: proofs[0].toList()
         });
 
         weight.lastUpdate = block.timestamp;
@@ -219,21 +214,16 @@ contract Verifier is RLPDecoder {
     /// @param epoch The epoch number
     /// @param stateRootHash The state root hash
     /// @param proofBias The proof for bias extraction
-    /// @param proofSlope The proof for slope extraction
     /// @return weight The extracted weight data
     function _extractWeight(
         address gauge,
         uint256 epoch,
         bytes32 stateRootHash,
-        RLPReader.RLPItem[] memory proofBias,
-        RLPReader.RLPItem[] memory proofSlope
+        RLPReader.RLPItem[] memory proofBias
     ) internal view returns (IOracle.Point memory weight) {
         // 1. Extract the bias value from the nested mapping
         weight.bias =
             extractNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, bytes32(epoch), 0, stateRootHash, proofBias);
-        // 2. Extract the slope value from the nested mapping
-        weight.slope =
-            extractNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, bytes32(epoch), 1, stateRootHash, proofSlope);
     }
 
     /// @notice Extracts user slope data from the proof

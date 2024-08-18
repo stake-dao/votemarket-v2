@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Test.sol";
 
 import "src/oracle/Oracle.sol";
+import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "src/interfaces/IGaugeController.sol";
 
@@ -40,12 +41,57 @@ abstract contract ProofCorrectnessTest is Test {
     function setUp() public {
         vm.createSelectFork("mainnet", blockNumber);
 
-        oracle = new Oracle();
+        oracle = new Oracle(address(this));
         verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
         oracle.setAuthorizedBlockNumberProvider(address(verifier));
+    }
+
+    function testInitialSetup() public {
+        assertEq(address(verifier.ORACLE()), address(oracle));
+        assertEq(verifier.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(GAUGE_CONTROLLER)));
+
+        assertEq(oracle.authorizedDataProviders(address(verifier)), true);
+        assertEq(oracle.authorizedBlockNumberProviders(address(this)), true);
+        assertEq(oracle.authorizedBlockNumberProviders(address(verifier)), true);
+
+        oracle.revokeAuthorizedDataProvider(address(verifier));
+        oracle.revokeAuthorizedBlockNumberProvider(address(this));
+        oracle.revokeAuthorizedBlockNumberProvider(address(verifier));
+
+        assertEq(oracle.authorizedDataProviders(address(verifier)), false);
+        assertEq(oracle.authorizedBlockNumberProviders(address(this)), false);
+        assertEq(oracle.authorizedBlockNumberProviders(address(verifier)), false);
+
+        Verifier newVerifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
+        assertEq(address(newVerifier.ORACLE()), address(oracle));
+        assertEq(newVerifier.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(GAUGE_CONTROLLER)));
+        assertEq(newVerifier.WEIGHT_MAPPING_SLOT(), 12);
+        assertEq(newVerifier.LAST_VOTE_MAPPING_SLOT(), 11);
+        assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), 9);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
+        oracle.transferGovernance(address(0));
+
+        vm.expectRevert(Oracle.ZERO_ADDRESS.selector);
+        oracle.transferGovernance(address(0));
+
+        oracle.transferGovernance(address(0xBEEF));
+
+        vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
+        oracle.acceptGovernance();
+
+        assertEq(oracle.governance(), address(this));
+        assertEq(oracle.futureGovernance(), address(0xBEEF));
+
+        vm.prank(address(0xBEEF));
+        oracle.acceptGovernance();
+
+        assertEq(oracle.governance(), address(0xBEEF));
+        assertEq(oracle.futureGovernance(), address(0));
     }
 
     function testGetProofParams() public {
@@ -71,7 +117,6 @@ abstract contract ProofCorrectnessTest is Test {
         );
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
-
         IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
@@ -80,9 +125,60 @@ abstract contract ProofCorrectnessTest is Test {
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.power, power);
         assertEq(userSlope.lastVote, lastUserVote);
-
         assertEq(weight.bias, bias_);
-        assertEq(weight.slope, slope_);
+    }
+
+    function testLens() public {
+        OracleLens oracleLens = new OracleLens(address(oracle));
+        assertEq(oracleLens.oracle(), address(oracle));
+
+        uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
+
+        // Generate proofs for both gauge and account
+        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
+            generateAndEncodeProof(account, gauge, epoch, true);
+
+        // Simulate a block number insertion
+        oracle.insertBlockNumber(
+            epoch,
+            StateProofVerifier.BlockHeader({
+                hash: blockHash,
+                stateRootHash: bytes32(0),
+                number: block.number,
+                timestamp: block.timestamp
+            })
+        );
+
+        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        oracleLens.getAccountVotes(account, gauge, epoch);
+
+        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        oracleLens.getTotalVotes(gauge, epoch);
+
+        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        oracleLens.canClaim(account, gauge, epoch);
+
+        verifier.setBlockData(blockHeaderRlp, controllerProof);
+
+        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
+        (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
+        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
+
+        uint256 totalVotes = oracleLens.getTotalVotes(gauge, epoch);
+        uint256 accountVotes = oracleLens.getAccountVotes(account, gauge, epoch);
+
+        assertEq(totalVotes, weight.bias);
+        if (epoch >= userSlope.end) {
+            assertEq(totalVotes, 0);
+        } else {
+            assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
+        }
+
+        if (userSlope.slope > 0 && epoch <= userSlope.end && epoch > userSlope.lastVote) {
+            assertTrue(oracleLens.canClaim(account, gauge, epoch));
+        } else {
+            assertFalse(oracleLens.canClaim(account, gauge, epoch));
+        }
     }
 
     function generateAndEncodeProof(address account, address gauge, uint256 epoch, bool isGaugeProof)
@@ -96,12 +192,10 @@ abstract contract ProofCorrectnessTest is Test {
     }
 
     function generateGaugeProof(address gauge, uint256 epoch) internal pure returns (uint256[] memory) {
-        uint256[] memory positions = new uint256[](2);
+        uint256[] memory positions = new uint256[](1);
         uint256 pointWeightsPosition =
             uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(12, gauge)), epoch)))));
-        for (uint256 i = 0; i < 2; i++) {
-            positions[i] = pointWeightsPosition + i;
-        }
+        positions[0] = pointWeightsPosition;
         return positions;
     }
 

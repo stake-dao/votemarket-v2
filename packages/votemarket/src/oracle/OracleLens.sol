@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "@forge-std/src/Test.sol";
+
 ///  Project Interfaces
 import "src/interfaces/IOracle.sol";
 

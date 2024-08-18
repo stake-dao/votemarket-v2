@@ -13,7 +13,6 @@ contract Oracle {
     /// @notice Curve Gauge Controller Structs appended with last update timestamp.
     struct Point {
         uint256 bias;
-        uint256 slope;
         uint256 lastUpdate;
     }
 
@@ -50,8 +49,8 @@ contract Oracle {
     /// @notice Mapping of Address => Gauge => Epoch => Voted Slope Struct.
     mapping(address => mapping(address => mapping(uint256 => VotedSlope))) public votedSlopeByEpoch;
 
-    constructor() {
-        governance = msg.sender;
+    constructor(address _governance) {
+        governance = _governance;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -155,5 +154,6 @@ contract Oracle {
     function acceptGovernance() external {
         if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
         governance = futureGovernance;
+        futureGovernance = address(0);
     }
 }

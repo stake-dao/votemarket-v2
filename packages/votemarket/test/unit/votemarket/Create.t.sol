@@ -45,7 +45,7 @@ contract CreateCampaignTest is BaseTest {
         } else if (params.rewardToken == address(0)) {
             rewardToken = MockERC20(address(0));
             vm.expectRevert(Votemarket.ZERO_ADDRESS.selector);
-        } 
+        }
 
         uint256 campaignId = votemarket.createCampaign(
             params.chainId,
