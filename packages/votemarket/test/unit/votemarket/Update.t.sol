@@ -158,7 +158,7 @@ contract UpdateEpochTest is BaseTest {
         skip(2 * epochLenght);
         epoch = votemarket.currentEpoch();
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
         votemarket.updateEpoch(campaignId, epoch, hookData);
     }
 

@@ -200,7 +200,7 @@ contract CloseCampaignTest is BaseTest {
         /// Skip to the end of the claim deadline.
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
 
         _updateEpochs(campaignId);
@@ -241,7 +241,7 @@ contract CloseCampaignTest is BaseTest {
         /// Skip to the end of the claim deadline.
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
 
         _updateEpochs(campaignId);

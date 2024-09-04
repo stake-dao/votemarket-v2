@@ -122,7 +122,7 @@ contract Votemarket is ReentrancyGuard {
     error PROTECTED_ACCOUNT();
 
     /// @notice Thrown when the previous state of a campaign is missing.
-    error PREVIOUS_STATE_MISSING();
+    error STATE_MISSING();
 
     /// @notice Thrown when a claim amount exceeds the available reward amount.
     error CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
@@ -466,7 +466,7 @@ contract Votemarket is ReentrancyGuard {
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - EPOCH_LENGTH];
         if (!previousPeriod.updated) {
-            revert PREVIOUS_STATE_MISSING();
+            revert STATE_MISSING();
         }
     }
 
