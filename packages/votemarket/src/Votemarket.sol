@@ -418,6 +418,7 @@ contract Votemarket is ReentrancyGuard {
     function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
         external
         nonReentrant
+        notClosed(campaignId)
         validEpoch(campaignId, epoch)
         returns (uint256 epoch_)
     {

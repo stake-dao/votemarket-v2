@@ -46,6 +46,9 @@ contract CloseCampaignTest is BaseTest {
 
         vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
+
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
     function testCloseCampaignThatHasNotStartedWithAnUpgradeInQueue() public {
@@ -259,5 +262,6 @@ contract CloseCampaignTest is BaseTest {
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT - hookBalance);
         assertEq(hookBalance, expectedHookBalance);
+
     }
 }
