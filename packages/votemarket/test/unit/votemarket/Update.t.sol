@@ -144,6 +144,8 @@ contract UpdateEpochTest is BaseTest {
             expectedRewardPerVote = campaign.maxRewardPerVote;
 
             uint256 leftOver = expectedRewardPerPeriod - expectedRewardPerVote.mulDiv(data.totalVotes, 1e18);
+
+            assertEq(votemarket.totalClaimedByCampaignId(campaignId), leftOver);
             assertEq(rewardToken.balanceOf(address(HOOK)), leftOver);
         }
 

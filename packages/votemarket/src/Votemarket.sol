@@ -540,6 +540,10 @@ contract Votemarket is ReentrancyGuard {
                         hookData
                     )
                 );
+
+                /// Consider the leftover as claimed.
+                totalClaimedByCampaignId[campaignId] += leftOver;
+
                 if (!success) {
                     /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
                     delete campaign.hook;

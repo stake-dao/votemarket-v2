@@ -163,12 +163,8 @@ contract Verifier is RLPDecoder {
         if (proofs.length != 1) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the weight data
-        weight = _extractWeight({
-            gauge: gauge,
-            epoch: epoch,
-            stateRootHash: stateRootHash,
-            proofBias: proofs[0].toList()
-        });
+        weight =
+            _extractWeight({gauge: gauge, epoch: epoch, stateRootHash: stateRootHash, proofBias: proofs[0].toList()});
 
         weight.lastUpdate = block.timestamp;
     }
@@ -215,12 +211,11 @@ contract Verifier is RLPDecoder {
     /// @param stateRootHash The state root hash
     /// @param proofBias The proof for bias extraction
     /// @return weight The extracted weight data
-    function _extractWeight(
-        address gauge,
-        uint256 epoch,
-        bytes32 stateRootHash,
-        RLPReader.RLPItem[] memory proofBias
-    ) internal view returns (IOracle.Point memory weight) {
+    function _extractWeight(address gauge, uint256 epoch, bytes32 stateRootHash, RLPReader.RLPItem[] memory proofBias)
+        internal
+        view
+        returns (IOracle.Point memory weight)
+    {
         // 1. Extract the bias value from the nested mapping
         weight.bias =
             extractNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, bytes32(epoch), 0, stateRootHash, proofBias);
