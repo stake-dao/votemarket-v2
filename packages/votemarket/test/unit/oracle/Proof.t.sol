@@ -98,7 +98,7 @@ abstract contract ProofCorrectnessTest is Test {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope, , uint end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_, uint256 slope_) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
 
         // Generate proofs for both gauge and account

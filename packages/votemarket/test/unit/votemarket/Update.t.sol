@@ -179,8 +179,7 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, epoch, "");
 
         Campaign memory campaign = votemarket.getCampaign(campaignId);
-        /// The hook should be deleted.
-        assertEq(campaign.hook, address(0));
+        assertEq(campaign.hook, address(badHook));
     }
 
     function testUpdateEpochWithWhitelistAndZeroVotes() public {

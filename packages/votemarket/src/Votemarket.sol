@@ -530,7 +530,7 @@ contract Votemarket is ReentrancyGuard {
                 // Transfer leftover to hook contract
                 SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
                 // Trigger the hook
-                (bool success,) = hook.call(
+                hook.call(
                     abi.encodeWithSelector(
                         IHook.doSomething.selector,
                         campaignId,
@@ -544,11 +544,6 @@ contract Votemarket is ReentrancyGuard {
 
                 /// Consider the leftover as claimed.
                 totalClaimedByCampaignId[campaignId] += leftOver;
-
-                if (!success) {
-                    /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
-                    delete campaign.hook;
-                }
             } else {
                 // Store leftover in the period.
                 period.leftover += leftOver;
