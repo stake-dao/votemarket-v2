@@ -681,16 +681,21 @@ contract Votemarket is ReentrancyGuard {
         uint256 totalRewardAmount,
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
+        uint256 epoch = currentEpoch();
         // 1. Check if the campaign is ended.
-        if (getRemainingPeriods(campaignId, currentEpoch()) <= 1) revert CAMPAIGN_ENDED();
-
-        // 2. Calculate the next epoch.
-        uint256 epoch = currentEpoch() + EPOCH_LENGTH;
+        if (getRemainingPeriods(campaignId, epoch) <= 1) revert CAMPAIGN_ENDED();
 
         // 3. Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
-        // 4. Check if there's a campaign upgrade in queue.
+        if (campaign.startTimestamp <= epoch && !periodByCampaignId[campaignId][epoch].updated) {
+            revert STATE_MISSING();
+        }
+
+        // 2. Calculate the next epoch.
+        epoch += EPOCH_LENGTH;
+
+        // 2. Check if there's a campaign upgrade in queue for this epoch.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         // 5. Transfer additional reward tokens if needed.
@@ -734,20 +739,27 @@ contract Votemarket is ReentrancyGuard {
         nonReentrant
         notClosed(campaignId)
     {
+        uint256 epoch = currentEpoch();
         // 1. Check for zero input and check if the campaign is ended.
         if (totalRewardAmount == 0) revert ZERO_INPUT();
-        if (getRemainingPeriods(campaignId, currentEpoch()) <= 1) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, epoch) <= 1) revert CAMPAIGN_ENDED();
 
-        // 2. Calculate the next epoch
-        uint256 epoch = currentEpoch() + EPOCH_LENGTH;
+        // 2. Check if there's a campaign upgrade in queue for the previous epoch.
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
+        if (campaignUpgrade.totalRewardAmount != 0 && !periodByCampaignId[campaignId][epoch].updated) {
+            revert STATE_MISSING();
+        }
 
-        // 3. Get the campaign
+        // 3. Calculate the next epoch
+        epoch += EPOCH_LENGTH;
+
+        // 4. Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
-        // 4. Check if there's a campaign upgrade in queue
-        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
+        // 5. Check if there's a campaign upgrade in queue
+        campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
-        // 5. Transfer additional reward tokens
+        // 6. Transfer additional reward tokens
         SafeTransferLib.safeTransferFrom({
             token: campaign.rewardToken,
             from: msg.sender,
@@ -755,7 +767,7 @@ contract Votemarket is ReentrancyGuard {
             amount: totalRewardAmount
         });
 
-        // 6. Update campaign upgrade
+        // 7. Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade.totalRewardAmount += totalRewardAmount;
         } else {
@@ -767,7 +779,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        // 7. Store the updated campaign upgrade
+        // 8. Store the updated campaign upgrade
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
@@ -775,7 +787,7 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Closes a campaign
     /// @param campaignId The ID of the campaign to close
-    function closeCampaign(uint256 campaignId) external nonReentrant notClosed(campaignId) {
+    function closeCampaign(uint256 campaignId) external notClosed(campaignId) nonReentrant {
         // 1. Get campaign data and calculate time windows
         Campaign storage campaign = campaignById[campaignId];
         uint256 currentTime = block.timestamp;

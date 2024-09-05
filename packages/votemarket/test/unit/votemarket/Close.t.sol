@@ -223,12 +223,8 @@ contract CloseCampaignTest is BaseTest {
         deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
         rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
 
-        uint campaignId = _createCampaign({
-            hook: HOOK,
-            maxRewardPerVote: 1 wei,
-            addresses: blacklist,
-            whitelist: false
-        });
+        uint256 campaignId =
+            _createCampaign({hook: HOOK, maxRewardPerVote: 1 wei, addresses: blacklist, whitelist: false});
 
         /// Skip to the end of the campaign.
         /// 1 week before the start + 2 weeks for the campaign + 1 week to the end.
@@ -246,7 +242,7 @@ contract CloseCampaignTest is BaseTest {
 
         _updateEpochs(campaignId);
 
-        uint expectedHookBalance = TOTAL_REWARD_AMOUNT - (TOTAL_VOTES * VALID_PERIODS / 1e18);
+        uint256 expectedHookBalance = TOTAL_REWARD_AMOUNT - (TOTAL_VOTES * VALID_PERIODS / 1e18);
         assertEq(votemarket.totalClaimedByCampaignId(campaignId), expectedHookBalance);
 
         vm.prank(address(0xBEEF));
@@ -262,6 +258,5 @@ contract CloseCampaignTest is BaseTest {
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT - hookBalance);
         assertEq(hookBalance, expectedHookBalance);
-
     }
 }
