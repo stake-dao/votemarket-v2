@@ -806,10 +806,10 @@ contract Votemarket is ReentrancyGuard {
         } else if (currentTime < closeWindow) {
             // 2c. Within close window, only manager can close
             _isManagerOrRemote(campaignId);
-            _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
+            _validatePreviousState(campaignId, campaign.endTimestamp);
         } else {
             // 2d. After close window, anyone can close and funds go to fee collector
-            _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
+            _validatePreviousState(campaignId, campaign.endTimestamp);
             receiver = feeCollector;
         }
 
