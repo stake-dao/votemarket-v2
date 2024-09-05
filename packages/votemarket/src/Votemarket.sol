@@ -855,7 +855,7 @@ contract Votemarket is ReentrancyGuard {
             // 4. Update period data
             if (epoch == campaign.startTimestamp) {
                 periodByCampaignId[campaignId][epoch].rewardPerPeriod =
-                    campaignUpgrade.totalRewardAmount.mulDiv(1, campaign.numberOfPeriods);
+                    campaignUpgrade.totalRewardAmount.mulDiv(1, campaignUpgrade.numberOfPeriods);
             } else {
                 periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover +=
                     campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
