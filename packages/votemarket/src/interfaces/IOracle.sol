@@ -6,7 +6,6 @@ import "@utils/StateProofVerifier.sol";
 interface IOracle {
     struct VotedSlope {
         uint256 slope;
-        uint256 power;
         uint256 end;
         uint256 lastVote;
         uint256 lastUpdate;

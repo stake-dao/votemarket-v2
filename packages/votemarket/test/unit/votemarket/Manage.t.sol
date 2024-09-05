@@ -109,7 +109,7 @@ contract MAnageCampaignTest is BaseTest {
                 maxRewardPerVote: params.maxRewardPerVote
             });
 
-            if(i == numberOfIncreases - 1 && params.campaignId == campaignId) { 
+            if (i == numberOfIncreases - 1 && params.campaignId == campaignId) {
                 skip(1 weeks);
                 vm.expectRevert(Votemarket.STATE_MISSING.selector);
                 votemarket.manageCampaign({
@@ -121,7 +121,6 @@ contract MAnageCampaignTest is BaseTest {
                 rewind(1 weeks);
             }
         }
-
 
         if (totalAmount > 0 && numberOfIncreases > 0 && params.campaignId == campaignId) {
             Campaign memory campaign = votemarket.getCampaign(campaignId);
