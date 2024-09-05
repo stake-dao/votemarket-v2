@@ -682,7 +682,7 @@ contract Votemarket is ReentrancyGuard {
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
         // 1. Check if the campaign is ended.
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, currentEpoch()) <= 1) revert CAMPAIGN_ENDED();
 
         // 2. Calculate the next epoch.
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
@@ -736,7 +736,7 @@ contract Votemarket is ReentrancyGuard {
     {
         // 1. Check for zero input and check if the campaign is ended.
         if (totalRewardAmount == 0) revert ZERO_INPUT();
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, currentEpoch()) <= 1) revert CAMPAIGN_ENDED();
 
         // 2. Calculate the next epoch
         uint256 epoch = currentEpoch() + EPOCH_LENGTH;
