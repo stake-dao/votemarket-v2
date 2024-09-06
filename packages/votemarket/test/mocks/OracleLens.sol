@@ -9,19 +9,19 @@ contract MockOracleLens {
         return true;
     }
 
-    function setTotalVotes(address gauge, uint256 epoch, uint256 votes) external {
+    function setTotalVotes(address gauge, uint256, uint256 votes) external {
         totalVotes[gauge] = votes;
     }
 
-    function setAccountVotes(address account, address gauge, uint256 epoch, uint256 votes) external {
+    function setAccountVotes(address account, address gauge, uint256, uint256 votes) external {
         accountVotes[account][gauge] = votes;
     }
 
-    function getTotalVotes(address gauge, uint256 epoch) external view returns (uint256) {
+    function getTotalVotes(address gauge, uint256) external view returns (uint256) {
         return totalVotes[gauge];
     }
 
-    function getAccountVotes(address account, address gauge, uint256 epoch) external view returns (uint256) {
+    function getAccountVotes(address account, address gauge, uint256) external view returns (uint256) {
         return accountVotes[account][gauge];
     }
 }

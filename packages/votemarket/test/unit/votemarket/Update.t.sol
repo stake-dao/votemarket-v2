@@ -98,6 +98,7 @@ contract UpdateEpochTest is BaseTest {
 
         /// Nothing should have changed.
         period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+        campaign = votemarket.getCampaign(campaignId);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -113,6 +114,8 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.rewardPerVote, 0);
         assertEq(period.updated, false);
 
+        uint256 distributed = campaign.totalDistributed;
+
         /// Trigger the update.
         votemarket.updateEpoch(campaignId, epoch, hookData);
 
@@ -126,7 +129,7 @@ contract UpdateEpochTest is BaseTest {
         );
 
         previousPeriod = votemarket.getPeriodPerCampaign(campaignId, epoch - epochLenght);
-        assertEq(previousPeriod.leftover, params.totalRewardAmount);
+        assertEq(previousPeriod.leftover, 0);
 
         uint256 remainingPeriods = votemarket.getRemainingPeriods(campaignId, epoch);
 
@@ -134,8 +137,7 @@ contract UpdateEpochTest is BaseTest {
         uint256 balanceHook = rewardToken.balanceOf(address(HOOK));
         assertEq(TOTAL_REWARD_AMOUNT + params.totalRewardAmount, balanceVM + balanceHook);
 
-        uint256 totalRewardAmount = previousPeriod.rewardPerPeriod * remainingPeriods;
-        totalRewardAmount = totalRewardAmount + params.totalRewardAmount;
+        uint256 totalRewardAmount = campaign.totalRewardAmount - distributed;
 
         uint256 expectedRewardPerPeriod = totalRewardAmount.mulDiv(1, remainingPeriods);
         uint256 expectedRewardPerVote = expectedRewardPerPeriod.mulDiv(1e18, data.totalVotes);
