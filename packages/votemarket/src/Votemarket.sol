@@ -445,7 +445,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 4. Calculate remaining periods and total reward.
         uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
-        uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch);
+        uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId);
 
         // 5. Update the period data.
         period.rewardPerPeriod = remainingPeriods > 0
@@ -456,7 +456,7 @@ contract Votemarket is ReentrancyGuard {
         _updateRewardPerVote(campaignId, epoch, period, hookData);
 
         // 7. Update the total distributed amount
-        campaignById[campaignId].totalDistributed += period.rewardPerPeriod;
+        campaignById[campaignId].totalDistributed += (period.rewardPerPeriod - period.leftover);
 
         // 8. Mark the period as updated
         period.updated = true;
@@ -483,12 +483,10 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Calculates the total reward for remaining periods.
     /// @param campaignId The ID of the campaign.
-    /// @param epoch The current epoch.
     /// @return totalReward The total reward for remaining periods.
-    function _calculateTotalReward(uint256 campaignId, uint256 epoch) internal view returns (uint256 totalReward) {
-        Period storage previousPeriod = periodByCampaignId[campaignId][epoch - EPOCH_LENGTH];
+    function _calculateTotalReward(uint256 campaignId) internal view returns (uint256 totalReward) {
         totalReward = campaignById[campaignId].totalRewardAmount - campaignById[campaignId].totalDistributed;
-        return previousPeriod.leftover + totalReward;
+        return totalReward;
     }
 
     /// @notice Updates the reward per vote for a campaign.
