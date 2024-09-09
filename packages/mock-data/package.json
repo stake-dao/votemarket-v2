@@ -1,0 +1,8 @@
+{
+  "name": "@stake-dao/mock-data",
+  "version": "1.0.0",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std",
+    "@stake-dao/votemarket": "workspace:*"
+  }
+}
