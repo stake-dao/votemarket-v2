@@ -13,6 +13,9 @@ importers:
       '@stake-dao/vm-utils':
         specifier: workspace:*
         version: link:../utils
+      '@stake-dao/votemarket':
+        specifier: workspace:*
+        version: link:../votemarket
       forge-std:
         specifier: github:foundry-rs/forge-std
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/1ce7535a517406b9aec7ea1ea27c1b41376f712c

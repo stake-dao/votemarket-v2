@@ -70,4 +70,10 @@ struct CampaignUpgrade {
     uint256 endTimestamp;
 }
 
-interface IVotemarket {}
+interface IVotemarket {
+    function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
+        external
+        returns (uint256 claimed);
+
+    function updateEpoch(uint256 campaignId, uint256 epoch) external;
+}

@@ -2,6 +2,7 @@
   "name": "periphery",
   "private": true,
   "packageManager": "pnpm@9.4.0",
+
   "workspaces": {
     "packages": [
       "packages/*"
