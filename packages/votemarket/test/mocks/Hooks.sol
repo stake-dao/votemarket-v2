@@ -5,10 +5,10 @@ import "@solady/src/utils/SafeTransferLib.sol";
 
 // Mock contracts for testing hooks
 contract MockHook {
-    address public immutable rewardToken;
+    address public immutable _rewardToken;
 
-    constructor(address _rewardToken) {
-        rewardToken = _rewardToken;
+    constructor(address rewardToken) {
+        _rewardToken = rewardToken;
     }
 
     function validateHook() external pure returns (bool) {
@@ -30,24 +30,17 @@ contract MockHook {
 }
 
 contract MockInvalidHook {
-    address public immutable rewardToken;
+    address public immutable _rewardToken;
 
-    constructor(address _rewardToken) {
-        rewardToken = _rewardToken;
+    constructor(address rewardToken) {
+        _rewardToken = rewardToken;
     }
 
     function validateHook() external pure returns (bool) {
         return false;
     }
 
-    function doSomething(
-        uint256 campaignId,
-        uint256 chainId,
-        address rewardToken,
-        uint256 epoch,
-        uint256 amount,
-        bytes calldata hookData
-    ) external {
+    function doSomething(uint256, uint256, address, uint256, uint256, bytes calldata) external pure {
         revert();
     }
 

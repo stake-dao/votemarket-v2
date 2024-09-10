@@ -98,6 +98,7 @@ contract UpdateEpochTest is BaseTest {
 
         /// Nothing should have changed.
         period = votemarket.getPeriodPerCampaign(campaignId, epoch);
+        campaign = votemarket.getCampaign(campaignId);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
         assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
@@ -113,6 +114,8 @@ contract UpdateEpochTest is BaseTest {
         assertEq(period.rewardPerVote, 0);
         assertEq(period.updated, false);
 
+        uint256 distributed = campaign.totalDistributed;
+
         /// Trigger the update.
         votemarket.updateEpoch(campaignId, epoch, hookData);
 
@@ -126,7 +129,7 @@ contract UpdateEpochTest is BaseTest {
         );
 
         previousPeriod = votemarket.getPeriodPerCampaign(campaignId, epoch - epochLenght);
-        assertEq(previousPeriod.leftover, params.totalRewardAmount);
+        assertEq(previousPeriod.leftover, 0);
 
         uint256 remainingPeriods = votemarket.getRemainingPeriods(campaignId, epoch);
 
@@ -134,8 +137,7 @@ contract UpdateEpochTest is BaseTest {
         uint256 balanceHook = rewardToken.balanceOf(address(HOOK));
         assertEq(TOTAL_REWARD_AMOUNT + params.totalRewardAmount, balanceVM + balanceHook);
 
-        uint256 totalRewardAmount = previousPeriod.rewardPerPeriod * remainingPeriods;
-        totalRewardAmount = totalRewardAmount + params.totalRewardAmount;
+        uint256 totalRewardAmount = campaign.totalRewardAmount - distributed;
 
         uint256 expectedRewardPerPeriod = totalRewardAmount.mulDiv(1, remainingPeriods);
         uint256 expectedRewardPerVote = expectedRewardPerPeriod.mulDiv(1e18, data.totalVotes);
@@ -144,6 +146,8 @@ contract UpdateEpochTest is BaseTest {
             expectedRewardPerVote = campaign.maxRewardPerVote;
 
             uint256 leftOver = expectedRewardPerPeriod - expectedRewardPerVote.mulDiv(data.totalVotes, 1e18);
+
+            assertEq(votemarket.totalClaimedByCampaignId(campaignId), leftOver);
             assertEq(rewardToken.balanceOf(address(HOOK)), leftOver);
         }
 
@@ -156,7 +160,7 @@ contract UpdateEpochTest is BaseTest {
         skip(2 * epochLenght);
         epoch = votemarket.currentEpoch();
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
         votemarket.updateEpoch(campaignId, epoch, hookData);
     }
 
@@ -177,8 +181,7 @@ contract UpdateEpochTest is BaseTest {
         votemarket.updateEpoch(campaignId, epoch, "");
 
         Campaign memory campaign = votemarket.getCampaign(campaignId);
-        /// The hook should be deleted.
-        assertEq(campaign.hook, address(0));
+        assertEq(campaign.hook, address(badHook));
     }
 
     function testUpdateEpochWithWhitelistAndZeroVotes() public {

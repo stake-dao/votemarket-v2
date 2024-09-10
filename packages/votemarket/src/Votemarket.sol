@@ -122,7 +122,7 @@ contract Votemarket is ReentrancyGuard {
     error PROTECTED_ACCOUNT();
 
     /// @notice Thrown when the previous state of a campaign is missing.
-    error PREVIOUS_STATE_MISSING();
+    error STATE_MISSING();
 
     /// @notice Thrown when a claim amount exceeds the available reward amount.
     error CLAIM_AMOUNT_EXCEEDS_REWARD_AMOUNT();
@@ -418,6 +418,7 @@ contract Votemarket is ReentrancyGuard {
     function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData)
         external
         nonReentrant
+        notClosed(campaignId)
         validEpoch(campaignId, epoch)
         returns (uint256 epoch_)
     {
@@ -440,21 +441,24 @@ contract Votemarket is ReentrancyGuard {
         // 3. Validate the previous state if not the first period.
         if (epoch >= campaignById[campaignId].startTimestamp + EPOCH_LENGTH) {
             _validatePreviousState(campaignId, epoch);
-
-            // 4. Calculate remaining periods and total reward.
-            uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
-            uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId, epoch, remainingPeriods);
-
-            // 5. Update the period data.
-            period.rewardPerPeriod = remainingPeriods > 0
-                ? totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods)
-                : totalRewardForRemainingPeriods;
         }
+
+        // 4. Calculate remaining periods and total reward.
+        uint256 remainingPeriods = getRemainingPeriods(campaignId, epoch);
+        uint256 totalRewardForRemainingPeriods = _calculateTotalReward(campaignId);
+
+        // 5. Update the period data.
+        period.rewardPerPeriod = remainingPeriods > 0
+            ? totalRewardForRemainingPeriods.mulDiv(1, remainingPeriods)
+            : totalRewardForRemainingPeriods;
 
         // 6. Update the reward per vote
         _updateRewardPerVote(campaignId, epoch, period, hookData);
 
-        // 7. Mark the period as updated
+        // 7. Update the total distributed amount
+        campaignById[campaignId].totalDistributed += (period.rewardPerPeriod - period.leftover);
+
+        // 8. Mark the period as updated
         period.updated = true;
         return epoch;
     }
@@ -465,7 +469,7 @@ contract Votemarket is ReentrancyGuard {
     function _validatePreviousState(uint256 campaignId, uint256 epoch) internal view {
         Period storage previousPeriod = periodByCampaignId[campaignId][epoch - EPOCH_LENGTH];
         if (!previousPeriod.updated) {
-            revert PREVIOUS_STATE_MISSING();
+            revert STATE_MISSING();
         }
     }
 
@@ -479,19 +483,10 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Calculates the total reward for remaining periods.
     /// @param campaignId The ID of the campaign.
-    /// @param epoch The current epoch.
-    /// @param remainingPeriods The number of remaining periods.
     /// @return totalReward The total reward for remaining periods.
-    function _calculateTotalReward(uint256 campaignId, uint256 epoch, uint256 remainingPeriods)
-        internal
-        view
-        returns (uint256 totalReward)
-    {
-        Period storage previousPeriod = periodByCampaignId[campaignId][epoch - EPOCH_LENGTH];
-        totalReward =
-            remainingPeriods > 0 ? previousPeriod.rewardPerPeriod * remainingPeriods : previousPeriod.rewardPerPeriod;
-
-        return previousPeriod.leftover + totalReward;
+    function _calculateTotalReward(uint256 campaignId) internal view returns (uint256 totalReward) {
+        totalReward = campaignById[campaignId].totalRewardAmount - campaignById[campaignId].totalDistributed;
+        return totalReward;
     }
 
     /// @notice Updates the reward per vote for a campaign.
@@ -529,7 +524,7 @@ contract Votemarket is ReentrancyGuard {
                 // Transfer leftover to hook contract
                 SafeTransferLib.safeTransfer({token: campaign.rewardToken, to: hook, amount: leftOver});
                 // Trigger the hook
-                (bool success,) = hook.call(
+                hook.call(
                     abi.encodeWithSelector(
                         IHook.doSomething.selector,
                         campaignId,
@@ -540,10 +535,9 @@ contract Votemarket is ReentrancyGuard {
                         hookData
                     )
                 );
-                if (!success) {
-                    /// If the hook reverts, delete the hook to trigger rollover in the next epoch instead.
-                    delete campaign.hook;
-                }
+
+                /// Consider the leftover as claimed.
+                totalClaimedByCampaignId[campaignId] += leftOver;
             } else {
                 // Store leftover in the period.
                 period.leftover += leftOver;
@@ -642,6 +636,7 @@ contract Votemarket is ReentrancyGuard {
             numberOfPeriods: numberOfPeriods,
             maxRewardPerVote: maxRewardPerVote,
             totalRewardAmount: totalRewardAmount,
+            totalDistributed: 0,
             startTimestamp: startTimestamp,
             endTimestamp: startTimestamp + numberOfPeriods * EPOCH_LENGTH,
             hook: hook
@@ -676,16 +671,21 @@ contract Votemarket is ReentrancyGuard {
         uint256 totalRewardAmount,
         uint256 maxRewardPerVote
     ) external nonReentrant onlyManagerOrRemote(campaignId) notClosed(campaignId) {
+        uint256 epoch = currentEpoch();
         // 1. Check if the campaign is ended.
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
-
-        // 2. Calculate the next epoch.
-        uint256 epoch = currentEpoch() + EPOCH_LENGTH;
+        if (getRemainingPeriods(campaignId, epoch) <= 1) revert CAMPAIGN_ENDED();
 
         // 3. Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
-        // 4. Check if there's a campaign upgrade in queue.
+        if (campaign.startTimestamp <= epoch && !periodByCampaignId[campaignId][epoch].updated) {
+            revert STATE_MISSING();
+        }
+
+        // 2. Calculate the next epoch.
+        epoch += EPOCH_LENGTH;
+
+        // 2. Check if there's a campaign upgrade in queue for this epoch.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         // 5. Transfer additional reward tokens if needed.
@@ -729,20 +729,27 @@ contract Votemarket is ReentrancyGuard {
         nonReentrant
         notClosed(campaignId)
     {
+        uint256 epoch = currentEpoch();
         // 1. Check for zero input and check if the campaign is ended.
         if (totalRewardAmount == 0) revert ZERO_INPUT();
-        if (getRemainingPeriods(campaignId, currentEpoch()) == 0) revert CAMPAIGN_ENDED();
+        if (getRemainingPeriods(campaignId, epoch) <= 1) revert CAMPAIGN_ENDED();
 
-        // 2. Calculate the next epoch
-        uint256 epoch = currentEpoch() + EPOCH_LENGTH;
+        // 2. Check if there's a campaign upgrade in queue for the previous epoch.
+        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
+        if (campaignUpgrade.totalRewardAmount != 0 && !periodByCampaignId[campaignId][epoch].updated) {
+            revert STATE_MISSING();
+        }
 
-        // 3. Get the campaign
+        // 3. Calculate the next epoch
+        epoch += EPOCH_LENGTH;
+
+        // 4. Get the campaign
         Campaign storage campaign = campaignById[campaignId];
 
-        // 4. Check if there's a campaign upgrade in queue
-        CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
+        // 5. Check if there's a campaign upgrade in queue
+        campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
-        // 5. Transfer additional reward tokens
+        // 6. Transfer additional reward tokens
         SafeTransferLib.safeTransferFrom({
             token: campaign.rewardToken,
             from: msg.sender,
@@ -750,7 +757,7 @@ contract Votemarket is ReentrancyGuard {
             amount: totalRewardAmount
         });
 
-        // 6. Update campaign upgrade
+        // 7. Update campaign upgrade
         if (campaignUpgrade.totalRewardAmount != 0) {
             campaignUpgrade.totalRewardAmount += totalRewardAmount;
         } else {
@@ -762,7 +769,7 @@ contract Votemarket is ReentrancyGuard {
             });
         }
 
-        // 7. Store the updated campaign upgrade
+        // 8. Store the updated campaign upgrade
         campaignUpgradeById[campaignId][epoch] = campaignUpgrade;
 
         emit CampaignUpgradeQueued(campaignId, epoch);
@@ -770,7 +777,7 @@ contract Votemarket is ReentrancyGuard {
 
     /// @notice Closes a campaign
     /// @param campaignId The ID of the campaign to close
-    function closeCampaign(uint256 campaignId) external nonReentrant notClosed(campaignId) {
+    function closeCampaign(uint256 campaignId) external notClosed(campaignId) nonReentrant {
         // 1. Get campaign data and calculate time windows
         Campaign storage campaign = campaignById[campaignId];
         uint256 currentTime = block.timestamp;
@@ -789,10 +796,10 @@ contract Votemarket is ReentrancyGuard {
         } else if (currentTime < closeWindow) {
             // 2c. Within close window, only manager can close
             _isManagerOrRemote(campaignId);
-            _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
+            _validatePreviousState(campaignId, campaign.endTimestamp);
         } else {
             // 2d. After close window, anyone can close and funds go to fee collector
-            _validatePreviousState(campaignId, campaign.endTimestamp - EPOCH_LENGTH);
+            _validatePreviousState(campaignId, campaign.endTimestamp);
             receiver = feeCollector;
         }
 
@@ -834,15 +841,6 @@ contract Votemarket is ReentrancyGuard {
         if (campaignUpgrade.totalRewardAmount != 0) {
             // 3. Get the campaign
             Campaign storage campaign = campaignById[campaignId];
-
-            // 4. Update period data
-            if (epoch == campaign.startTimestamp) {
-                periodByCampaignId[campaignId][epoch].rewardPerPeriod =
-                    campaignUpgrade.totalRewardAmount.mulDiv(1, campaign.numberOfPeriods);
-            } else {
-                periodByCampaignId[campaignId][epoch - EPOCH_LENGTH].leftover +=
-                    campaignUpgrade.totalRewardAmount - campaign.totalRewardAmount;
-            }
 
             // 7. Save new campaign values
             campaign.endTimestamp = campaignUpgrade.endTimestamp;

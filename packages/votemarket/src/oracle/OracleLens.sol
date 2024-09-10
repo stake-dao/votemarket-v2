@@ -50,6 +50,7 @@ contract OracleLens {
         IOracle.VotedSlope memory account_ = IOracle(oracle).votedSlopeByEpoch(account, gauge, epoch);
         if (account_.lastUpdate == 0) revert STATE_NOT_UPDATED();
         if (epoch >= account_.end) return 0;
+        if (epoch <= account_.lastVote) return 0;
 
         return account_.slope * (account_.end - epoch);
     }

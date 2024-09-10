@@ -108,6 +108,18 @@ contract MAnageCampaignTest is BaseTest {
                 totalRewardAmount: params.totalRewardAmount,
                 maxRewardPerVote: params.maxRewardPerVote
             });
+
+            if (i == numberOfIncreases - 1 && params.campaignId == campaignId) {
+                skip(1 weeks);
+                vm.expectRevert(Votemarket.STATE_MISSING.selector);
+                votemarket.manageCampaign({
+                    campaignId: params.campaignId,
+                    numberOfPeriods: params.numberOfPeriods,
+                    totalRewardAmount: params.totalRewardAmount,
+                    maxRewardPerVote: params.maxRewardPerVote
+                });
+                rewind(1 weeks);
+            }
         }
 
         if (totalAmount > 0 && numberOfIncreases > 0 && params.campaignId == campaignId) {
@@ -136,8 +148,8 @@ contract MAnageCampaignTest is BaseTest {
             assertEq(campaignUpgrade.numberOfPeriods, 0);
             assertEq(campaignUpgrade.endTimestamp, 0);
 
-            skip(remainingPeriods * votemarket.EPOCH_LENGTH());
-
+            /// Skip to the last epoch.
+            skip((remainingPeriods - 1) * votemarket.EPOCH_LENGTH());
             vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
             votemarket.manageCampaign({
                 campaignId: params.campaignId,

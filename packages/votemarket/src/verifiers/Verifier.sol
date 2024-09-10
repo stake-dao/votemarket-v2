@@ -121,7 +121,7 @@ contract Verifier is RLPDecoder {
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
-        if (proofs.length != 4) revert INVALID_PROOF_LENGTH();
+        if (proofs.length != 3) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the last vote data
         uint256 lastVote =
@@ -133,8 +133,7 @@ contract Verifier is RLPDecoder {
             gauge: gauge,
             stateRootHash: stateRootHash,
             proofSlope: proofs[1].toList(),
-            proofPower: proofs[2].toList(),
-            proofEnd: proofs[3].toList()
+            proofEnd: proofs[2].toList()
         });
 
         userSlope.lastVote = lastVote;
@@ -163,12 +162,8 @@ contract Verifier is RLPDecoder {
         if (proofs.length != 1) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the weight data
-        weight = _extractWeight({
-            gauge: gauge,
-            epoch: epoch,
-            stateRootHash: stateRootHash,
-            proofBias: proofs[0].toList()
-        });
+        weight =
+            _extractWeight({gauge: gauge, epoch: epoch, stateRootHash: stateRootHash, proofBias: proofs[0].toList()});
 
         weight.lastUpdate = block.timestamp;
     }
@@ -215,12 +210,11 @@ contract Verifier is RLPDecoder {
     /// @param stateRootHash The state root hash
     /// @param proofBias The proof for bias extraction
     /// @return weight The extracted weight data
-    function _extractWeight(
-        address gauge,
-        uint256 epoch,
-        bytes32 stateRootHash,
-        RLPReader.RLPItem[] memory proofBias
-    ) internal view returns (IOracle.Point memory weight) {
+    function _extractWeight(address gauge, uint256 epoch, bytes32 stateRootHash, RLPReader.RLPItem[] memory proofBias)
+        internal
+        view
+        returns (IOracle.Point memory weight)
+    {
         // 1. Extract the bias value from the nested mapping
         weight.bias =
             extractNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, bytes32(epoch), 0, stateRootHash, proofBias);
@@ -231,7 +225,6 @@ contract Verifier is RLPDecoder {
     /// @param gauge The gauge address
     /// @param stateRootHash The state root hash
     /// @param proofSlope The proof for slope extraction
-    /// @param proofPower The proof for power extraction
     /// @param proofEnd The proof for end extraction
     /// @return userSlope The extracted user slope data
     function _extractUserSlope(
@@ -239,16 +232,12 @@ contract Verifier is RLPDecoder {
         address gauge,
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proofSlope,
-        RLPReader.RLPItem[] memory proofPower,
         RLPReader.RLPItem[] memory proofEnd
     ) internal view returns (IOracle.VotedSlope memory userSlope) {
         // 1. Extract the slope value from the nested mapping
         userSlope.slope =
             extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope);
-        // 2. Extract the power value from the nested mapping
-        userSlope.power =
-            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 1, stateRootHash, proofPower);
-        // 3. Extract the end value from the nested mapping
+        // 2. Extract the end value from the nested mapping
         userSlope.end =
             extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 2, stateRootHash, proofEnd);
     }

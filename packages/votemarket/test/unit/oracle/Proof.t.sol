@@ -98,7 +98,7 @@ abstract contract ProofCorrectnessTest is Test {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope, uint256 power) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_, uint256 slope_) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
 
         // Generate proofs for both gauge and account
@@ -123,7 +123,7 @@ abstract contract ProofCorrectnessTest is Test {
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         assertEq(userSlope.slope, slope);
-        assertEq(userSlope.power, power);
+        assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
         assertEq(weight.bias, bias_);
     }
@@ -200,14 +200,14 @@ abstract contract ProofCorrectnessTest is Test {
     }
 
     function generateAccountProof(address account, address gauge) internal pure returns (uint256[] memory) {
-        uint256[] memory positions = new uint256[](4);
+        uint256[] memory positions = new uint256[](3);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(11, account)), gauge)));
 
         uint256 voteUserSlopePosition =
             uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(9, account)), gauge)))));
-        for (uint256 i = 0; i < 3; i++) {
-            positions[1 + i] = voteUserSlopePosition + i;
-        }
+        positions[1] = voteUserSlopePosition;
+        positions[2] = voteUserSlopePosition + 2;
+
         return positions;
     }
 

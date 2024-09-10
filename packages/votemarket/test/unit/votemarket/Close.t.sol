@@ -46,6 +46,9 @@ contract CloseCampaignTest is BaseTest {
 
         vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
         votemarket.claim(campaignId, currentEpoch, "", address(this));
+
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector);
+        votemarket.updateEpoch(campaignId, currentEpoch, "");
     }
 
     function testCloseCampaignThatHasNotStartedWithAnUpgradeInQueue() public {
@@ -197,7 +200,7 @@ contract CloseCampaignTest is BaseTest {
         /// Skip to the end of the claim deadline.
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
-        vm.expectRevert(Votemarket.PREVIOUS_STATE_MISSING.selector);
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
         votemarket.closeCampaign(campaignId);
 
         _updateEpochs(campaignId);
@@ -213,5 +216,47 @@ contract CloseCampaignTest is BaseTest {
 
         assertEq(balance, 0);
         assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
+    }
+
+    function testCloseCampaignWithRewardSentToHook() public {
+        deal(address(rewardToken), address(votemarket), 0);
+        deal(address(rewardToken), address(this), TOTAL_REWARD_AMOUNT);
+        rewardToken.approve(address(votemarket), TOTAL_REWARD_AMOUNT);
+
+        uint256 campaignId =
+            _createCampaign({hook: HOOK, maxRewardPerVote: 1 wei, addresses: blacklist, whitelist: false});
+
+        /// Skip to the end of the campaign.
+        /// 1 week before the start + 2 weeks for the campaign + 1 week to the end.
+        skip(5 weeks);
+
+        /// We're in the claim deadline period, so it should revert with CAMPAIGN_NOT_ENDED.
+        vm.expectRevert(Votemarket.CAMPAIGN_NOT_ENDED.selector);
+        votemarket.closeCampaign(campaignId);
+
+        /// Skip to the end of the claim deadline.
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
+
+        vm.expectRevert(Votemarket.STATE_MISSING.selector);
+        votemarket.closeCampaign(campaignId);
+
+        _updateEpochs(campaignId);
+
+        uint256 expectedHookBalance = TOTAL_REWARD_AMOUNT - (TOTAL_VOTES * VALID_PERIODS / 1e18);
+        assertEq(votemarket.totalClaimedByCampaignId(campaignId), expectedHookBalance);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
+        votemarket.closeCampaign(campaignId);
+
+        votemarket.closeCampaign(campaignId);
+
+        uint256 balance = rewardToken.balanceOf(address(votemarket));
+        uint256 managerBalance = rewardToken.balanceOf(creator);
+        uint256 hookBalance = rewardToken.balanceOf(HOOK);
+
+        assertEq(balance, 0);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT - hookBalance);
+        assertEq(hookBalance, expectedHookBalance);
     }
 }

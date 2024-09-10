@@ -22,6 +22,8 @@ struct Campaign {
     uint256 maxRewardPerVote;
     /// @notice Total reward amount to distribute.
     uint256 totalRewardAmount;
+    /// @notice Total reward amount distributed.
+    uint256 totalDistributed;
     /// @notice Start timestamp of the campaign.
     uint256 startTimestamp;
     /// @notice End timestamp of the campaign.
