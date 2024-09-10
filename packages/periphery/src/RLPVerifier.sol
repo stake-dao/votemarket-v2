@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "src/interfaces/IRLPVerifier.sol";
 
-abstract contract Verifier {
+abstract contract RLPVerifier {
     function setBlockData(address verifier, bytes calldata blockHeader, bytes calldata proof)
         external
         returns (bytes32 stateRootHash)
