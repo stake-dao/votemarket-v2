@@ -60,6 +60,22 @@ contract VMMulticallTest is Test {
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
+
+        deal(address(rewardToken), address(this), 100_000e18);
+        rewardToken.approve(address(votemarket), type(uint256).max);
+
+        campaignId = votemarket.createCampaign({
+            chainId: 1,
+            gauge: CRV_GAUGE,
+            manager: address(this),
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            maxRewardPerVote: 100_000e18,
+            totalRewardAmount: 100_000e18,
+            addresses: new address[](0),
+            hook: address(0),
+            isWhitelist: false
+        });
     }
 
     function test_multicall() public {
@@ -68,8 +84,7 @@ contract VMMulticallTest is Test {
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory accountProof, bytes memory proofRlp) =
             generateAndEncodeProof(CRV_ACCOUNT, CRV_GAUGE, epoch, true);
 
-        (, , , bytes memory userProofRlp) =
-            generateAndEncodeProof(CRV_ACCOUNT, CRV_GAUGE, epoch, false);
+        (,,, bytes memory userProofRlp) = generateAndEncodeProof(CRV_ACCOUNT, CRV_GAUGE, epoch, false);
 
         // Simulate a block number insertion
         oracle.insertBlockNumber(
@@ -77,12 +92,12 @@ contract VMMulticallTest is Test {
             StateProofVerifier.BlockHeader({
                 hash: blockHash,
                 stateRootHash: bytes32(0),
-                number: block.number,
+                number: CRV_BLOCK_NUMBER,
                 timestamp: block.timestamp
             })
         );
 
-        bytes[] memory data = new bytes[](3);
+        bytes[] memory data = new bytes[](4);
         data[0] = abi.encodeWithSignature(
             "setBlockData(address,bytes,bytes)", address(verifier), blockHeaderRlp, accountProof
         );
@@ -90,10 +105,26 @@ contract VMMulticallTest is Test {
             "setPointData(address,address,uint256,bytes)", address(verifier), CRV_GAUGE, epoch, proofRlp
         );
         data[2] = abi.encodeWithSignature(
-            "setAccountData(address,address,address,uint256,bytes)", address(verifier), CRV_ACCOUNT, CRV_GAUGE, epoch, userProofRlp
+            "setAccountData(address,address,address,uint256,bytes)",
+            address(verifier),
+            CRV_ACCOUNT,
+            CRV_GAUGE,
+            epoch,
+            userProofRlp
+        );
+        data[3] = abi.encodeWithSignature(
+            "claim(address,uint256,address,uint256,bytes)",
+            address(votemarket),
+            campaignId,
+            CRV_ACCOUNT,
+            epoch,
+            new bytes(0)
         );
 
         vm.prank(CRV_ACCOUNT);
+
+        /// We just want to check that the call go through. If it hits that revert, the call is good.
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
         multicaller.multicall(data);
     }
 
