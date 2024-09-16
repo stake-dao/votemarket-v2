@@ -3,7 +3,7 @@ node_modules/
 
 cache/
 out/
-broadcast/%
+broadcast/
 report.txt
 
 coverage.md

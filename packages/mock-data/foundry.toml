@@ -6,6 +6,7 @@ solc = "0.8.19"
 
 # Enables to use python scripts in forge tests.
 ffi = true
+fs_permissions = [{ access = "read-write", path = "./"}]
 
 verbosity = 3
 optimizers_runs = 200
@@ -21,16 +22,8 @@ max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail
 
 
 [etherscan]
-bnb = { key = "${BNBSCAN_KEY}" }
-frax = { key = "${FRAXSCAN_KEY}" }
-base = { key = "${BASESCAN_KEY}" }
-mainnet = { key = "${ETHERSCAN_KEY}" }
-arbitrum = { key = "${ARBISCAN_KEY}" }
-optimism = { key = "${OPTIMISTICSCAN_KEY}" }
-zksync = { key = "${ZKSYNCSCAN_KEY}" }
-polygon = { key = "${POLYGONSCAN_KEY}" }
-polygonzkevm = { key = "${POLYGONZKSCAN_KEY}" }
-unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 73571, url = "${TENDERLY_VIRTUAL_TESTNET_RPC_URL}/verify/etherscan" }
+
+unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 1, url = "${TENDERLY_VIRTUAL_TESTNET_RPC}/verify/etherscan" }
 
 [rpc_endpoints]
 bnb = "https://rpc.ankr.com/bsc"

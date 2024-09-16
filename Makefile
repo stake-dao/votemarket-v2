@@ -76,4 +76,10 @@ deploy-%:
 		exit 1; \
 	fi
 
+scenario:
+	forge script script/Deploy.s.sol --broadcast --slow -vvvvv --rpc-url $(TENDERLY_VIRTUAL_TESTNET_RPC) --private-key $(PRIVATE_KEY)
+
+scenarioTest:
+	forge script script/Deploy.s.sol --slow -vvvvv --rpc-url $(TENDERLY_VIRTUAL_TESTNET_RPC) --private-key $(PRIVATE_KEY)
+
 .PHONY: test coverage
