@@ -25,38 +25,11 @@ contract DeployVotemarketScenarios is Script, Test {
 
         MockERC20(CRV).approve(address(votemarket), type(uint256).max);
 
-        string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/json/scenario_output.json");
-        string memory json = vm.readFile(path);
-        bytes memory data = vm.parseJson(json);
-
-        Action[] memory actions = abi.decode(data, (Action[]));
-
-        console.log("decoded");
-        for (uint256 i = 0; i < actions.length; i ++) {
-            if (actions[i].ID == 1) {
-                (bool success, ) = address(votemarket).call(actions[i].data);
-                require(success, "Call failed");
-            } else if (actions[i].ID == 2) {
-                (bool success, ) = address(oracle).call(actions[i].data);
-                require(success, "Call failed");
-            } else if (actions[i].ID == 3) {
-
-                console.logBytes(actions[i].data);
-                //skip(bytesToUint(actions[i].data));
-
-                string[] memory calldataPython = new string[](3);
-                calldataPython[0] = "python3";
-                calldataPython[1] = string(abi.encodePacked(vm.projectRoot(), "/python/time_jump.py"));
-                calldataPython[2] = "456";
-                bytes memory result = vm.ffi(calldataPython);
-                console.logBytes(result);
-                (bool success) = abi.decode(result,(bool));
-                console.log("success");
-                console.log(success);
-                require(success, "Call failed");
-            }
-        }
+        string[] memory calldataPython = new string[](3);
+        calldataPython[0] = "python3";
+        calldataPython[1] = string(abi.encodePacked(vm.projectRoot(), "/python/run_deployment.py"));
+        calldataPython[2] = string(address(votemarket));
+        calldataPython[3] = string(address(oracle)); 
 
         vm.stopBroadcast();
     }

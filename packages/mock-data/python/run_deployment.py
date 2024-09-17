@@ -3,10 +3,16 @@ import random
 import math
 import time
 import os
+import sys
 from dotenv import load_dotenv
 
 from eth_abi import encode
 from eth_utils import function_signature_to_4byte_selector
+from web3 import Web3
+#from solcx import compile_standard, install_solc
+
+
+from utils import set_timestamp, time_jump
 
 def function_selector(signature):
     return function_signature_to_4byte_selector(signature).hex()
@@ -15,11 +21,12 @@ def encode_params(types, params):
     return encode(types, params).hex()
 
 week = 7 * 24 * 60 * 60
-start_timestamp = math.ceil(time.time()) #1714857600
+start_timestamp = 1714857600
 start_block = 20300000
 start_epoch = math.ceil(start_timestamp / week) * week
 
 load_dotenv()
+#install_solc("0.8.19")
 
 def randomTimestamp(epoch):
     return start_epoch + epoch * week + math.floor((random.randint(0, 10000) * week)/10000)
@@ -40,9 +47,44 @@ def updateCallData(campaignId, epoch):
         "data": calldata
     }
 
-def build_steps():
+def run_deployment(voteMarketAddress, oracleAddress):
 
-    with open('/Users/lucas/Desktop/votemarket-v2/packages/mock-data/json/scenario_input.json', 'r') as file:
+    w3 = Web3(Web3.HTTPProvider(os.getenv('TENDERLY_VIRTUAL_TESTNET_RPC')))
+    private_key = os.getenv("PRIVATE_KEY")
+    assert private_key is not None, "You must set PRIVATE_KEY environment variable"
+    defaultAddress = os.getenv('ADDRESS')
+    nonce = w3.eth.get_transaction_count(defaultAddress)
+
+    file_dir = os.path.realpath(__file__)
+
+    """with open(os.path.abspath(os.path.realpath(os.path.join(file_dir, '../../../votemarket/src/Votemarket.sol'))), "r") as file:
+        votemarket_sol_storage_file = file.read()
+        
+        compiled_sol = compile_standard({
+            "language": "Solidity",
+            "sources": {"Votemarket.sol": {"content": votemarket_sol_storage_file}},
+            "settings": {
+                "outputSelection": {"*": {"*": ["abi", "metadata", "evm.bytecode", "evm.bytecode.sourceMap"]}},
+            },
+        }, solc_version="0.8.19")
+    
+        bytecode = compiled_sol["contracts"]["Votemarket.sol"]["Votemarket"]["evm"]["bytecode"]["object"]
+        abi = json.loads(compiled_sol["contracts"]["Votemarket.sol"]["Votemarket"]["metadata"])["output"]["abi"]
+
+        Votemarket = w3.eth.contract(abi=abi, bytecode=bytecode)
+        transaction = Votemarket.constructor().buildTransaction({"chainId": 1,
+			"gasPrice": w3.eth.gas_price,
+			"from": defaultAddress,
+			"nonce": 1,})
+        deploymentHash = w3.eth.account.sign_transaction(transaction, private_key=private_key)
+        print("Deploying Contract...")
+        deploymentReceipt = w3.eth.wait_for_transaction_receipt(deploymentHash)
+        print(f"Contract deployed to {deploymentReceipt.contractAddress}")"""
+
+    set_timestamp(start_timestamp)
+    input_path = os.path.abspath(os.path.realpath(os.path.join(file_dir, '../../json/scenario_input.json')))
+    print(os.path.realpath(__file__))
+    with open(input_path, 'r') as file:
         data = json.load(file)
         steps = []
         for scenario in data:
@@ -51,11 +93,7 @@ def build_steps():
                 steps.append(step)
 
         steps.sort(key=lambda x: x['timestamp'])
-        steps_with_time_jumps = [{
-                        "ID": 3,
-                        "data": (steps[0]['timestamp'] - start_timestamp).to_bytes(32, byteorder='big').hex()
-                    }]
-        defaultAddress = os.getenv('ADDRESS')
+        time_jump(steps[0]['timestamp'] - start_timestamp)
         for i in range(len(steps)):
             step = steps[i]
             function = step['function']
@@ -101,7 +139,7 @@ def build_steps():
                     args['account']
                 ])
             elif function == 'closeCampaign':
-                steps_with_time_jumps.append(updateCallData(args["campaignId"], epoch))
+                
                 calldata = f"0x{function_selector('closeCampaign(uint256)')}"
                 calldata += encode_params([
                     'uint256'
@@ -111,29 +149,27 @@ def build_steps():
             else:
                 calldata = '0x'
             
-            steps_with_time_jumps.append({
-                "ID": 1,
-                "data": calldata
-            })
+            transaction = {
+                'from': defaultAddress,
+                'to': voteMarketAddress,
+                'value': 0,
+                'nonce': nonce,
+                'data': calldata
+            }
+
+            signed = w3.eth.account.sign_transaction(transaction, private_key=private_key)
+            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+            print(f"Transaction {nonce} : {tx_hash}")
+
             if i < len(steps) - 1:
                 time_diff = steps[i+1]['timestamp'] - steps[i]['timestamp']
                 if time_diff > 1000:
-                    steps_with_time_jumps.append({
-                        "ID": 3,
-                        "data": time_diff.to_bytes(32, byteorder='big').hex()
-                    })
+                    time_jump(time_diff)
         
-        """steps_with_time_jumps.append({
-            "ID": 3,
-            "data": (math.floor(time.time()) - steps[len(steps)-1]["timestamp"]).to_bytes(32, byteorder='big').hex()
-        })"""
+        time_jump(math.floor(time.time()) - steps[len(steps)-1]["timestamp"])
         
-        output_file = '/Users/lucas/Desktop/votemarket-v2/packages/mock-data/json/scenario_output.json'
-        with open(output_file, 'w') as outfile:
-            json.dump(steps_with_time_jumps, outfile, indent=2)
-        
-        print(f"Steps with time jumps have been written to {output_file}")
+        print("Script ended")
 
 
 if __name__ == "__main__":
-    build_steps()
+    run_deployment(sys.argv[1], sys.argv[2])
