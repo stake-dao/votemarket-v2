@@ -7,12 +7,12 @@ import sys
 from dotenv import load_dotenv
 
 from eth_abi import encode
-from eth_utils import function_signature_to_4byte_selector
+from eth_utils import function_signature_to_4byte_selector, to_checksum_address
 from web3 import Web3
 #from solcx import compile_standard, install_solc
 
 
-from utils import set_timestamp, time_jump
+from utils import set_timestamp, time_jump, set_balance
 
 def function_selector(signature):
     return function_signature_to_4byte_selector(signature).hex()
@@ -80,10 +80,10 @@ def run_deployment(voteMarketAddress, oracleAddress):
         print("Deploying Contract...")
         deploymentReceipt = w3.eth.wait_for_transaction_receipt(deploymentHash)
         print(f"Contract deployed to {deploymentReceipt.contractAddress}")"""
-
+    #set_balance(defaultAddress, 1000000)
+    set_balance(defaultAddress, 1000000, '0xD533a949740bb3306d119CC777fa900bA034cd52')
     set_timestamp(start_timestamp)
     input_path = os.path.abspath(os.path.realpath(os.path.join(file_dir, '../../json/scenario_input.json')))
-    print(os.path.realpath(__file__))
     with open(input_path, 'r') as file:
         data = json.load(file)
         steps = []
@@ -151,14 +151,18 @@ def run_deployment(voteMarketAddress, oracleAddress):
             
             transaction = {
                 'from': defaultAddress,
-                'to': voteMarketAddress,
+                'to': to_checksum_address(voteMarketAddress),
                 'value': 0,
                 'nonce': nonce,
+                'gas': 8000000,
+                'gasPrice': 10,
                 'data': calldata
             }
 
             signed = w3.eth.account.sign_transaction(transaction, private_key=private_key)
-            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+            print(signed)
+            tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+            nonce += 1
             print(f"Transaction {nonce} : {tx_hash}")
 
             if i < len(steps) - 1:

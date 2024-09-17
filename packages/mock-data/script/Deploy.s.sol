@@ -15,6 +15,22 @@ contract DeployVotemarketScenarios is Script, Test {
         bytes data;
     }
 
+    function toString(address _addr) internal pure returns (string memory) {
+        bytes32 value = bytes32(uint256(uint160(_addr)));
+        bytes memory alphabet = "0123456789abcdef";
+         
+        bytes memory str = new bytes(42);
+        str[0] = '0';
+        str[1] = 'x';
+         
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint8(value[i + 12] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(value[i + 12] & 0x0f)];
+        }
+         
+        return string(str);
+    }
+
     function run() public {
         vm.startBroadcast();
 
@@ -25,11 +41,12 @@ contract DeployVotemarketScenarios is Script, Test {
 
         MockERC20(CRV).approve(address(votemarket), type(uint256).max);
 
-        string[] memory calldataPython = new string[](3);
+        string[] memory calldataPython = new string[](4);
         calldataPython[0] = "python3";
         calldataPython[1] = string(abi.encodePacked(vm.projectRoot(), "/python/run_deployment.py"));
-        calldataPython[2] = string(address(votemarket));
-        calldataPython[3] = string(address(oracle)); 
+        calldataPython[2] = toString(address(votemarket));
+        calldataPython[3] = toString(address(oracle)); 
+        vm.ffi(calldataPython);
 
         vm.stopBroadcast();
     }
