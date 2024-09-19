@@ -6,4 +6,6 @@ out/
 broadcast/
 report.txt
 
+python/__pycache__
+
 coverage.md
