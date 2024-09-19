@@ -70,4 +70,23 @@ struct CampaignUpgrade {
     uint256 endTimestamp;
 }
 
-interface IVotemarket {}
+interface IVotemarket {
+    function createCampaign(
+        uint256 chainId,
+        address gauge,
+        address manager,
+        address rewardToken,
+        uint8 numberOfPeriods,
+        uint256 maxRewardPerVote,
+        uint256 totalRewardAmount,
+        address[] memory blacklist,
+        address hook,
+        bool whitelist
+    ) external returns (uint256 campaignId);
+
+    function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
+        external
+        returns (uint256 claimed);
+
+    function updateEpoch(uint256 campaignId, uint256 epoch) external;
+}

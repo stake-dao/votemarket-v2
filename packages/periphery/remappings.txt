@@ -1,0 +1,4 @@
+@solady=node_modules/solady/
+@forge-std=node_modules/forge-std/
+@utils=node_modules/@stake-dao/vm-utils/src/
+@votemarket=node_modules/@stake-dao/votemarket/src/
