@@ -2,12 +2,14 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-import "src/oracle/Oracle.sol";
-import "src/verifiers/Verifier.sol";
+import "src/VMMulticall.sol";
+import {Oracle} from "@votemarket/oracle/Oracle.sol";
+import {Verifier} from "@votemarket/verifiers/Verifier.sol";
 
 contract DebugTest is Test { 
     Oracle oracle;
     Verifier verifier;
+    VMMulticall multicaller;
 
     address GAUGE = 0xF1bb643F953836725c6E48BdD6f1816f871d3E07;
     uint256 EPOCH = 1723075200;
@@ -17,6 +19,7 @@ contract DebugTest is Test {
         vm.createSelectFork("mainnet");
         oracle = new Oracle(address(this));
         verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
+        multicaller = new VMMulticall();
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -28,12 +31,14 @@ contract DebugTest is Test {
 
         console.log(GAUGE);
         console.log(EPOCH);
-        console.log(proofs[0]);
 
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
             generateAndEncodeProof(address(this), GAUGE, EPOCH, true, 20481142);
 
         console.logBytes32(blockHash);
+        console.logBytes(blockHeaderRlp);
+        console.logBytes(controllerProof);
+        console.logBytes(storageProofRlp);
         // Simulate a block number insertion
         oracle.insertBlockNumber(
             EPOCH,
@@ -47,7 +52,7 @@ contract DebugTest is Test {
 
         //verifier.setBlockData(blockHeaderRlp, controllerProof);
         //verifier.setPointData(GAUGE, EPOCH, storageProofRlp);
-        bytes[] memory data = new bytes[](4);
+        bytes[] memory data = new bytes[](6);
         data[0] = abi.encodeWithSignature(
             "setBlockData(address,bytes,bytes)", address(verifier), blockHeaderRlp, controllerProof
         );
@@ -69,8 +74,14 @@ contract DebugTest is Test {
             })
         );
 
-        verifier.setBlockData(blockHeaderRlp, controllerProof);
-        verifier.setPointData(GAUGE, EPOCH + 1 weeks, storageProofRlp);
+        // verifier.setBlockData(blockHeaderRlp, controllerProof);
+        // verifier.setPointData(GAUGE, EPOCH + 1 weeks, storageProofRlp);
+        data[2] = abi.encodeWithSignature(
+            "setBlockData(address,bytes,bytes)", address(verifier), blockHeaderRlp, controllerProof
+        );
+        data[3] = abi.encodeWithSignature(
+            "setPointData(address,address,uint256,bytes)", address(verifier), GAUGE, EPOCH+ 1 weeks, storageProofRlp
+        );
 
         (blockHash, blockHeaderRlp, controllerProof, storageProofRlp) =
             generateAndEncodeProof(address(this), GAUGE, EPOCH + 2 weeks, true, 20581430);
@@ -86,8 +97,17 @@ contract DebugTest is Test {
             })
         );
 
-        verifier.setBlockData(blockHeaderRlp, controllerProof);
-        verifier.setPointData(GAUGE, EPOCH + 2 weeks, storageProofRlp);
+        //verifier.setBlockData(blockHeaderRlp, controllerProof);
+        //verifier.setPointData(GAUGE, EPOCH + 2 weeks, storageProofRlp);
+
+        data[4] = abi.encodeWithSignature(
+            "setBlockData(address,bytes,bytes)", address(verifier), blockHeaderRlp, controllerProof
+        );
+        data[5] = abi.encodeWithSignature(
+            "setPointData(address,address,uint256,bytes)", address(verifier), GAUGE, EPOCH+ 2 weeks, storageProofRlp
+        );
+        //console.logBytes(abi.encodeWithSignature("multicall(bytes[])",data));
+        multicaller.multicall(data);
 
     }
 

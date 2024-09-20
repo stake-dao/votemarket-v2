@@ -7,9 +7,14 @@ from eth_utils import function_signature_to_4byte_selector
 from generate_proof import generate_proofs, get_block
 import math
 
-# Time constants, strats 20 July
+# Time constants
 week = 7 * 24 * 60 * 60
-start_timestamp = 1721503200
+
+# 20th July
+#start_timestamp = 1721503200
+
+# 1st January
+start_timestamp = 1704067200
 start_epoch = math.ceil(start_timestamp / week) * week
 
 # Token constants
@@ -50,7 +55,6 @@ def set_balance(address, amount, token=None):
         })
         print(f"ERC20 balance of {address} set to {amount} (token : {token})")
 
-
 def function_selector(signature):
     return function_signature_to_4byte_selector(signature).hex()
 
@@ -84,6 +88,7 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
             args['hook'],
             args['isWhitelist']
         ])
+
     elif function == 'claim':
         calldata = f"0x{function_selector('claim(uint256,uint256,bytes,address)')}"
         calldata += encode_params([
@@ -97,6 +102,7 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
             bytes.fromhex(args['hookData'][2:] if args['hookData'].startswith('0x') else args['hookData']),
             args['account']
         ])
+
     elif function == 'closeCampaign':
         calldata = f"0x{function_selector('closeCampaign(uint256)')}"
         calldata += encode_params([
@@ -104,7 +110,9 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
         ], [
             args['campaignId']
         ])
+
     elif function == 'insertBlockNumber':
+        # Define target address and epoch timestamp
         to_address = ADDRESSES['oracle']
         epoch = start_epoch + args['epoch_index'] * week
         # Get block data
@@ -125,10 +133,8 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
             )
         ])
         print(f"Epoch {args['epoch_index']} : inserted block hash {block['hash'].hex()}")
-        print(f"Block Number : {block['number']}")
-        print(f"Block timestamp {block['timestamp']}")
 
-    elif function == 'updateAndClose':
+    elif function == 'update':
         # Define target address
         to_address = ADDRESSES['router']
 
@@ -137,7 +143,7 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
 
         # For each epoch
         calldata_list = []
-        for i in range(args['firstEpochUpgrade'], args['lastEpochUpgrade']):
+        for i in range(args['firstEpochUpgrade'], args['lastEpochUpgrade']+1):
             # Get epoch timestamp
             epoch = start_epoch + i*week
 
@@ -155,8 +161,9 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
                     rlp_block,
                     account_proof
                 ])
+            calldata_list += [bytes.fromhex(set_block_calldata[2:])]
             # Set gauge data
-            """set_gauge_calldata= f"0x{function_selector('setPointData(address,address,uint256,bytes)')}"
+            set_gauge_calldata= f"0x{function_selector('setPointData(address,address,uint256,bytes)')}"
             set_gauge_calldata+= encode_params(
                 [
                     'address', 
@@ -168,29 +175,33 @@ def get_calldata(function, args, ADDRESSES, default_address=os.getenv("ADDRESS")
                     args['gauge'],
                     epoch,
                     rlp_proof
-                ])"""
-            # Upgrade epoch
-            """upgrade_calldata = f"0x{function_selector('updateEpoch(address,uint256,uint256,bytes)')}"
-            upgrade_calldata+= encode_params([
-                'address',
-                'uint256',
-                'uint256',
-                'bytes'
-            ], [
-                ADDRESSES['votemarket'],
-                args['campaignId'],
-                epoch,
-                b'\x00'
-            ])"""
+                ])
+            calldata_list += [bytes.fromhex(set_gauge_calldata[2:])]
 
-            # add all in multicall list
-            calldata_list += [bytes.fromhex(set_block_calldata[2:])]#, bytes.fromhex(set_gauge_calldata[2:])]#, bytes.fromhex(upgrade_calldata[2:])]
+            if i != args['firstEpochUpgrade'] and i != args['lastEpochUpgrade']:
+                # Upgrade epoch
+                upgrade_calldata = f"0x{function_selector('updateEpoch(address,uint256,uint256,bytes)')}"
+                upgrade_calldata+= encode_params([
+                    'address',
+                    'uint256',
+                    'uint256',
+                    'bytes'
+                ], [
+                    ADDRESSES['votemarket'],
+                    args['campaignId'],
+                    epoch,
+                    b''
+                ])
+
+                # add all in multicall list
+                calldata_list += [bytes.fromhex(upgrade_calldata[2:])]
 
         calldata += encode_params([
             'bytes[]'
         ], [
             calldata_list
         ])
+
     else:
         calldata = '0x'
 

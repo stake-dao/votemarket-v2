@@ -1,7 +1,7 @@
 import sys, rlp, os
 
 from web3 import Web3
-from eth_abi import encode
+from eth_abi import encode, decode
 from eth_utils import keccak
 from hexbytes import HexBytes
 from dotenv import load_dotenv
@@ -40,7 +40,7 @@ BLOCK_HEADER = (
 
 def get_block(timestamp):
     block_req = requests.get(f"https://api.etherscan.io/api?module=block&action=getblocknobytime&timestamp={timestamp}&closest=after&apikey={os.getenv('ETHERSCAN_KEY')}")
-    block_number = int(block_req.json()["result"]) + 1000
+    block_number = int(block_req.json()["result"]) + 900
     return web3.eth.get_block(block_number)
 
 """
