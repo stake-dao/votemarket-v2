@@ -25,7 +25,7 @@ contract Deploy is Script {
 
     Votemarket public votemarket;
 
-    string[] public chains = ["arbitrum", "optimism", "base", "polygon"];
+    string[] public chains = ["arbitrum", "optimism", "base", "polygon", "frax"];
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
     address public constant GAUGE_CONTROLLER = address(0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB);
