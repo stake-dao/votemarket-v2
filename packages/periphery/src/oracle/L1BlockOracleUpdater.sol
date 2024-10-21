@@ -99,7 +99,7 @@ contract L1BlockOracleUpdater {
                     token: ILaPoste.Token({tokenAddress: address(0), amount: 0}),
                     payload: data
                 }),
-                0
+                200_000
             );
             unchecked {
                 i++;
