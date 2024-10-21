@@ -1,5 +1,5 @@
 @solady=node_modules/solady/
 @forge-std=node_modules/forge-std/
-@utils=node_modules/@stake-dao/vm-utils/
+@utils/=node_modules/@stake-dao/vm-utils/
 @votemarket/=node_modules/@stake-dao/votemarket/
 @periphery/=node_modules/@stake-dao/periphery/

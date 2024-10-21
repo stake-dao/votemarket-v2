@@ -4,8 +4,18 @@ out = "out"
 libs = ["node_modules"]
 solc = "0.8.19"
 
-verbosity = 4
+# Enables to use python scripts in forge tests.
+ffi = true
+
+verbosity = 3
 optimizers_runs = 200
+
+gas_reports = [
+"VMMulticall"
+]
+
+[fuzz]
+max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail
 
 [etherscan]
 bnb = { key = "${BNBSCAN_KEY}" }
