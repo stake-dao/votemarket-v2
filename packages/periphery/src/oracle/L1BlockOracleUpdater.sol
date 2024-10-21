@@ -24,6 +24,10 @@ contract L1BlockOracleUpdater {
     /// @notice The error emitted when the sender is not the L1 sender address.
     error NotL1Sender();
 
+    /// @notice The error emitted when the L1 block oracle is not set.
+    /// @dev For some chains, we'll allow only updates from the L1 sender address.
+    error L1BlockOracleNotSet();
+
     modifier onlyLaPoste() {
         if (msg.sender != LA_POSTE) revert NotLaPoste();
         _;
@@ -37,6 +41,8 @@ contract L1BlockOracleUpdater {
     }
 
     function updateL1BlockNumber() external {
+        if (L1_BLOCK_ORACLE == address(0)) revert L1BlockOracleNotSet();
+
         uint256 number = IL1Block(L1_BLOCK_ORACLE).number();
         bytes32 hash = IL1Block(L1_BLOCK_ORACLE).hash();
         uint256 timestamp = IL1Block(L1_BLOCK_ORACLE).timestamp();
