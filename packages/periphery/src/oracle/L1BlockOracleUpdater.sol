@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "src/interfaces/IOracle.sol";
 import "src/interfaces/IL1Block.sol";
 import "src/interfaces/ILaPoste.sol";
+import "@votemarket/src/interfaces/IOracle.sol";
 
 /// @notice A module for updating the L1 block number in the oracle, and block hash.
 contract L1BlockOracleUpdater {
@@ -44,9 +44,9 @@ contract L1BlockOracleUpdater {
     function updateL1BlockNumber() public returns (uint256 number, bytes32 hash, uint256 timestamp) {
         if (L1_BLOCK_ORACLE == address(0)) revert L1BlockOracleNotSet();
 
-        uint256 number = IL1Block(L1_BLOCK_ORACLE).number();
-        bytes32 hash = IL1Block(L1_BLOCK_ORACLE).hash();
-        uint256 timestamp = IL1Block(L1_BLOCK_ORACLE).timestamp();
+        number = IL1Block(L1_BLOCK_ORACLE).number();
+        hash = IL1Block(L1_BLOCK_ORACLE).hash();
+        timestamp = IL1Block(L1_BLOCK_ORACLE).timestamp();
 
         return _updateL1BlockNumber(number, hash, timestamp);
     }

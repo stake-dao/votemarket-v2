@@ -19,8 +19,7 @@ contract L1Sender {
         L1_BLOCK_ORACLE_UPDATER = _l1BlockOracleUpdater;
     }
 
-    /// @notice Sends the block hash to all contracts on all chains
-    /// @dev Requires payment to cover gas fees and checks for timing to avoid too frequent updates
+    /// @notice Sends the block hash to the L1 block oracle updater.
     function broadcastBlock(uint256 chainId, uint256 additionalGasLimit) external payable {
         if (block.timestamp < currentPeriod() + 1 minutes) revert TooSoon();
 
