@@ -7,7 +7,6 @@ default:
 	@forge fmt && forge build
 
 clean:
-	rm report.txt
 	@forge clean && make default
 
 # Always keep Forge up to date

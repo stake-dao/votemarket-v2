@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "@votemarket/interfaces/IOracle.sol";
+import "@votemarket/src/interfaces/IOracle.sol";
 
 interface IRLPVerifier {
     function setBlockData(bytes calldata blockHeader, bytes calldata proof) external returns (bytes32 stateRootHash);

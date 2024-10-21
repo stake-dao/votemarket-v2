@@ -6,11 +6,11 @@ import "@forge-std/src/mocks/MockERC20.sol";
 
 import "src/VMMulticall.sol";
 
-import {Votemarket} from "@votemarket/Votemarket.sol";
-import {Verifier} from "@votemarket/verifiers/Verifier.sol";
+import {Votemarket} from "@votemarket/src/Votemarket.sol";
+import {Verifier} from "@votemarket/src/verifiers/Verifier.sol";
 
-import {Oracle} from "@votemarket/oracle/Oracle.sol";
-import {OracleLens} from "@votemarket/oracle/OracleLens.sol";
+import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
+import {OracleLens} from "@votemarket/src/oracle/OracleLens.sol";
 
 contract VMMulticallTest is Test {
     /// Curve Gauge Controller
@@ -122,6 +122,14 @@ contract VMMulticallTest is Test {
         );
 
         vm.prank(CRV_ACCOUNT);
+
+        /// We just want to check that the call go through. If it hits that revert, the call is good.
+        vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);
+        multicaller.multicall(data);
+
+        data[3] = abi.encodeWithSignature(
+            "updateEpoch(address,uint256,uint256,bytes)", address(votemarket), campaignId, epoch, new bytes(0)
+        );
 
         /// We just want to check that the call go through. If it hits that revert, the call is good.
         vm.expectRevert(Votemarket.EPOCH_NOT_VALID.selector);

@@ -88,5 +88,5 @@ interface IVotemarket {
         external
         returns (uint256 claimed);
 
-    function updateEpoch(uint256 campaignId, uint256 epoch) external;
+    function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData) external;
 }

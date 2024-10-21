@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 /// External Libraries
-import "@utils/StateProofVerifier.sol";
+import "@utils/src/StateProofVerifier.sol";
 import "@solady/src/utils/LibString.sol";
 
 /// Project Interfaces & Libraries
