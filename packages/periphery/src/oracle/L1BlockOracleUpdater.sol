@@ -48,9 +48,7 @@ contract L1BlockOracleUpdater {
         bytes32 hash = IL1Block(L1_BLOCK_ORACLE).hash();
         uint256 timestamp = IL1Block(L1_BLOCK_ORACLE).timestamp();
 
-        _updateL1BlockNumber(number, hash, timestamp);
-
-        return (number, hash, timestamp);
+        return _updateL1BlockNumber(number, hash, timestamp);
     }
 
     function updateL1BlockNumberAndDispatch(bool dispatch, uint256[] memory chainIds) public payable {
@@ -66,7 +64,10 @@ contract L1BlockOracleUpdater {
         _updateL1BlockNumber(_l1BlockNumber, _l1BlockHash, _l1Timestamp);
     }
 
-    function _updateL1BlockNumber(uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp) internal {
+    function _updateL1BlockNumber(uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp)
+        internal
+        returns (uint256 number, bytes32 hash, uint256 timestamp)
+    {
         uint256 epoch = _l1Timestamp / 1 weeks * 1 weeks;
         StateProofVerifier.BlockHeader memory blockData = IOracle(ORACLE).epochBlockNumber(epoch);
 
@@ -80,7 +81,11 @@ contract L1BlockOracleUpdater {
                     timestamp: _l1Timestamp
                 })
             );
+
+            blockData = IOracle(ORACLE).epochBlockNumber(epoch);
         }
+
+        return (blockData.number, blockData.hash, blockData.timestamp);
     }
 
     function _dispatchMessage(uint256[] memory chainIds, uint256 number, bytes32 hash, uint256 timestamp) internal {
