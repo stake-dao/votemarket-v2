@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
+import "forge-std/src/console.sol";
+
 ///  Project Interfaces & Libraries
 import "src/verifiers/RLPDecoder.sol";
 
@@ -82,6 +84,7 @@ contract Verifier is RLPDecoder {
         if (userSlope.lastUpdate != 0) revert ALREADY_REGISTERED();
 
         userSlope = _extractAccountData(account, gauge, epoch, proof);
+
         ORACLE.insertAddressEpochData(account, gauge, epoch, userSlope);
     }
 

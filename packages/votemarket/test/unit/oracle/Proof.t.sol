@@ -11,7 +11,7 @@ import "src/interfaces/IGaugeController.sol";
 abstract contract ProofCorrectnessTest is Test {
     Oracle oracle;
     Verifier verifier;
-    address internal constant GAUGE_CONTROLLER = address(0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB);
+    address GAUGE_CONTROLLER;
 
     address account;
     address gauge;
@@ -22,6 +22,7 @@ abstract contract ProofCorrectnessTest is Test {
     uint256 weightSlot;
 
     constructor(
+        address _gaugeController,
         address _account,
         address _gauge,
         uint256 _blockNumber,
@@ -29,6 +30,7 @@ abstract contract ProofCorrectnessTest is Test {
         uint256 _userSlopeSlot,
         uint256 _weightSlot
     ) {
+        GAUGE_CONTROLLER = _gaugeController;
         account = _account;
         gauge = _gauge;
         blockNumber = _blockNumber;
@@ -42,7 +44,7 @@ abstract contract ProofCorrectnessTest is Test {
         vm.createSelectFork("mainnet", blockNumber);
 
         oracle = new Oracle(address(this));
-        verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
+        verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -65,12 +67,13 @@ abstract contract ProofCorrectnessTest is Test {
         assertEq(oracle.authorizedBlockNumberProviders(address(this)), false);
         assertEq(oracle.authorizedBlockNumberProviders(address(verifier)), false);
 
-        Verifier newVerifier = new Verifier(address(oracle), GAUGE_CONTROLLER, 11, 9, 12);
+        Verifier newVerifier =
+            new Verifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
         assertEq(address(newVerifier.ORACLE()), address(oracle));
         assertEq(newVerifier.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(GAUGE_CONTROLLER)));
-        assertEq(newVerifier.WEIGHT_MAPPING_SLOT(), 12);
-        assertEq(newVerifier.LAST_VOTE_MAPPING_SLOT(), 11);
-        assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), 9);
+        assertEq(newVerifier.WEIGHT_MAPPING_SLOT(), weightSlot);
+        assertEq(newVerifier.LAST_VOTE_MAPPING_SLOT(), lastUserVoteSlot);
+        assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), userSlopeSlot);
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
@@ -99,7 +102,7 @@ abstract contract ProofCorrectnessTest is Test {
 
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
         (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
-        (uint256 bias_, uint256 slope_) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
+        (uint256 bias_, ) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
 
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
@@ -191,20 +194,20 @@ abstract contract ProofCorrectnessTest is Test {
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
     }
 
-    function generateGaugeProof(address gauge, uint256 epoch) internal pure returns (uint256[] memory) {
+    function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](1);
         uint256 pointWeightsPosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(12, gauge)), epoch)))));
+            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
         positions[0] = pointWeightsPosition;
         return positions;
     }
 
-    function generateAccountProof(address account, address gauge) internal pure returns (uint256[] memory) {
+    function generateAccountProof(address account, address gauge) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](3);
-        positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(11, account)), gauge)));
+        positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
 
         uint256 voteUserSlopePosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(9, account)), gauge)))));
+            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)))));
         positions[1] = voteUserSlopePosition;
         positions[2] = voteUserSlopePosition + 2;
 
