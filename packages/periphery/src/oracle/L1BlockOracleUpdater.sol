@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import "src/interfaces/IOracle.sol";
 import "src/interfaces/IL1Block.sol";
+import "src/interfaces/ILaPoste.sol";
 
 /// @notice A module for updating the L1 block number in the oracle, and block hash.
 contract L1BlockOracleUpdater {
@@ -22,7 +23,7 @@ contract L1BlockOracleUpdater {
     error NotLaPoste();
 
     /// @notice The error emitted when the sender is not the L1 sender address.
-    error NotL1Sender();
+    error WrongSender();
 
     /// @notice The error emitted when the L1 block oracle is not set.
     /// @dev For some chains, we'll allow only updates from the L1 sender address.
@@ -40,7 +41,7 @@ contract L1BlockOracleUpdater {
         L1_BLOCK_ORACLE = _l1BlockOracle;
     }
 
-    function updateL1BlockNumber() external {
+    function updateL1BlockNumber() public returns (uint256 number, bytes32 hash, uint256 timestamp) {
         if (L1_BLOCK_ORACLE == address(0)) revert L1BlockOracleNotSet();
 
         uint256 number = IL1Block(L1_BLOCK_ORACLE).number();
@@ -48,10 +49,17 @@ contract L1BlockOracleUpdater {
         uint256 timestamp = IL1Block(L1_BLOCK_ORACLE).timestamp();
 
         _updateL1BlockNumber(number, hash, timestamp);
+
+        return (number, hash, timestamp);
+    }
+
+    function updateL1BlockNumberAndDispatch(bool dispatch, uint256[] memory chainIds) public payable {
+        (uint256 number, bytes32 hash, uint256 timestamp) = updateL1BlockNumber();
+        if (dispatch && chainIds.length > 0) _dispatchMessage(chainIds, number, hash, timestamp);
     }
 
     function receiveMessage(uint256 chainId, address sender, bytes memory data) external onlyLaPoste {
-        if (chainId != 1 && sender != L1_SENDER) revert NotL1Sender();
+        if (chainId != 1 && sender != L1_SENDER && sender != address(this)) revert WrongSender();
 
         (uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp) =
             abi.decode(data, (uint256, bytes32, uint256));
@@ -72,6 +80,25 @@ contract L1BlockOracleUpdater {
                     timestamp: _l1Timestamp
                 })
             );
+        }
+    }
+
+    function _dispatchMessage(uint256[] memory chainIds, uint256 number, bytes32 hash, uint256 timestamp) internal {
+        bytes memory data = abi.encode(number, hash, timestamp);
+
+        for (uint256 i = 0; i < chainIds.length;) {
+            ILaPoste(LA_POSTE).sendMessage{value: msg.value / chainIds.length}(
+                ILaPoste.MessageParams({
+                    destinationChainId: chainIds[i],
+                    to: address(this),
+                    token: ILaPoste.Token({tokenAddress: address(0), amount: 0}),
+                    payload: data
+                }),
+                0
+            );
+            unchecked {
+                i++;
+            }
         }
     }
 }
