@@ -22,7 +22,7 @@ contract L1Sender {
     /// @notice Sends the block hash to all contracts on all chains
     /// @dev Requires payment to cover gas fees and checks for timing to avoid too frequent updates
     function broadcastBlock(uint256 chainId, uint256 additionalGasLimit) external payable {
-        if (block.timestamp < currentPeriod() + 5 minutes) revert TooSoon();
+        if (block.timestamp < currentPeriod() + 1 minutes) revert TooSoon();
 
         bytes memory payload = abi.encode(block.number - 1, blockhash(block.number - 1), block.timestamp);
 
