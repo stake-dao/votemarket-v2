@@ -51,7 +51,7 @@ contract L1BlockOracleUpdater {
     }
 
     function receiveMessage(uint256 chainId, address sender, bytes memory data) external onlyLaPoste {
-        if (sender != L1_SENDER) revert NotL1Sender();
+        if (chainId != 1 && sender != L1_SENDER) revert NotL1Sender();
 
         (uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp) =
             abi.decode(data, (uint256, bytes32, uint256));
