@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Test.sol";
 import "@forge-std/src/mocks/MockERC20.sol";
 
-import "src/VMMulticall.sol";
+import "src/bundler/Bundler.sol";
 
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
 import {Verifier} from "@votemarket/src/verifiers/Verifier.sol";
@@ -26,7 +26,7 @@ contract VMMulticallTest is Test {
 
     uint256 campaignId;
 
-    VMMulticall multicaller;
+    Bundler multicaller;
 
     MockERC20 rewardToken;
     Votemarket votemarket;
@@ -40,7 +40,7 @@ contract VMMulticallTest is Test {
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
 
-        multicaller = new VMMulticall();
+        multicaller = new Bundler();
 
         oracle = new Oracle(address(this));
         oracleLens = new OracleLens(address(oracle));

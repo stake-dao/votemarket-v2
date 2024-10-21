@@ -11,7 +11,7 @@ verbosity = 3
 optimizers_runs = 200
 
 gas_reports = [
-"VMMulticall"
+"Bundler"
 ]
 
 [fuzz]

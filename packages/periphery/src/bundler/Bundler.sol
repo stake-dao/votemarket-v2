@@ -5,8 +5,8 @@ pragma solidity 0.8.19;
 import "@solady/src/utils/Multicallable.sol";
 
 /// Project Interfaces & Libraries
-import "src/VM.sol";
-import "src/RLPVerifier.sol";
+import "src/bundler/VM.sol";
+import "src/bundler/RLPVerifier.sol";
 
 /// @notice A multicall wrapper for the VM and Verifier contracts to help with batch operations.
-contract VMMulticall is VM, RLPVerifier, Multicallable {}
+contract Bundler is VM, RLPVerifier, Multicallable {}
