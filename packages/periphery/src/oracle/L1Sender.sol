@@ -32,7 +32,7 @@ contract L1Sender {
             payload: payload
         });
 
-        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(params, additionalGasLimit);
+        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(params, additionalGasLimit, msg.sender);
     }
 
     function currentPeriod() internal view returns (uint256) {
