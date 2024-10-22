@@ -119,6 +119,8 @@ contract CampaignRemoteManager is Ownable {
 
         if (params.totalRewardAmount > 0) {
             token = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
+
+            SafeTransferLib.safeApprove({token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount});
         }
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
