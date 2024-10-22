@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "forge-std/src/console.sol";
-
 ///  Project Interfaces & Libraries
 import "src/verifiers/RLPDecoder.sol";
 
