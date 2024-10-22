@@ -79,7 +79,7 @@ interface IVotemarket {
         uint8 numberOfPeriods,
         uint256 maxRewardPerVote,
         uint256 totalRewardAmount,
-        address[] memory blacklist,
+        address[] memory addresses,
         address hook,
         bool whitelist
     ) external returns (uint256 campaignId);
@@ -90,6 +90,8 @@ interface IVotemarket {
         uint256 totalRewardAmount,
         uint256 maxRewardPerVote
     ) external;
+
+    function getCampaign(uint256 campaignId) external view returns (Campaign memory);
 
     function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
         external
