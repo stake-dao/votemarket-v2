@@ -13,10 +13,11 @@ import {L1Sender} from "@periphery/src/oracle/L1Sender.sol";
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);
+    function computeCreate3Address(bytes32 salt) external view returns (address);
 }
 
 contract Deploy is Script {
-    address public deployer;
+    address public deployer = 0x000755Fbe4A24d7478bfcFC1E561AfCE82d1ff62;
     address public governance = 0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765;
 
     Oracle public oracle;
