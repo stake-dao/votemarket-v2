@@ -84,6 +84,13 @@ interface IVotemarket {
         bool whitelist
     ) external returns (uint256 campaignId);
 
+    function manageCampaign(
+        uint256 campaignId,
+        uint8 numberOfPeriods,
+        uint256 totalRewardAmount,
+        uint256 maxRewardPerVote
+    ) external;
+
     function claim(uint256 campaignId, address account, uint256 epoch, bytes calldata hookData)
         external
         returns (uint256 claimed);
