@@ -31,5 +31,7 @@ interface ILaPoste {
     }
 
     function receiveMessage(uint256 chainId, bytes calldata payload) external;
-    function sendMessage(MessageParams memory params, uint256 additionalGasLimit, address refundAddress) external payable;
+    function sendMessage(MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
+        external
+        payable;
 }
