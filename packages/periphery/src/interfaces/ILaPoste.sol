@@ -30,6 +30,8 @@ interface ILaPoste {
         uint256 nonce;
     }
 
+    function tokenFactory() external view returns (address);
+
     function receiveMessage(uint256 chainId, bytes calldata payload) external;
     function sendMessage(MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
         external

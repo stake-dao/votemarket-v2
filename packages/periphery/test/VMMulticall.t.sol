@@ -40,7 +40,7 @@ contract VMMulticallTest is Test {
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
 
-        multicaller = new Bundler();
+        multicaller = new Bundler(address(0));
 
         oracle = new Oracle(address(this));
         oracleLens = new OracleLens(address(oracle));
