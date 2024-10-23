@@ -8,9 +8,13 @@ import "@votemarket/src/interfaces/IVotemarket.sol";
 import "src/interfaces/ILaPoste.sol";
 import "src/interfaces/ITokenFactory.sol";
 
-/// @notice A module for sending the block hash to the L1 block oracle updater.
+/// @notice A module for creating and managing campaigns from L1.
 contract CampaignRemoteManager is Ownable {
     using SafeTransferLib for address;
+
+    ////////////////////////////////////////////////////////////////
+    /// --- STRUCTS
+    ///////////////////////////////////////////////////////////////
 
     enum ActionType {
         CREATE_CAMPAIGN,
@@ -44,6 +48,10 @@ contract CampaignRemoteManager is Ownable {
         uint256 maxRewardPerVote;
     }
 
+    ////////////////////////////////////////////////////////////////
+    /// --- STATE VARIABLES
+    ///////////////////////////////////////////////////////////////
+
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
 
@@ -68,6 +76,10 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the campaign manager is invalid.
     error InvalidCampaignManager();
 
+    ////////////////////////////////////////////////////////////////
+    /// --- MODIFIERS
+    ///////////////////////////////////////////////////////////////
+
     modifier onlyLaPoste() {
         if (msg.sender != LA_POSTE) revert NotLaPoste();
         _;
@@ -79,7 +91,10 @@ contract CampaignRemoteManager is Ownable {
         TOKEN_FACTORY = _tokenFactory;
     }
 
-    /// @notice Sends the block hash to the L1 block oracle updater.
+    /// @notice Creates a campaign on L2.
+    /// @param params The campaign creation parameters
+    /// @param destinationChainId The destination chain id
+    /// @param additionalGasLimit The additional gas limit
     function createCampaign(
         CampaignCreationParams memory params,
         uint256 destinationChainId,
@@ -110,6 +125,12 @@ contract CampaignRemoteManager is Ownable {
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
     }
 
+    /// @notice Manages a campaign on L2.
+    /// @param params The campaign management parameters
+    /// @param destinationChainId The destination chain id
+    /// @param additionalGasLimit The additional gas limit
+    /// @dev This function is the most useful if the campaign manager wants to increase the reward amount. Otherwise,
+    /// the manager should directly call the `manageCampaign` function on the Votemarket on L2.
     function manageCampaign(
         CampaignManagementParams memory params,
         uint256 destinationChainId,
@@ -146,6 +167,12 @@ contract CampaignRemoteManager is Ownable {
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
     }
 
+    /// @notice Receives a message from La Poste.
+    /// @param chainId The chain id
+    /// @param sender The sender address
+    /// @param payload The payload
+    /// @dev Handle the cases of creating and managing campaigns. It makes sure that the sender is the manager of the
+    /// campaign and that the chain id is valid.
     function receiveMessage(uint256 chainId, address sender, bytes calldata payload) external onlyLaPoste {
         if (chainId != 1) revert InvalidChainId();
         if (sender != address(this)) revert InvalidSender();
@@ -192,6 +219,9 @@ contract CampaignRemoteManager is Ownable {
         }
     }
 
+    /// @notice Recovers ERC20 tokens from the contract.
+    /// @param token The token address
+    /// @param amount The amount of tokens to recover
     function recoverERC20(address token, uint256 amount) external onlyOwner {
         SafeTransferLib.safeTransfer(token, msg.sender, amount);
     }

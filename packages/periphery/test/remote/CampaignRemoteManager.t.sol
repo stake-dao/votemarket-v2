@@ -146,7 +146,6 @@ contract CampaignRemoteManagerTest is Test {
         assertEq(votemarket.getCampaign(0).maxRewardPerVote, params.maxRewardPerVote);
         assertEq(votemarket.getCampaign(0).totalRewardAmount, params.totalRewardAmount);
 
-
         CampaignRemoteManager.CampaignManagementParams memory managementParams = CampaignRemoteManager
             .CampaignManagementParams({
             campaignId: 0,
@@ -190,14 +189,22 @@ contract CampaignRemoteManagerTest is Test {
         receiveMessage(1, address(campaignRemoteManager), managementPayload);
 
         assertEq(votemarket.getCampaign(0).totalRewardAmount, params.totalRewardAmount);
-        uint startTime = votemarket.getCampaign(0).startTimestamp;
+        uint256 startTime = votemarket.getCampaign(0).startTimestamp;
 
-        assertEq(votemarket.getCampaignUpgrade(0, startTime).totalRewardAmount, params.totalRewardAmount + managementParams.totalRewardAmount);
+        assertEq(
+            votemarket.getCampaignUpgrade(0, startTime).totalRewardAmount,
+            params.totalRewardAmount + managementParams.totalRewardAmount
+        );
         assertEq(votemarket.getCampaignUpgrade(0, startTime).maxRewardPerVote, managementParams.maxRewardPerVote);
-        assertEq(votemarket.getCampaignUpgrade(0, startTime).numberOfPeriods, managementParams.numberOfPeriods + params.numberOfPeriods);
+        assertEq(
+            votemarket.getCampaignUpgrade(0, startTime).numberOfPeriods,
+            managementParams.numberOfPeriods + params.numberOfPeriods
+        );
 
         assertEq(wrappedToken.balanceOf(address(campaignRemoteManager)), 0);
-        assertEq(wrappedToken.balanceOf(address(votemarket)), params.totalRewardAmount + managementParams.totalRewardAmount);
+        assertEq(
+            wrappedToken.balanceOf(address(votemarket)), params.totalRewardAmount + managementParams.totalRewardAmount
+        );
     }
 
     /// Mocked functions
