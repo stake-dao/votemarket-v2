@@ -44,7 +44,6 @@ contract L1BlockOracleUpdater {
     }
 
     /// @notice Updates the L1 block number in the oracle using the L1_BLOCK_ORACLE if available.
-    /// @return The L1 block number, hash, and timestamp.
     function updateL1BlockNumber() public returns (uint256 number, bytes32 hash, uint256 timestamp) {
         if (L1_BLOCK_ORACLE == address(0)) revert L1BlockOracleNotSet();
 
@@ -74,7 +73,6 @@ contract L1BlockOracleUpdater {
     }
 
     /// @dev Updates the L1 block number in the oracle.
-    /// @return The L1 block number, hash, and timestamp.   
     function _updateL1BlockNumber(uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp)
         internal
         returns (uint256 number, bytes32 hash, uint256 timestamp)

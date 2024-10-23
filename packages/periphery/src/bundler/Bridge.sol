@@ -7,7 +7,6 @@ import "src/interfaces/ILaPoste.sol";
 import "src/interfaces/ITokenFactory.sol";
 
 abstract contract Bridge {
-
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
 
@@ -33,7 +32,13 @@ abstract contract Bridge {
     /// 4. Wrapped token is burned from this contract.
     /// 5. Message is sent to the destination chain.
     /// 6. The receiver on the destination chain receives the unlocked original tokens.
-    function bridge(address token, uint256 amount, uint256 destinationChainId, address receiver) external payable {
+    function bridge(
+        address token,
+        uint256 amount,
+        uint256 destinationChainId,
+        uint256 additionalGasLimit,
+        address receiver
+    ) external payable {
         address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(token);
 
         SafeTransferLib.safeTransferFrom(wrappedToken, msg.sender, address(this), amount);
@@ -45,6 +50,6 @@ abstract contract Bridge {
             payload: ""
         });
 
-        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, 0, msg.sender);
+        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
     }
 }
