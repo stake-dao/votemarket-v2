@@ -5,7 +5,9 @@ import "src/interfaces/IL1Block.sol";
 import "src/interfaces/ILaPoste.sol";
 import "@votemarket/src/interfaces/IOracle.sol";
 
-/// @notice A module for updating the L1 block number in the oracle, and block hash.
+/// @notice A module for updating the L1 block number in the oracle, and block hash on L2.
+/// It uses the L1_BLOCK_ORACLE of Optimistic Rollup chains if available, otherwise it uses the L1_SENDER as a fallback.
+/// It also supports sending the block hash to multiple chains in a single call.
 contract L1BlockOracleUpdater {
     /// @notice The L1 sender address.
     address public immutable L1_SENDER;
@@ -41,6 +43,8 @@ contract L1BlockOracleUpdater {
         L1_BLOCK_ORACLE = _l1BlockOracle;
     }
 
+    /// @notice Updates the L1 block number in the oracle using the L1_BLOCK_ORACLE if available.
+    /// @return The L1 block number, hash, and timestamp.
     function updateL1BlockNumber() public returns (uint256 number, bytes32 hash, uint256 timestamp) {
         if (L1_BLOCK_ORACLE == address(0)) revert L1BlockOracleNotSet();
 
@@ -51,11 +55,16 @@ contract L1BlockOracleUpdater {
         return _updateL1BlockNumber(number, hash, timestamp);
     }
 
+    /// @notice Updates the L1 block number in the oracle using the L1_BLOCK_ORACLE if available, and sends the block hash to the given chains.
+    /// If already present in the oracle, it will not be inserted again.
+    /// @param dispatch Whether to send the block hash to the given chains.
+    /// @param chainIds The chain IDs to send the block hash to.
     function updateL1BlockNumberAndDispatch(bool dispatch, uint256[] memory chainIds) public payable {
         (uint256 number, bytes32 hash, uint256 timestamp) = updateL1BlockNumber();
         if (dispatch && chainIds.length > 0) _dispatchMessage(chainIds, number, hash, timestamp);
     }
 
+    /// @notice Receives the block hash from the L1 sender on L2 and updates the L1 block number in the oracle.
     function receiveMessage(uint256 chainId, address sender, bytes memory data) external onlyLaPoste {
         if (chainId != 1 && sender != L1_SENDER && sender != address(this)) revert WrongSender();
 
@@ -64,6 +73,8 @@ contract L1BlockOracleUpdater {
         _updateL1BlockNumber(_l1BlockNumber, _l1BlockHash, _l1Timestamp);
     }
 
+    /// @dev Updates the L1 block number in the oracle.
+    /// @return The L1 block number, hash, and timestamp.   
     function _updateL1BlockNumber(uint256 _l1BlockNumber, bytes32 _l1BlockHash, uint256 _l1Timestamp)
         internal
         returns (uint256 number, bytes32 hash, uint256 timestamp)
@@ -88,6 +99,7 @@ contract L1BlockOracleUpdater {
         return (blockData.number, blockData.hash, blockData.timestamp);
     }
 
+    /// @dev Sends the block hash to the given chains.
     function _dispatchMessage(uint256[] memory chainIds, uint256 number, bytes32 hash, uint256 timestamp) internal {
         bytes memory data = abi.encode(number, hash, timestamp);
 

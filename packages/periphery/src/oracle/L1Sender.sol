@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "src/interfaces/ILaPoste.sol";
 
-/// @notice A module for sending the block hash to the L1 block oracle updater.
+/// @notice A module for sending the block hash to the L1 block oracle updater on L2.
 contract L1Sender {
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
