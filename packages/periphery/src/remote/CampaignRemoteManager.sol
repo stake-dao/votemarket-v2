@@ -19,6 +19,7 @@ contract CampaignRemoteManager is Ownable {
 
     struct Payload {
         ActionType actionType;
+        address sender;
         bytes parameters;
     }
 
@@ -58,6 +59,9 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the sender is not the La Poste address.
     error NotLaPoste();
 
+    /// @notice The error thrown when the sender is invalid.
+    error InvalidSender();
+
     /// @notice The error thrown when the chain id is invalid.
     error InvalidChainId();
 
@@ -84,7 +88,8 @@ contract CampaignRemoteManager is Ownable {
         if (block.chainid != 1) revert InvalidChainId();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload = abi.encode(Payload({actionType: ActionType.CREATE_CAMPAIGN, parameters: parameters}));
+        bytes memory payload =
+            abi.encode(Payload({actionType: ActionType.CREATE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
 
         SafeTransferLib.safeTransferFrom({
             token: params.rewardToken,
@@ -113,12 +118,20 @@ contract CampaignRemoteManager is Ownable {
         if (block.chainid != 1) revert InvalidChainId();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload = abi.encode(Payload({actionType: ActionType.MANAGE_CAMPAIGN, parameters: parameters}));
+        bytes memory payload =
+            abi.encode(Payload({actionType: ActionType.MANAGE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
 
         ILaPoste.Token memory token;
 
         if (params.totalRewardAmount > 0) {
             token = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
+
+            SafeTransferLib.safeTransferFrom({
+                token: params.rewardToken,
+                from: msg.sender,
+                to: address(this),
+                amount: params.totalRewardAmount
+            });
 
             SafeTransferLib.safeApprove({token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount});
         }
@@ -135,6 +148,7 @@ contract CampaignRemoteManager is Ownable {
 
     function receiveMessage(uint256 chainId, address sender, bytes calldata payload) external onlyLaPoste {
         if (chainId != 1) revert InvalidChainId();
+        if (sender != address(this)) revert InvalidSender();
 
         Payload memory _payload = abi.decode(payload, (Payload));
 
@@ -160,7 +174,7 @@ contract CampaignRemoteManager is Ownable {
         } else {
             CampaignManagementParams memory params = abi.decode(_payload.parameters, (CampaignManagementParams));
             Campaign memory campaign = IVotemarket(VOTEMARKET).getCampaign(params.campaignId);
-            if (campaign.manager != sender) revert InvalidCampaignManager();
+            if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
 
             if (params.totalRewardAmount > 0) {
                 address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(params.rewardToken);

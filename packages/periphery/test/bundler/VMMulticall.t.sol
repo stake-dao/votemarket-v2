@@ -40,7 +40,7 @@ contract VMMulticallTest is Test {
         rewardToken = new MockERC20();
         rewardToken.initialize("Mock Token", "MOCK", 18);
 
-        multicaller = new Bundler(address(0));
+        multicaller = new Bundler(address(this));
 
         oracle = new Oracle(address(this));
         oracleLens = new OracleLens(address(oracle));
@@ -190,5 +190,9 @@ contract VMMulticallTest is Test {
             inputs[5 + i] = vm.toString(_positions[i]);
         }
         return abi.decode(vm.ffi(inputs), (bytes32, bytes, bytes, bytes));
+    }
+
+    function tokenFactory() external view returns (address) {
+        return address(this);
     }
 }

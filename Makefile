@@ -16,7 +16,7 @@ install:
 	pnpm i
 
 test:
-	@forge test --gas-report --match-contract BAL_Platform
+	@forge test --gas-report
 
 test-f-%:
 	@FOUNDRY_MATCH_TEST=$* make test
