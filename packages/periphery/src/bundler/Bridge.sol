@@ -26,7 +26,7 @@ abstract contract Bridge {
     /// @dev The token address should be the official token address available on L1. The TokenFactory will retrieve the wrapped token address,
     /// transfer it, and burn it.
     /// The flow should be:
-    /// 1. Approve the wrapped token on the sender this contract.
+    /// 1. Approve the wrapped token to be spent by this contract.
     /// 2. Call this function, but using the original token address.
     /// 3. Wrapped token is transferred to this contract.
     /// 4. Wrapped token is burned from this contract.
