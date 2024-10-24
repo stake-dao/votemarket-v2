@@ -73,6 +73,9 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the chain id is invalid.
     error InvalidChainId();
 
+    /// @notice The error thrown when the reward token is invalid.
+    error InvalidRewardToken();
+
     /// @notice The error thrown when the campaign manager is invalid.
     error InvalidCampaignManager();
 
@@ -205,6 +208,7 @@ contract CampaignRemoteManager is Ownable {
 
             if (params.totalRewardAmount > 0) {
                 address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(params.rewardToken);
+                if (campaign.rewardToken != wrappedToken) revert InvalidRewardToken();
 
                 SafeTransferLib.safeApprove({
                     token: wrappedToken,
