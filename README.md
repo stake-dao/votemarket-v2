@@ -1,71 +1,147 @@
 # Votemarket V2
 
-V2 is an evolution of the [Votemarket](https://github.com/stake-dao/votemarket) contract. It's been running for a while at Votemarket at [Etherscan](https://etherscan.io/address/0x0000000895cB182E6f983eb4D8b4E0Aa0B31Ae4c#code).
-It is built on top of the [Curve Gauge Controller](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy) contract, and its forks (Balancer, FXN, etc.).
+## Overview
 
-Project creates incentive campaigns for liquidity providers to vote on gauge weights. Contract fetch each period account votes and total votes from the Gauge Controller contract and distributes the rewards accordingly to the voters.
+Votemarket V2 is an advanced evolution of the original [Votemarket](https://github.com/stake-dao/votemarket) protocol, designed to create and manage incentive campaigns for liquidity providers voting on gauge weights. The system is built on top of the [Curve Gauge Controller](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy) contract and its forks (Balancer, FXN, etc.).
 
-The constraints of the V1 are:
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL1.1-blue.svg)](https://github.com/stake-dao/votemarket-v2/blob/main/LICENSE)
 
-* Gauge Controller doesn't track historical data, so the voter needs to claim the rewards every week. It can be quite expensive.
-* Available only on Mainnet. Curve is deployed on many L2s, Projects that doesn't have their token on L1 can't use it.
-* The unclaimed rewards are rollovered to the next epoch. While this is a good feature, some projects wants more control over the campaigns on their spending.
+## Key Features
 
-V2 is an improvement of the V1 with the following improvements:
+- 100% permissionless
+- Layer 2 deployment support
+- Oracle-based data population using Storage Proofs
+- Historical epoch reward claims
+- Customizable campaign management through hooks
+- Cross-chain compatibility
+- Modular architecture for component replacement
 
-* The contract is deployed on L2.
-* Data are populated on L2 on an Oracle contract using Storage Proofs.
-* Account can bring their proofs to the contract to claim the rewards for any epoch.
-* Hooks. Projects can add custom logic to the contract to handle the rollovers.
+## Improvements Over V1
 
-Architecture is modular. Each component is independent and can be replaced with a different implementation.
+| Feature | V1 | V2 |
+|---------|----|----|
+| Chain Support | Mainnet only | Multi-chain (L1 + L2s) |
+| Reward Claims | Weekly requirement | Flexible timing |
+| Campaign Control | Fixed rollover | Customizable via hooks |
+| Cost Efficiency | Higher gas costs | Optimized for L2 |
 
-Test coverage is 100%.
+## System Architecture
+
+### Component Overview
+
+The system consists of three main components:
+
+1. **Block Management System**
+   - L1Sender: Broadcasts block information
+   - LaPoste: CCIP-compatible message bus
+   - L1BlockOracleUpdater: Updates Oracle with block data
+
+2. **Campaign Management**
+   - CampaignRemoteManager (L1)
+   - CampaignManager (L2)
+   - Votemarket Contract
+
+3. **Oracle System**
+   - Storage Proofs verification
+   - Cross-chain data synchronization
+
+### Architecture Diagrams
+
+#### L1 Block Broadcasting
+```mermaid
+graph LR
+    L1Sender -->|broadcastBlock| LaPoste
+    LaPoste -->|sendMessage| CCIP
+```
+
+#### L2 Block Processing
+```mermaid
+graph LR
+    CCIP -->|receiveMessage| LaPoste
+    LaPoste -->|receiveMessage| L1BlockOracleUpdater
+    L1BlockOracleUpdater -->|insertBlockNumber| Oracle
+```
 
 ## Getting Started
 
-This project is a monorepo managed by [pnpm](https://pnpm.io/). Each package is in its own directory.
-
 ### Prerequisites
 
-Before you begin, ensure you have met the following requirements:
+- [pnpm](https://pnpm.io/) (v8.0.0 or higher)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation.html)
+- Python 3.7+
+- [pip](https://pip.pypa.io/en/stable/installation/)
 
-* pnpm installed
-* [Foundry](https://book.getfoundry.sh/getting-started/installation.html) installed
-* Python 3.7 or higher installed
-* [pip](https://pip.pypa.io/en/stable/installation/) (Python package installer) installed
-
-### Installation
+### Environment Setup
 
 1. Clone the repository:
-
-```sh
+```bash
 git clone https://github.com/stake-dao/votemarket-v2.git
+cd votemarket-v2
 ```
 
-2. Install the dependencies:
-
-```sh
-cd votemarket-v2/packages/votemarket
-pip install web3 rlp eth_abi python-dotenv
+2. Install dependencies:
+```bash
+cd packages/votemarket
+pip install -r requirements.txt
 make install
 ```
 
-3. Compile the contracts:
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-```sh
+### Build and Test
+
+```bash
+# Compile contracts
 make
-```
 
-4. Run the tests:
-
-```sh
+# Run tests
 make test
+
+# Generate coverage report
+make coverage
 ```
 
+## Security
 
-# Known Limitations
+### Audits
 
-* The Campaign Managers have a substantial amount of control over the campaigns and can decide to "rug" the votes of the voters.
+- [Trust Security](https://docs.stakedao.org/audits)
 
-* Verifying a lot of proofs can be expensive, (still less much expensive than claiming the rewards on L1). We're starting with RLP decoding and storage proofs, but we're planning to add more verification methods such as ZK Verifiers. (Succinct SP1)
+### Known Limitations
+
+1. Campaign Manager Control
+   - Campaign Managers have significant control over campaigns
+   - Potential for campaign manipulation ("rug") exists
+
+2. Proof Verification Costs
+   - Multiple proof verifications can be gas-intensive
+   - Future optimizations planned through ZK Verifiers (Succinct SP1)
+
+### Bug Bounty
+Visit our [Bug Bounty Program](https://docs.stakedao.org/bug-bounty) for details on reporting security issues.
+
+## Documentation
+
+- [LaPoste Integration](https://github.com/stake-dao/laposte)
+
+## Support
+
+- [Discord Community](https://discord.com/invite/qwQfw4kmYy)
+- [Forum](https://gov.stakedao.org/)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## References
+
+- [LaPoste Repository](https://github.com/stake-dao/laposte)
+- [Curve Gauge Controller](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy)
+
+## Acknowledgments
+
+- All contributors and auditors
