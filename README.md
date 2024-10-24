@@ -38,7 +38,7 @@ The system consists of three main components:
 
 2. **Campaign Management**
    - CampaignRemoteManager (L1)
-   - CampaignManager (L2)
+   - CampaignRemoteManager (L2)
    - Votemarket Contract
 
 3. **Oracle System**
