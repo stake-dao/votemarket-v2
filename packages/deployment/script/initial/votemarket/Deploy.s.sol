@@ -14,12 +14,33 @@ contract Deploy is Base {
 
     function run() public {
         /// Curve
-        super.run(CURVE_GAUGE_CONTROLLER, 2, 1 weeks, 11, 9, 12);
+        super.run({
+            gaugeController: CURVE_GAUGE_CONTROLLER,
+            minPeriods: 2,
+            epochLength: 1 weeks,
+            lastUserVoteSlot: 11,
+            userSlopeSlot: 9,
+            weightSlot: 12
+        });
 
         /// Balancer
-        super.run(BALANCER_GAUGE_CONTROLLER, 2, 1 weeks, 1000000007, 1000000005, 1000000008);
+        super.run({
+            gaugeController: BALANCER_GAUGE_CONTROLLER,
+            minPeriods: 2,
+            epochLength: 1 weeks,
+            lastUserVoteSlot: 1000000007,
+            userSlopeSlot: 1000000005,
+            weightSlot: 1000000008
+        });
 
         /// FXN
-        super.run(FXN_GAUGE_CONTROLLER, 2, 1 weeks, 1000000010, 1000000008, 1000000011);
+        super.run({
+            gaugeController: FXN_GAUGE_CONTROLLER,
+            minPeriods: 2,
+            epochLength: 1 weeks,
+            lastUserVoteSlot: 1000000010,
+            userSlopeSlot: 1000000008,
+            weightSlot: 1000000011
+        });
     }
 }
