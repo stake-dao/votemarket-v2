@@ -79,6 +79,12 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the campaign manager is invalid.
     error InvalidCampaignManager();
 
+    /// @notice The event emitted when a campaign creation payload is sent.
+    event CampaignCreationPayloadSent(CampaignCreationParams indexed params);
+
+    /// @notice The event emitted when a campaign management payload is sent.
+    event CampaignManagementPayloadSent(CampaignManagementParams indexed params);
+
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
@@ -126,6 +132,8 @@ contract CampaignRemoteManager is Ownable {
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
+
+        emit CampaignCreationPayloadSent(params);
     }
 
     /// @notice Manages a campaign on L2.
@@ -168,6 +176,8 @@ contract CampaignRemoteManager is Ownable {
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
+
+        emit CampaignManagementPayloadSent(params);
     }
 
     /// @notice Receives a message from La Poste.
