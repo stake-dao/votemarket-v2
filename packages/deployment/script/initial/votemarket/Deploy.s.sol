@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Script.sol";
-
 import {Base} from "script/initial/votemarket/Base.sol";
 
 contract Deploy is Base {
@@ -21,26 +20,6 @@ contract Deploy is Base {
             lastUserVoteSlot: 11,
             userSlopeSlot: 9,
             weightSlot: 12
-        });
-
-        /// Balancer
-        super.run({
-            gaugeController: BALANCER_GAUGE_CONTROLLER,
-            minPeriods: 2,
-            epochLength: 1 weeks,
-            lastUserVoteSlot: 1000000007,
-            userSlopeSlot: 1000000005,
-            weightSlot: 1000000008
-        });
-
-        /// FXN
-        super.run({
-            gaugeController: FXN_GAUGE_CONTROLLER,
-            minPeriods: 2,
-            epochLength: 1 weeks,
-            lastUserVoteSlot: 1000000010,
-            userSlopeSlot: 1000000008,
-            weightSlot: 1000000011
         });
     }
 }

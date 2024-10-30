@@ -62,6 +62,26 @@ graph LR
     L1BlockOracleUpdater -->|insertBlockNumber| Oracle
 ```
 
+### Deployment Addresses
+
+#### Core
+
+| Contract | Address | Networks |
+|----------|---------|----------|
+| Oracle | `0xEF2BB9DA5834E98bC146C7a94153e9043777E3aC` | Arbitrum, Optimism, Base, Polygon |
+| Verifier | `0x2146Ecc11B89bBd08016B708f2DA3eddD52D8F90` | Arbitrum, Optimism, Base, Polygon |
+| OracleLens | `0x2F3b9dbf87ee2B8b6b19eDd634487427B31E500d` | Arbitrum, Optimism, Base, Polygon |
+| Votemarket | `0xa866BE05309CF8F5d4402b0822Fc80F14ECFC603` | Arbitrum, Optimism, Base, Polygon |
+
+#### Periphary
+
+| Contract | Address | Networks |
+|----------|---------|----------|
+| Bundler | `0x0000000000000000000000000000000000000000` | Arbitrum, Optimism, Base, Polygon |
+| L1Sender | `0x0000000000000000000000000000000000000000` | Mainnet |
+| L1BlockOracleUpdater | `0x0000000000000000000000000000000000000000` | Arbitrum, Optimism, Base, Polygon |
+| CampaignRemoteManager | `0x0000000000000000000000000000000000000000` | Mainnet, Arbitrum, Optimism, Base, Polygon |
+
 ## Getting Started
 
 ### Prerequisites

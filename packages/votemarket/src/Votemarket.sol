@@ -508,17 +508,17 @@ contract Votemarket is ReentrancyGuard {
 
         Campaign storage campaign = campaignById[campaignId];
 
-        // 2. Calculate reward per vote
+        // 3. Calculate reward per vote
         uint256 rewardPerVote = period.rewardPerPeriod.mulDiv(1e18, totalVotes);
 
-        // 3. Cap reward per vote at max reward per vote
+        // 4. Cap reward per vote at max reward per vote
         if (rewardPerVote > campaign.maxRewardPerVote) {
             rewardPerVote = campaign.maxRewardPerVote;
 
-            // 4. Calculate leftover rewards
+            // 5. Calculate leftover rewards
             uint256 leftOver = period.rewardPerPeriod - rewardPerVote.mulDiv(totalVotes, 1e18);
 
-            // 5. Handle leftover rewards
+            // 6. Handle leftover rewards
             address hook = campaign.hook;
             if (hook != address(0)) {
                 // Transfer leftover to hook contract
@@ -536,7 +536,7 @@ contract Votemarket is ReentrancyGuard {
                     )
                 );
 
-                /// Consider the leftover as claimed.
+                // Consider the leftover as claimed.
                 totalClaimedByCampaignId[campaignId] += leftOver;
             } else {
                 // Store leftover in the period.
@@ -675,17 +675,17 @@ contract Votemarket is ReentrancyGuard {
         // 1. Check if the campaign is ended.
         if (getRemainingPeriods(campaignId, epoch) <= 1) revert CAMPAIGN_ENDED();
 
-        // 3. Get the campaign.
+        // 2. Get the campaign.
         Campaign storage campaign = campaignById[campaignId];
 
         if (campaign.startTimestamp <= epoch && !periodByCampaignId[campaignId][epoch].updated) {
             revert STATE_MISSING();
         }
 
-        // 2. Calculate the next epoch.
+        // 3. Calculate the next epoch.
         epoch += EPOCH_LENGTH;
 
-        // 2. Check if there's a campaign upgrade in queue for this epoch.
+        // 4. Check if there's a campaign upgrade in queue for this epoch.
         CampaignUpgrade memory campaignUpgrade = campaignUpgradeById[campaignId][epoch];
 
         // 5. Transfer additional reward tokens if needed.

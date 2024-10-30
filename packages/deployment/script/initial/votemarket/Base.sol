@@ -17,7 +17,7 @@ interface ICreate3Factory {
 }
 
 abstract contract Base is Script {
-    address public deployer = 0x000755Fbe4A24d7478bfcFC1E561AfCE82d1ff62;
+    address public deployer = 0x606A503e5178908F10597894B35b2Be8685EAB90;
     address public governance = 0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765;
 
     Oracle public oracle;
@@ -26,7 +26,7 @@ abstract contract Base is Script {
 
     Votemarket public votemarket;
 
-    string[] public chains = ["arbitrum", "optimism", "base", "polygon", "frax"];
+    string[] public chains = ["arbitrum", "optimism", "base", "polygon"];
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
@@ -54,6 +54,7 @@ abstract contract Base is Script {
                 type(Verifier).creationCode,
                 abi.encode(address(oracle), gaugeController, lastUserVoteSlot, userSlopeSlot, weightSlot)
             );
+
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = Verifier(payable(verifierAddress));
 
@@ -69,6 +70,7 @@ abstract contract Base is Script {
                 type(Votemarket).creationCode,
                 abi.encode(governance, address(oracleLensAddress), governance, epochLength, minPeriods)
             );
+
             address votemarketAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             votemarket = Votemarket(payable(votemarketAddress));
 

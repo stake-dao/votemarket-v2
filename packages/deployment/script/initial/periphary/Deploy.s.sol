@@ -17,7 +17,7 @@ contract Deploy is Script {
     address public governance = 0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765;
 
     address public oracle = 0x66D1ad3500dd6ea1b9eA31313ceBae17cdE22437;
-    address public laPoste = 0x8b72eF67eF5a090F650521a7BF85Ee8eaEBCF4d5;
+    address public laPoste = 0x345000000000FD99009B2BF0fb373Ca70f4C0047;
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
     L1Sender public l1Sender;
