@@ -94,10 +94,12 @@ contract CampaignRemoteManager is Ownable {
         _;
     }
 
-    constructor(address _votemarket, address _laPoste, address _tokenFactory) {
+    constructor(address _votemarket, address _laPoste, address _tokenFactory, address _owner) {
         LA_POSTE = _laPoste;
         VOTEMARKET = _votemarket;
         TOKEN_FACTORY = _tokenFactory;
+
+        _initializeOwner(_owner);
     }
 
     /// @notice Creates a campaign on L2.

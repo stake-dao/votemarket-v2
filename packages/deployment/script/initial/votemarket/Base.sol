@@ -42,13 +42,13 @@ abstract contract Base is Script {
             vm.createSelectFork(vm.rpcUrl(chains[i]));
             vm.startBroadcast(deployer);
 
-            bytes32 salt = keccak256(abi.encode("oracle", gaugeController));
+            bytes32 salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000bec0482283feff031eb96b);
 
             bytes memory initCode = abi.encodePacked(type(Oracle).creationCode, abi.encode(deployer));
             address oracleAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracle = Oracle(payable(oracleAddress));
 
-            salt = keccak256(abi.encode("verifier", gaugeController));
+            salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab900050cdc85ff4feff033625af);
 
             initCode = abi.encodePacked(
                 type(Verifier).creationCode,
@@ -58,13 +58,13 @@ abstract contract Base is Script {
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = Verifier(payable(verifierAddress));
 
-            salt = keccak256(abi.encode("oracleLens", gaugeController));
+            salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab90001c794f661efaff03adfc69);
 
             initCode = abi.encodePacked(type(OracleLens).creationCode, abi.encode(address(oracle)));
             address oracleLensAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracleLens = OracleLens(payable(oracleLensAddress));
 
-            salt = keccak256(abi.encode("votemarket", gaugeController));
+            salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000c084866f71faff033fd9ff);
 
             initCode = abi.encodePacked(
                 type(Votemarket).creationCode,

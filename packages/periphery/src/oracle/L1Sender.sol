@@ -2,21 +2,23 @@
 pragma solidity 0.8.19;
 
 import "src/interfaces/ILaPoste.sol";
+import "@solady/src/auth/Ownable.sol";
 
 /// @notice A module for sending the block hash to the L1 block oracle updater on L2.
-contract L1Sender {
+contract L1Sender is Ownable {
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
 
     /// @notice The L1 block oracle address.
-    address public immutable L1_BLOCK_ORACLE_UPDATER;
+    address public L1_BLOCK_ORACLE_UPDATER;
 
     /// @notice The error thrown when the block hash is sent too soon.
     error TooSoon();
 
-    constructor(address _l1BlockOracleUpdater, address _laPoste) {
+    constructor(address _laPoste, address _owner) {
         LA_POSTE = _laPoste;
-        L1_BLOCK_ORACLE_UPDATER = _l1BlockOracleUpdater;
+
+        _initializeOwner(_owner);
     }
 
     /// @notice Sends the block hash to the L1 block oracle updater.
@@ -33,6 +35,12 @@ contract L1Sender {
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(params, additionalGasLimit, msg.sender);
+    }
+
+    function setL1BlockOracleUpdater(address _l1BlockOracleUpdater) external onlyOwner {
+        L1_BLOCK_ORACLE_UPDATER = _l1BlockOracleUpdater;
+
+        _setOwner(address(0));
     }
 
     function currentPeriod() internal view returns (uint256) {

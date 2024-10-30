@@ -68,19 +68,19 @@ graph LR
 
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Oracle | `0xEF2BB9DA5834E98bC146C7a94153e9043777E3aC` | Arbitrum, Optimism, Base, Polygon |
-| Verifier | `0x2146Ecc11B89bBd08016B708f2DA3eddD52D8F90` | Arbitrum, Optimism, Base, Polygon |
-| OracleLens | `0x2F3b9dbf87ee2B8b6b19eDd634487427B31E500d` | Arbitrum, Optimism, Base, Polygon |
-| Votemarket | `0xa866BE05309CF8F5d4402b0822Fc80F14ECFC603` | Arbitrum, Optimism, Base, Polygon |
+| Oracle | `0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8` | Arbitrum, Optimism, Base, Polygon |
+| Verifier | `0x2Fa15A44eC5737077a747ed93e4eBD5b4960a465` | Arbitrum, Optimism, Base, Polygon |
+| OracleLens | `0x99EDB5782da5D799dd16a037FDbc00a1494b9Ead` | Arbitrum, Optimism, Base, Polygon |
+| Votemarket | `0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5` | Arbitrum, Optimism, Base, Polygon |
 
 #### Periphary
 
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Bundler | `0x0000000000000000000000000000000000000000` | Arbitrum, Optimism, Base, Polygon |
-| L1Sender | `0x0000000000000000000000000000000000000000` | Mainnet |
-| L1BlockOracleUpdater | `0x0000000000000000000000000000000000000000` | Arbitrum, Optimism, Base, Polygon |
-| CampaignRemoteManager | `0x0000000000000000000000000000000000000000` | Mainnet, Arbitrum, Optimism, Base, Polygon |
+| Bundler | `0xc86b4c2c39ad2D4CC5d9632bDCD6f23338d371F9` | Arbitrum, Optimism, Base, Polygon |
+| L1Sender | `0xd81956723f351df8e75548fF005ce5Ba47238587` | Mainnet |
+| L1BlockOracleUpdater | `0xb104D3A146F909D9D722005A5BDb17E570C88C6A` | Arbitrum, Optimism, Base, Polygon |
+| CampaignRemoteManager | `0x17048e90A8e10ba20FC0e242ba01c2039D9511D1` | Mainnet, Arbitrum, Optimism, Base, Polygon |
 
 ## Getting Started
 

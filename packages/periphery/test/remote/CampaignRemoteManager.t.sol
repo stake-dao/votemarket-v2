@@ -36,7 +36,8 @@ contract CampaignRemoteManagerTest is Test {
         campaignRemoteManager = new CampaignRemoteManager({
             _votemarket: address(votemarket),
             _laPoste: address(this),
-            _tokenFactory: address(this)
+            _tokenFactory: address(this),
+            _owner: address(this)
         });
 
         votemarket.setRemote(address(campaignRemoteManager));
