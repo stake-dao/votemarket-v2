@@ -77,10 +77,10 @@ graph LR
 
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Bundler | [`0xc86b4c2c39ad2D4CC5d9632bDCD6f23338d371F9`](https://arbiscan.io/address/0xc86b4c2c39ad2D4CC5d9632bDCD6f23338d371F9) | Arbitrum, Optimism, Base, Polygon |
-| L1Sender | [`0xd81956723f351df8e75548fF005ce5Ba47238587`](https://etherscan.io/address/0xd81956723f351df8e75548fF005ce5Ba47238587) | Mainnet |
-| L1BlockOracleUpdater | [`0xb104D3A146F909D9D722005A5BDb17E570C88C6A`](https://arbiscan.io/address/0xb104D3A146F909D9D722005A5BDb17E570C88C6A) | Arbitrum, Optimism, Base, Polygon |
-| CampaignRemoteManager | [`0x17048e90A8e10ba20FC0e242ba01c2039D9511D1`](https://etherscan.io/address/0x17048e90A8e10ba20FC0e242ba01c2039D9511D1) | Mainnet, Arbitrum, Optimism, Base, Polygon |
+| Bundler | [`0x67346f8b9B7dDA4639600C190DDaEcDc654359c8`](https://arbiscan.io/address/0x67346f8b9B7dDA4639600C190DDaEcDc654359c8) | Arbitrum, Optimism, Base, Polygon |
+| L1Sender | [`0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C`](https://etherscan.io/address/0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C) | Mainnet |
+| L1BlockOracleUpdater | [`0x2292514B78799486D860a5f685c3270bcEf8E4b9`](https://arbiscan.io/address/0x2292514B78799486D860a5f685c3270bcEf8E4b9) | Arbitrum, Optimism, Base, Polygon |
+| CampaignRemoteManager | [`0xd1f0101Df22Cb7447F486Da5784237AB7a55eB4e`](https://etherscan.io/address/0xd1f0101Df22Cb7447F486Da5784237AB7a55eB4e) | Mainnet, Arbitrum, Optimism, Base, Polygon |
 
 ## Getting Started
 
