@@ -19,8 +19,8 @@ contract Deploy is Script {
     address public oracle = 0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8;
     address public votemarket = 0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5;
 
-    address public laPoste = 0x0000560000d413A8Fe7635DF64AeA4D077cb0000;
-    address public tokenFactory = 0x00e720000000Ea240027006Ef976eA9b60131e47;
+    address public laPoste = 0xF0000058000021003E4754dCA700C766DE7601C2;
+    address public tokenFactory = 0x96006425Da428E45c282008b00004a00002B345e;
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
