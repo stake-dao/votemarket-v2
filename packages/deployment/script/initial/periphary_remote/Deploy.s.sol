@@ -17,8 +17,9 @@ contract Deploy is Script {
 
     address public oracle = 0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8;
     address public votemarket = 0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5;
-    address public laPoste = 0x345000000000FD99009B2BF0fb373Ca70f4C0047;
-    address public tokenFactory = 0x00000000A551c9435E002a5d75DC2EE3C0644400;
+
+    address public laPoste = 0x0000560000d413A8Fe7635DF64AeA4D077cb0000;
+    address public tokenFactory = 0x00e720000000Ea240027006Ef976eA9b60131e47;
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
@@ -28,12 +29,12 @@ contract Deploy is Script {
     string[] public chains = ["mainnet", "arbitrum", "optimism", "base", "polygon"];
 
     function run() public {
-        bytes32 campaignSalt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c8);
+        bytes32 campaignSalt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c1);
         bytes memory campaignInitCode = abi.encodePacked(
             type(CampaignRemoteManager).creationCode, abi.encode(votemarket, laPoste, tokenFactory, deployer)
         );
 
-        bytes32 bundlerSalt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c9);
+        bytes32 bundlerSalt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c2);
         bytes memory bundlerInitCode = abi.encodePacked(type(Bundler).creationCode, abi.encode(laPoste));
 
         for (uint256 i = 0; i < chains.length; i++) {

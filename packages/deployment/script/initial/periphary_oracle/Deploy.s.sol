@@ -20,22 +20,23 @@ contract Deploy is Script {
 
     address public oracle = 0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8;
     address public votemarket = 0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5;
-    address public laPoste = 0x345000000000FD99009B2BF0fb373Ca70f4C0047;
-    address public tokenFactory = 0x00000000A551c9435E002a5d75DC2EE3C0644400;
+
+    address public laPoste = 0x0000560000d413A8Fe7635DF64AeA4D077cb0000;
+    address public tokenFactory = 0x00e720000000Ea240027006Ef976eA9b60131e47;
+
+    address public old_L1BlockOracleUpdater = 0xb104D3A146F909D9D722005A5BDb17E570C88C6A;
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
-    Bundler public bundler;
     L1Sender public l1Sender;
     L1BlockOracleUpdater public l1BlockOracleUpdater;
-    CampaignRemoteManager public campaignRemoteManager;
 
     string[] public chains = ["arbitrum", "optimism", "base", "polygon"];
 
     function run() public {
         vm.createSelectFork("optimism");
 
-        bytes32 salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c7);
+        bytes32 salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab9000b35dad48ecf0ff03b2f4c4);
         bytes memory initCode = abi.encodePacked(type(L1Sender).creationCode, abi.encode(laPoste, deployer));
 
         vm.createSelectFork("mainnet");
@@ -52,7 +53,7 @@ contract Deploy is Script {
                 l1BlockOracle = address(0);
             }
 
-            salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab900045239010c8fdff03afcecf);
+            salt = bytes32(0x606a503e5178908f10597894b35b2be8685eab900045239010c8fdff04afcecf);
             initCode = abi.encodePacked(
                 type(L1BlockOracleUpdater).creationCode, abi.encode(l1BlockOracle, address(l1Sender), laPoste, oracle)
             );
@@ -62,6 +63,9 @@ contract Deploy is Script {
 
             vm.broadcast(deployer);
             Oracle(oracle).setAuthorizedBlockNumberProvider(address(l1BlockOracleUpdater));
+
+            vm.broadcast(deployer);
+            Oracle(oracle).revokeAuthorizedBlockNumberProvider(old_L1BlockOracleUpdater);
 
             if (i == 1) {
                 l1BlockOracleUpdater.updateL1BlockNumber();
