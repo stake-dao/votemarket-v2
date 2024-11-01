@@ -19,8 +19,8 @@ abstract contract Bridge {
     }
 
     /// @notice Bridges the given token to the given chain.
-    /// @param token The token to bridge.
-    /// @param amount The amount of tokens to bridge.
+    /// @param tokens The tokens to bridge.
+    /// @param amounts The amounts of tokens to bridge.
     /// @param destinationChainId The chain ID to bridge the token to.
     /// @param receiver The receiver of the token.
     /// @dev The token address should be the official token address available on L1. The TokenFactory will retrieve the wrapped token address,
@@ -33,20 +33,25 @@ abstract contract Bridge {
     /// 5. Message is sent to the destination chain.
     /// 6. The receiver on the destination chain receives the unlocked original tokens.
     function bridge(
-        address token,
-        uint256 amount,
+        address[] memory tokens,
+        uint256[] memory amounts,
         uint256 destinationChainId,
         uint256 additionalGasLimit,
         address receiver
     ) external payable {
-        address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(token);
+        ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](tokens.length);
 
-        SafeTransferLib.safeTransferFrom(wrappedToken, msg.sender, address(this), amount);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(tokens[i]);
+            SafeTransferLib.safeTransferFrom(wrappedToken, msg.sender, address(this), amounts[i]);
+
+            laPosteTokens[i] = ILaPoste.Token({tokenAddress: tokens[i], amount: amounts[i]});
+        }
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: destinationChainId,
             to: receiver,
-            token: ILaPoste.Token({tokenAddress: token, amount: amount}),
+            tokens: laPosteTokens,
             payload: ""
         });
 

@@ -58,9 +58,12 @@ contract L1BlockOracleUpdater {
     /// If already present in the oracle, it will not be inserted again.
     /// @param dispatch Whether to send the block hash to the given chains.
     /// @param chainIds The chain IDs to send the block hash to.
-    function updateL1BlockNumberAndDispatch(bool dispatch, uint256[] memory chainIds) public payable {
+    function updateL1BlockNumberAndDispatch(bool dispatch, uint256[] memory chainIds, uint256 additionalGasLimit)
+        public
+        payable
+    {
         (uint256 number, bytes32 hash, uint256 timestamp) = updateL1BlockNumber();
-        if (dispatch && chainIds.length > 0) _dispatchMessage(chainIds, number, hash, timestamp);
+        if (dispatch && chainIds.length > 0) _dispatchMessage(chainIds, number, hash, timestamp, additionalGasLimit);
     }
 
     /// @notice Receives the block hash from the L1 sender on L2 and updates the L1 block number in the oracle.
@@ -98,7 +101,13 @@ contract L1BlockOracleUpdater {
     }
 
     /// @dev Sends the block hash to the given chains.
-    function _dispatchMessage(uint256[] memory chainIds, uint256 number, bytes32 hash, uint256 timestamp) internal {
+    function _dispatchMessage(
+        uint256[] memory chainIds,
+        uint256 number,
+        bytes32 hash,
+        uint256 timestamp,
+        uint256 additionalGasLimit
+    ) internal {
         bytes memory data = abi.encode(number, hash, timestamp);
 
         for (uint256 i = 0; i < chainIds.length;) {
@@ -106,10 +115,10 @@ contract L1BlockOracleUpdater {
                 ILaPoste.MessageParams({
                     destinationChainId: chainIds[i],
                     to: address(this),
-                    token: ILaPoste.Token({tokenAddress: address(0), amount: 0}),
+                    tokens: new ILaPoste.Token[](0),
                     payload: data
                 }),
-                200_000,
+                additionalGasLimit,
                 msg.sender
             );
             unchecked {

@@ -6,6 +6,7 @@ import "src/interfaces/IRLPVerifier.sol";
 abstract contract RLPVerifier {
     function setBlockData(address verifier, bytes calldata blockHeader, bytes calldata proof)
         external
+        payable
         returns (bytes32 stateRootHash)
     {
         stateRootHash = IRLPVerifier(verifier).setBlockData(blockHeader, proof);
@@ -13,6 +14,7 @@ abstract contract RLPVerifier {
 
     function setAccountData(address verifier, address account, address gauge, uint256 epoch, bytes calldata proof)
         external
+        payable
         returns (IOracle.VotedSlope memory userSlope)
     {
         userSlope = IRLPVerifier(verifier).setAccountData(account, gauge, epoch, proof);
@@ -20,6 +22,7 @@ abstract contract RLPVerifier {
 
     function setPointData(address verifier, address gauge, uint256 epoch, bytes calldata proof)
         external
+        payable
         returns (IOracle.Point memory weight)
     {
         weight = IRLPVerifier(verifier).setPointData(gauge, epoch, proof);

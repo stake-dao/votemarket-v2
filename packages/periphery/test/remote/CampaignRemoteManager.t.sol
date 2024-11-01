@@ -214,7 +214,9 @@ contract CampaignRemoteManagerTest is Test {
         external
         payable
     {
-        rewardToken.transferFrom(msg.sender, address(0xCAFE), params.token.amount);
+        for (uint256 i = 0; i < params.tokens.length; i++) {
+            rewardToken.transferFrom(msg.sender, address(0xCAFE), params.tokens[i].amount);
+        }
     }
 
     function receiveMessage(uint256 chainId, address sender, bytes memory payload) public {

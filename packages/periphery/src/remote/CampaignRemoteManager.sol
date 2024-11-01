@@ -126,10 +126,13 @@ contract CampaignRemoteManager is Ownable {
 
         SafeTransferLib.safeApprove({token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount});
 
+        ILaPoste.Token[] memory tokens = new ILaPoste.Token[](1);
+        tokens[0] = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
+
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: destinationChainId,
             to: address(this),
-            token: ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount}),
+            tokens: tokens,
             payload: payload
         });
 
@@ -155,10 +158,11 @@ contract CampaignRemoteManager is Ownable {
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.MANAGE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
 
-        ILaPoste.Token memory token;
+        ILaPoste.Token[] memory tokens;
 
         if (params.totalRewardAmount > 0) {
-            token = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
+            tokens = new ILaPoste.Token[](1);
+            tokens[0] = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
 
             SafeTransferLib.safeTransferFrom({
                 token: params.rewardToken,
@@ -173,7 +177,7 @@ contract CampaignRemoteManager is Ownable {
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: destinationChainId,
             to: address(this),
-            token: token,
+            tokens: tokens,
             payload: payload
         });
 

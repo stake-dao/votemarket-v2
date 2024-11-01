@@ -30,7 +30,7 @@ contract L1Sender is Ownable {
         ILaPoste.MessageParams memory params = ILaPoste.MessageParams({
             destinationChainId: chainId,
             to: L1_BLOCK_ORACLE_UPDATER,
-            token: ILaPoste.Token({tokenAddress: address(0), amount: 0}),
+            tokens: new ILaPoste.Token[](0),
             payload: payload
         });
 
