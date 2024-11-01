@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Script.sol";
 
 import {Bundler} from "@periphery/src/bundler/Bundler.sol";
+import {Votemarket} from "@votemarket/src/Votemarket.sol";
 import {CampaignRemoteManager} from "@periphery/src/remote/CampaignRemoteManager.sol";
 
 interface ICreate3Factory {
@@ -47,6 +48,11 @@ contract Deploy is Script {
             if (i == 0) continue;
             vm.broadcast(deployer);
             bundler = Bundler(ICreate3Factory(CREATE3_FACTORY).deployCreate3(bundlerSalt, bundlerInitCode));
+
+            if (i == 1) {
+                vm.broadcast(deployer);
+                Votemarket(votemarket).setRemote(address(campaignRemoteManager));
+            }
         }
     }
 }
