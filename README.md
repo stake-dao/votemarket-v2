@@ -20,7 +20,7 @@ Votemarket V2 is an advanced evolution of the original [Votemarket](https://gith
 
 | Feature | V1 | V2 |
 |---------|----|----|
-| Chain Support | Mainnet only | Multi-chain (L1 + L2s) |
+| Chain Support | Mainnet only | Multi-chain |
 | Reward Claims | Weekly requirement | Flexible timing |
 | Campaign Control | Fixed rollover | Customizable via hooks |
 | Cost Efficiency | Higher gas costs | Optimized for L2 |
