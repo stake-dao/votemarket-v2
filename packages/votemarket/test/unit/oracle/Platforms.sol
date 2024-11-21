@@ -15,6 +15,7 @@ uint256 constant CRV_LAST_USER_VOTE_SLOT = 11;
 uint256 constant CRV_USER_SLOPE_SLOT = 9;
 uint256 constant CRV_WEIGHT_SLOT = 12;
 
+/*
 contract CRV_Platform is
     ProofCorrectnessTest(
         CRV_GAUGE_CONTROLLER,
@@ -23,9 +24,11 @@ contract CRV_Platform is
         CRV_BLOCK_NUMBER,
         CRV_LAST_USER_VOTE_SLOT,
         CRV_USER_SLOPE_SLOT,
-        CRV_WEIGHT_SLOT
+        CRV_WEIGHT_SLOT,
+        false
     )
 {}
+*/
 
 address constant BAL_GAUGE_CONTROLLER = address(0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD);
 address constant BAL_ACCOUNT = 0xea79d1A83Da6DB43a85942767C389fE0ACf336A5;
@@ -44,10 +47,12 @@ contract BAL_Platform is
         BAL_BLOCK_NUMBER,
         BAL_LAST_USER_VOTE_SLOT,
         BAL_USER_SLOPE_SLOT,
-        BAL_WEIGHT_SLOT
+        BAL_WEIGHT_SLOT,
+        true
     )
 {}
 
+/*
 address constant FXN_GAUGE_CONTROLLER = address(0xe60eB8098B34eD775ac44B1ddE864e098C6d7f37);
 address constant FXN_ACCOUNT = 0x75736518075a01034fa72D675D36a47e9B06B2Fb;
 address constant FXN_GAUGE = 0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55;
@@ -68,3 +73,4 @@ contract FXN_Platform is
         FXN_WEIGHT_SLOT
     )
 {}
+*/
