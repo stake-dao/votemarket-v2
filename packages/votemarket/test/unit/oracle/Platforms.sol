@@ -52,7 +52,6 @@ contract BAL_Platform is
     )
 {}
 
-/*
 address constant FXN_GAUGE_CONTROLLER = address(0xe60eB8098B34eD775ac44B1ddE864e098C6d7f37);
 address constant FXN_ACCOUNT = 0x75736518075a01034fa72D675D36a47e9B06B2Fb;
 address constant FXN_GAUGE = 0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55;
@@ -70,7 +69,7 @@ contract FXN_Platform is
         FXN_BLOCK_NUMBER,
         FXN_LAST_USER_VOTE_SLOT,
         FXN_USER_SLOPE_SLOT,
-        FXN_WEIGHT_SLOT
+        FXN_WEIGHT_SLOT,
+        true
     )
 {}
-*/
