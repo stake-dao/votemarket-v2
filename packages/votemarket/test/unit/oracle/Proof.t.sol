@@ -6,12 +6,13 @@ import "@forge-std/src/Test.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
+import "test/mocks/VerifierFactory.sol";
 import "src/interfaces/IGaugeController.sol";
 
-abstract contract ProofCorrectnessTest is Test {
+abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     Oracle oracle;
-    Verifier verifier;
-    address GAUGE_CONTROLLER;
+    IVerifierBase public verifier;
+    address public immutable GAUGE_CONTROLLER;
     bool public immutable isV2;
 
     address account;
@@ -48,7 +49,7 @@ abstract contract ProofCorrectnessTest is Test {
 
         oracle = new Oracle(address(this));
 
-        verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
+        verifier = createVerifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot, isV2);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -131,10 +132,6 @@ abstract contract ProofCorrectnessTest is Test {
 
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
-        console.log("userSlope.slope", userSlope.slope);
-        console.log("userSlope.end", userSlope.end);
-        console.log("userSlope.lastVote", userSlope.lastVote);
-        console.log("weight.bias", weight.bias);
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
@@ -161,7 +158,6 @@ abstract contract ProofCorrectnessTest is Test {
                 timestamp: block.timestamp
             })
         );
-
         vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getAccountVotes(account, gauge, epoch);
 

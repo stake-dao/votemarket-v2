@@ -8,7 +8,7 @@ import "@solady/src/utils/LibString.sol";
 /// Project Interfaces & Libraries
 import "src/interfaces/IOracle.sol";
 
-abstract contract RLPDecoder {
+abstract contract RLPDecoderV2 {
     function extractMappingValue(
         uint256 slotNumber,
         address param1,
@@ -30,10 +30,7 @@ abstract contract RLPDecoder {
         RLPReader.RLPItem[] memory proof
     ) internal pure returns (uint256) {
         bytes32 slot = keccak256(
-            abi.encode(
-                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2)))))
-                    + offset
-            )
+            abi.encode(uint256(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2))) + offset)
         );
         return StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof).value;
     }
@@ -47,10 +44,7 @@ abstract contract RLPDecoder {
         RLPReader.RLPItem[] memory proof
     ) internal pure returns (uint256) {
         bytes32 slot = keccak256(
-            abi.encode(
-                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2)))))
-                    + offset
-            )
+            abi.encode(uint256(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2))) + offset)
         );
         return StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof).value;
     }
