@@ -6,12 +6,14 @@ import "@forge-std/src/Test.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
+import "test/mocks/VerifierFactory.sol";
 import "src/interfaces/IGaugeController.sol";
 
-abstract contract ProofCorrectnessTest is Test {
+abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     Oracle oracle;
-    Verifier verifier;
-    address GAUGE_CONTROLLER;
+    IVerifierBase public verifier;
+    address public immutable GAUGE_CONTROLLER;
+    bool public immutable isV2;
 
     address account;
     address gauge;
@@ -28,7 +30,8 @@ abstract contract ProofCorrectnessTest is Test {
         uint256 _blockNumber,
         uint256 _lastUserVoteSlot,
         uint256 _userSlopeSlot,
-        uint256 _weightSlot
+        uint256 _weightSlot,
+        bool _isV2
     ) {
         GAUGE_CONTROLLER = _gaugeController;
         account = _account;
@@ -38,13 +41,15 @@ abstract contract ProofCorrectnessTest is Test {
         lastUserVoteSlot = _lastUserVoteSlot;
         userSlopeSlot = _userSlopeSlot;
         weightSlot = _weightSlot;
+        isV2 = _isV2;
     }
 
     function setUp() public {
         vm.createSelectFork("mainnet", blockNumber);
 
         oracle = new Oracle(address(this));
-        verifier = new Verifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
+
+        verifier = createVerifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot, isV2);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -120,9 +125,11 @@ abstract contract ProofCorrectnessTest is Test {
         );
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
+
         IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
+
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         assertEq(userSlope.slope, slope);
@@ -151,7 +158,6 @@ abstract contract ProofCorrectnessTest is Test {
                 timestamp: block.timestamp
             })
         );
-
         vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getAccountVotes(account, gauge, epoch);
 
@@ -196,8 +202,14 @@ abstract contract ProofCorrectnessTest is Test {
 
     function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](1);
-        uint256 pointWeightsPosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
+
+        uint256 pointWeightsPosition;
+        if (isV2) {
+            pointWeightsPosition = uint256(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)));
+        } else {
+            pointWeightsPosition =
+                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
+        }
         positions[0] = pointWeightsPosition;
         return positions;
     }
@@ -206,8 +218,14 @@ abstract contract ProofCorrectnessTest is Test {
         uint256[] memory positions = new uint256[](3);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
 
-        uint256 voteUserSlopePosition =
-            uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)))));
+        uint256 voteUserSlopePosition;
+        if (isV2) {
+            voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
+        } else {
+            voteUserSlopePosition = uint256(
+                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
+            );
+        }
         positions[1] = voteUserSlopePosition;
         positions[2] = voteUserSlopePosition + 2;
 
