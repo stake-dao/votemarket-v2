@@ -5,6 +5,7 @@ cache/
 out/
 broadcast/%
 report.txt
+temp/
 
 coverage.md
 .DS_Store
