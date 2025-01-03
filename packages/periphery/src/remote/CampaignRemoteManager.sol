@@ -18,7 +18,8 @@ contract CampaignRemoteManager is Ownable {
 
     enum ActionType {
         CREATE_CAMPAIGN,
-        MANAGE_CAMPAIGN
+        MANAGE_CAMPAIGN,
+        CLOSE_CAMPAIGN
     }
 
     struct Payload {
@@ -46,6 +47,10 @@ contract CampaignRemoteManager is Ownable {
         uint8 numberOfPeriods;
         uint256 totalRewardAmount;
         uint256 maxRewardPerVote;
+    }
+
+    struct CampaignClosingParams {
+        uint256 campaignId;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -79,11 +84,17 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the campaign manager is invalid.
     error InvalidCampaignManager();
 
+    /// @notice The error thrown when the action type is invalid.
+    error InvalidActionType();
+
     /// @notice The event emitted when a campaign creation payload is sent.
     event CampaignCreationPayloadSent(CampaignCreationParams indexed params);
 
     /// @notice The event emitted when a campaign management payload is sent.
     event CampaignManagementPayloadSent(CampaignManagementParams indexed params);
+
+    /// @notice The event emitted when a campaign closing payload is sent.
+    event CampaignClosingPayloadSent(CampaignClosingParams indexed params);
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -186,6 +197,32 @@ contract CampaignRemoteManager is Ownable {
         emit CampaignManagementPayloadSent(params);
     }
 
+    /// @notice Closes a campaign on L2.
+    /// @param params The campaign closing parameters
+    /// @param destinationChainId The destination chain id
+    /// @param additionalGasLimit The additional gas limit
+    function closeCampaign(CampaignClosingParams memory params, uint256 destinationChainId, uint256 additionalGasLimit)
+        external
+        payable
+    {
+        if (block.chainid != 1) revert InvalidChainId();
+
+        bytes memory parameters = abi.encode(params);
+        bytes memory payload =
+            abi.encode(Payload({actionType: ActionType.CLOSE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
+
+        ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
+            destinationChainId: destinationChainId,
+            to: address(this),
+            tokens: new ILaPoste.Token[](0),
+            payload: payload
+        });
+
+        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
+
+        emit CampaignClosingPayloadSent(params);
+    }
+
     /// @notice Receives a message from La Poste.
     /// @param chainId The chain id
     /// @param sender The sender address
@@ -217,7 +254,7 @@ contract CampaignRemoteManager is Ownable {
                 hook: params.hook,
                 whitelist: params.isWhitelist
             });
-        } else {
+        } else if (_payload.actionType == ActionType.MANAGE_CAMPAIGN) {
             CampaignManagementParams memory params = abi.decode(_payload.parameters, (CampaignManagementParams));
             Campaign memory campaign = IVotemarket(VOTEMARKET).getCampaign(params.campaignId);
             if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
@@ -236,6 +273,14 @@ contract CampaignRemoteManager is Ownable {
             IVotemarket(VOTEMARKET).manageCampaign(
                 params.campaignId, params.numberOfPeriods, params.totalRewardAmount, params.maxRewardPerVote
             );
+        } else if (_payload.actionType == ActionType.CLOSE_CAMPAIGN) {
+            CampaignClosingParams memory params = abi.decode(_payload.parameters, (CampaignClosingParams));
+            Campaign memory campaign = IVotemarket(VOTEMARKET).getCampaign(params.campaignId);
+            if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
+
+            IVotemarket(VOTEMARKET).closeCampaign(params.campaignId);
+        } else {
+            revert InvalidActionType();
         }
     }
 
