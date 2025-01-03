@@ -62,12 +62,12 @@ contract CampaignRemoteManagerTest is Test {
         vm.chainId(42161);
 
         vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
-        campaignRemoteManager.createCampaign(params, 10, 100000);
+        campaignRemoteManager.createCampaign(params, 10, 100000, address(votemarket));
 
         vm.chainId(1);
 
         rewardToken.approve(address(campaignRemoteManager), 1000e18);
-        campaignRemoteManager.createCampaign(params, 10, 100000);
+        campaignRemoteManager.createCampaign(params, 10, 100000, address(votemarket));
 
         assertEq(rewardToken.balanceOf(address(this)), 0);
         assertEq(rewardToken.balanceOf(address(campaignRemoteManager)), 0);
@@ -87,10 +87,10 @@ contract CampaignRemoteManagerTest is Test {
 
         vm.chainId(42161);
         vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
-        campaignRemoteManager.manageCampaign(managementParams, 10, 100000);
+        campaignRemoteManager.manageCampaign(managementParams, 10, 100000, address(votemarket));
 
         vm.chainId(1);
-        campaignRemoteManager.manageCampaign(managementParams, 10, 100000);
+        campaignRemoteManager.manageCampaign(managementParams, 10, 100000, address(votemarket));
 
         assertEq(rewardToken.balanceOf(address(this)), 0);
         assertEq(rewardToken.balanceOf(address(campaignRemoteManager)), 0);
@@ -103,10 +103,10 @@ contract CampaignRemoteManagerTest is Test {
 
         vm.chainId(42161);
         vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
-        campaignRemoteManager.closeCampaign(params, 10, 100000);
+        campaignRemoteManager.closeCampaign(params, 10, 100000, address(votemarket));
 
         vm.chainId(1);
-        campaignRemoteManager.closeCampaign(params, 10, 100000);
+        campaignRemoteManager.closeCampaign(params, 10, 100000, address(votemarket));
     }
 
     function test_receiveMessage() public {
@@ -127,8 +127,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory payload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CREATE_CAMPAIGN,
-                parameters: parameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: parameters
             })
         );
 
@@ -172,8 +173,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory managementPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
-                parameters: managementParameters,
-                sender: address(0xCAFE)
+                sender: address(0xCAFE),
+                votemarket: address(votemarket),
+                parameters: managementParameters
             })
         );
 
@@ -193,8 +195,9 @@ contract CampaignRemoteManagerTest is Test {
         managementPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
-                parameters: managementParameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: managementParameters
             })
         );
 
@@ -240,8 +243,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory createPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CREATE_CAMPAIGN,
-                parameters: createParameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: createParameters
             })
         );
 
@@ -262,8 +266,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory closePayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
-                parameters: closeParameters,
-                sender: address(this)
+                sender: address(0xCAFE),
+                votemarket: address(votemarket),
+                parameters: closeParameters
             })
         );
 
@@ -277,8 +282,9 @@ contract CampaignRemoteManagerTest is Test {
         closePayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
-                parameters: closeParameters,
-                sender: address(0xCAFE) // Wrong sender
+                sender: address(0xCAFE), // Wrong sender
+                votemarket: address(votemarket),
+                parameters: closeParameters
             })
         );
 
@@ -289,8 +295,9 @@ contract CampaignRemoteManagerTest is Test {
         closePayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
-                parameters: closeParameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: closeParameters
             })
         );
 
@@ -310,8 +317,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory managementPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
-                parameters: managementParameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: managementParameters
             })
         );
 

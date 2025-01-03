@@ -25,6 +25,7 @@ contract CampaignRemoteManager is Ownable {
     struct Payload {
         ActionType actionType;
         address sender;
+        address votemarket;
         bytes parameters;
     }
 
@@ -117,16 +118,22 @@ contract CampaignRemoteManager is Ownable {
     /// @param params The campaign creation parameters
     /// @param destinationChainId The destination chain id
     /// @param additionalGasLimit The additional gas limit
+    /// @param votemarket The Votemarket address on L2
     function createCampaign(
         CampaignCreationParams memory params,
         uint256 destinationChainId,
-        uint256 additionalGasLimit
+        uint256 additionalGasLimit,
+        address votemarket
     ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload =
-            abi.encode(Payload({actionType: ActionType.CREATE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
+        bytes memory payload = abi.encode(Payload({
+            actionType: ActionType.CREATE_CAMPAIGN,
+            sender: msg.sender,
+            votemarket: votemarket,
+            parameters: parameters
+        }));
 
         SafeTransferLib.safeTransferFrom({
             token: params.rewardToken,
@@ -156,18 +163,24 @@ contract CampaignRemoteManager is Ownable {
     /// @param params The campaign management parameters
     /// @param destinationChainId The destination chain id
     /// @param additionalGasLimit The additional gas limit
+    /// @param votemarket The Votemarket address on L2
     /// @dev This function is the most useful if the campaign manager wants to increase the reward amount. Otherwise,
     /// the manager should directly call the `manageCampaign` function on the Votemarket on L2.
     function manageCampaign(
         CampaignManagementParams memory params,
         uint256 destinationChainId,
-        uint256 additionalGasLimit
+        uint256 additionalGasLimit,
+        address votemarket
     ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload =
-            abi.encode(Payload({actionType: ActionType.MANAGE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
+        bytes memory payload = abi.encode(Payload({
+            actionType: ActionType.MANAGE_CAMPAIGN,
+            sender: msg.sender,
+            votemarket: votemarket,
+            parameters: parameters
+        }));
 
         ILaPoste.Token[] memory tokens;
 
@@ -201,15 +214,22 @@ contract CampaignRemoteManager is Ownable {
     /// @param params The campaign closing parameters
     /// @param destinationChainId The destination chain id
     /// @param additionalGasLimit The additional gas limit
-    function closeCampaign(CampaignClosingParams memory params, uint256 destinationChainId, uint256 additionalGasLimit)
-        external
-        payable
-    {
+    /// @param votemarket The Votemarket address on L2
+    function closeCampaign(
+        CampaignClosingParams memory params,
+        uint256 destinationChainId,
+        uint256 additionalGasLimit,
+        address votemarket
+    ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload =
-            abi.encode(Payload({actionType: ActionType.CLOSE_CAMPAIGN, sender: msg.sender, parameters: parameters}));
+        bytes memory payload = abi.encode(Payload({
+            actionType: ActionType.CLOSE_CAMPAIGN,
+            sender: msg.sender,
+            votemarket: votemarket,
+            parameters: parameters
+        }));
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: destinationChainId,
@@ -240,9 +260,13 @@ contract CampaignRemoteManager is Ownable {
 
             address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(params.rewardToken);
 
-            SafeTransferLib.safeApprove({token: wrappedToken, to: address(VOTEMARKET), amount: params.totalRewardAmount});
+            SafeTransferLib.safeApprove({
+                token: wrappedToken,
+                to: _payload.votemarket,
+                amount: params.totalRewardAmount
+            });
 
-            IVotemarket(VOTEMARKET).createCampaign({
+            IVotemarket(_payload.votemarket).createCampaign({
                 chainId: params.chainId,
                 gauge: params.gauge,
                 manager: params.manager,
@@ -256,7 +280,7 @@ contract CampaignRemoteManager is Ownable {
             });
         } else if (_payload.actionType == ActionType.MANAGE_CAMPAIGN) {
             CampaignManagementParams memory params = abi.decode(_payload.parameters, (CampaignManagementParams));
-            Campaign memory campaign = IVotemarket(VOTEMARKET).getCampaign(params.campaignId);
+            Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(params.campaignId);
             if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
 
             if (params.totalRewardAmount > 0) {
@@ -265,20 +289,20 @@ contract CampaignRemoteManager is Ownable {
 
                 SafeTransferLib.safeApprove({
                     token: wrappedToken,
-                    to: address(VOTEMARKET),
+                    to: _payload.votemarket,
                     amount: params.totalRewardAmount
                 });
             }
 
-            IVotemarket(VOTEMARKET).manageCampaign(
+            IVotemarket(_payload.votemarket).manageCampaign(
                 params.campaignId, params.numberOfPeriods, params.totalRewardAmount, params.maxRewardPerVote
             );
         } else if (_payload.actionType == ActionType.CLOSE_CAMPAIGN) {
             CampaignClosingParams memory params = abi.decode(_payload.parameters, (CampaignClosingParams));
-            Campaign memory campaign = IVotemarket(VOTEMARKET).getCampaign(params.campaignId);
+            Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(params.campaignId);
             if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
 
-            IVotemarket(VOTEMARKET).closeCampaign(params.campaignId);
+            IVotemarket(_payload.votemarket).closeCampaign(params.campaignId);
         } else {
             revert InvalidActionType();
         }
