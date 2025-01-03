@@ -67,6 +67,9 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The token factory address.
     address public immutable TOKEN_FACTORY;
 
+    /// @notice Mapping of whitelisted votemarket platforms
+    mapping(address => bool) public whitelistedPlatforms;
+
     /// @notice The error thrown when the block hash is sent too soon.
     error TooSoon();
 
@@ -88,6 +91,9 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The error thrown when the action type is invalid.
     error InvalidActionType();
 
+    /// @notice The error thrown when the platform is not whitelisted
+    error PlatformNotWhitelisted();
+
     /// @notice The event emitted when a campaign creation payload is sent.
     event CampaignCreationPayloadSent(CampaignCreationParams indexed params);
 
@@ -96,6 +102,9 @@ contract CampaignRemoteManager is Ownable {
 
     /// @notice The event emitted when a campaign closing payload is sent.
     event CampaignClosingPayloadSent(CampaignClosingParams indexed params);
+
+    /// @notice Event emitted when a platform is whitelisted/unwhitelisted
+    event PlatformWhitelistUpdated(address indexed platform, bool whitelisted);
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -126,14 +135,17 @@ contract CampaignRemoteManager is Ownable {
         address votemarket
     ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
+        if (!whitelistedPlatforms[votemarket]) revert PlatformNotWhitelisted();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload = abi.encode(Payload({
-            actionType: ActionType.CREATE_CAMPAIGN,
-            sender: msg.sender,
-            votemarket: votemarket,
-            parameters: parameters
-        }));
+        bytes memory payload = abi.encode(
+            Payload({
+                actionType: ActionType.CREATE_CAMPAIGN,
+                sender: msg.sender,
+                votemarket: votemarket,
+                parameters: parameters
+            })
+        );
 
         SafeTransferLib.safeTransferFrom({
             token: params.rewardToken,
@@ -173,14 +185,17 @@ contract CampaignRemoteManager is Ownable {
         address votemarket
     ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
+        if (!whitelistedPlatforms[votemarket]) revert PlatformNotWhitelisted();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload = abi.encode(Payload({
-            actionType: ActionType.MANAGE_CAMPAIGN,
-            sender: msg.sender,
-            votemarket: votemarket,
-            parameters: parameters
-        }));
+        bytes memory payload = abi.encode(
+            Payload({
+                actionType: ActionType.MANAGE_CAMPAIGN,
+                sender: msg.sender,
+                votemarket: votemarket,
+                parameters: parameters
+            })
+        );
 
         ILaPoste.Token[] memory tokens;
 
@@ -222,14 +237,17 @@ contract CampaignRemoteManager is Ownable {
         address votemarket
     ) external payable {
         if (block.chainid != 1) revert InvalidChainId();
+        if (!whitelistedPlatforms[votemarket]) revert PlatformNotWhitelisted();
 
         bytes memory parameters = abi.encode(params);
-        bytes memory payload = abi.encode(Payload({
-            actionType: ActionType.CLOSE_CAMPAIGN,
-            sender: msg.sender,
-            votemarket: votemarket,
-            parameters: parameters
-        }));
+        bytes memory payload = abi.encode(
+            Payload({
+                actionType: ActionType.CLOSE_CAMPAIGN,
+                sender: msg.sender,
+                votemarket: votemarket,
+                parameters: parameters
+            })
+        );
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: destinationChainId,
@@ -254,17 +272,14 @@ contract CampaignRemoteManager is Ownable {
         if (sender != address(this)) revert InvalidSender();
 
         Payload memory _payload = abi.decode(payload, (Payload));
+        if (!whitelistedPlatforms[_payload.votemarket]) revert PlatformNotWhitelisted();
 
         if (_payload.actionType == ActionType.CREATE_CAMPAIGN) {
             CampaignCreationParams memory params = abi.decode(_payload.parameters, (CampaignCreationParams));
 
             address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(params.rewardToken);
 
-            SafeTransferLib.safeApprove({
-                token: wrappedToken,
-                to: _payload.votemarket,
-                amount: params.totalRewardAmount
-            });
+            SafeTransferLib.safeApprove({token: wrappedToken, to: _payload.votemarket, amount: params.totalRewardAmount});
 
             IVotemarket(_payload.votemarket).createCampaign({
                 chainId: params.chainId,
@@ -313,5 +328,13 @@ contract CampaignRemoteManager is Ownable {
     /// @param amount The amount of tokens to recover
     function recoverERC20(address token, uint256 amount) external onlyOwner {
         SafeTransferLib.safeTransfer(token, msg.sender, amount);
+    }
+
+    /// @notice Whitelist or unwhitelist a platform
+    /// @param platform The platform address to whitelist/unwhitelist
+    /// @param whitelisted The whitelist status
+    function setPlatformWhitelist(address platform, bool whitelisted) external onlyOwner {
+        whitelistedPlatforms[platform] = whitelisted;
+        emit PlatformWhitelistUpdated(platform, whitelisted);
     }
 }

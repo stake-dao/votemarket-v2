@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
+import "@solady/src/auth/Ownable.sol";
 
 import {FakeToken} from "test/mocks/FakeToken.sol";
 import {ILaPoste} from "src/interfaces/ILaPoste.sol";
@@ -43,6 +44,9 @@ contract CampaignRemoteManagerTest is Test {
         votemarket.setRemote(address(campaignRemoteManager));
 
         rewardToken.mint(address(this), 1000e18);
+
+        // Whitelist the votemarket platform
+        campaignRemoteManager.setPlatformWhitelist(address(votemarket), true);
     }
 
     function test_CampaignManagement() public {
@@ -325,6 +329,46 @@ contract CampaignRemoteManagerTest is Test {
 
         vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector); // Campaign should be closed and unmanageable
         receiveMessage(1, address(campaignRemoteManager), managementPayload);
+    }
+
+    function test_setPlatformWhitelist() public {
+        address newPlatform = address(0xBEEF);
+
+        // Non-owner cannot whitelist
+        vm.prank(address(0xCAFE));
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, true);
+
+        // Owner can whitelist
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, true);
+        assertTrue(campaignRemoteManager.whitelistedPlatforms(newPlatform));
+
+        // Owner can unwhitelist
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, false);
+        assertFalse(campaignRemoteManager.whitelistedPlatforms(newPlatform));
+    }
+
+    function test_CampaignManagement_NotWhitelisted() public {
+        address nonWhitelistedPlatform = address(0xBEEF);
+
+        CampaignRemoteManager.CampaignCreationParams memory params = CampaignRemoteManager.CampaignCreationParams({
+            chainId: 1,
+            gauge: address(0xBEEF),
+            manager: address(this),
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            maxRewardPerVote: 1000e18,
+            totalRewardAmount: 1000e18,
+            addresses: new address[](0),
+            hook: address(0),
+            isWhitelist: false
+        });
+
+        vm.chainId(1);
+        rewardToken.approve(address(campaignRemoteManager), 1000e18);
+
+        vm.expectRevert(CampaignRemoteManager.PlatformNotWhitelisted.selector);
+        campaignRemoteManager.createCampaign(params, 10, 100000, nonWhitelistedPlatform);
     }
 
     /// Mocked functions
