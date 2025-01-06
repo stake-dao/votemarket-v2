@@ -61,9 +61,6 @@ contract CampaignRemoteManager is Ownable {
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
 
-    /// @notice The Votemarket address on L2s.
-    address public immutable VOTEMARKET;
-
     /// @notice The token factory address.
     address public immutable TOKEN_FACTORY;
 
@@ -115,9 +112,8 @@ contract CampaignRemoteManager is Ownable {
         _;
     }
 
-    constructor(address _votemarket, address _laPoste, address _tokenFactory, address _owner) {
+    constructor(address _laPoste, address _tokenFactory, address _owner) {
         LA_POSTE = _laPoste;
-        VOTEMARKET = _votemarket;
         TOKEN_FACTORY = _tokenFactory;
 
         _initializeOwner(_owner);

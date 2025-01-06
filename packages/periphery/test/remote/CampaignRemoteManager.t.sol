@@ -34,12 +34,8 @@ contract CampaignRemoteManagerTest is Test {
             _minimumPeriods: 2
         });
 
-        campaignRemoteManager = new CampaignRemoteManager({
-            _votemarket: address(votemarket),
-            _laPoste: address(this),
-            _tokenFactory: address(this),
-            _owner: address(this)
-        });
+        campaignRemoteManager =
+            new CampaignRemoteManager({_laPoste: address(this), _tokenFactory: address(this), _owner: address(this)});
 
         votemarket.setRemote(address(campaignRemoteManager));
 
@@ -47,6 +43,17 @@ contract CampaignRemoteManagerTest is Test {
 
         // Whitelist the votemarket platform
         campaignRemoteManager.setPlatformWhitelist(address(votemarket), true);
+    }
+
+    function test_getInitCodehash() public {
+        // 0x8898502ba35ab64b3562abc509befb7eb178d4df75e47f6342d5279f66004005 => 0x000000009dF57105d76B059178989E01356e4b45 => 256
+        bytes memory args = abi.encode(
+            0xF0000058000021003E4754dCA700C766DE7601C2,
+            0x96006425Da428E45c282008b00004a00002B345e,
+            0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765
+        );
+        bytes memory bytecode = abi.encodePacked(type(CampaignRemoteManager).creationCode, args);
+        console.logBytes32(keccak256(bytecode));
     }
 
     function test_CampaignManagement() public {
