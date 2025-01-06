@@ -272,7 +272,6 @@ contract CampaignRemoteManager is Ownable {
         if (sender != address(this)) revert InvalidSender();
 
         Payload memory _payload = abi.decode(payload, (Payload));
-        if (!whitelistedPlatforms[_payload.votemarket]) revert PlatformNotWhitelisted();
 
         if (_payload.actionType == ActionType.CREATE_CAMPAIGN) {
             CampaignCreationParams memory params = abi.decode(_payload.parameters, (CampaignCreationParams));
