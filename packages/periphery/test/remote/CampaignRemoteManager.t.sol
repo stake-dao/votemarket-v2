@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
+import "@solady/src/auth/Ownable.sol";
 
 import {FakeToken} from "test/mocks/FakeToken.sol";
 import {ILaPoste} from "src/interfaces/ILaPoste.sol";
@@ -33,16 +34,26 @@ contract CampaignRemoteManagerTest is Test {
             _minimumPeriods: 2
         });
 
-        campaignRemoteManager = new CampaignRemoteManager({
-            _votemarket: address(votemarket),
-            _laPoste: address(this),
-            _tokenFactory: address(this),
-            _owner: address(this)
-        });
+        campaignRemoteManager =
+            new CampaignRemoteManager({_laPoste: address(this), _tokenFactory: address(this), _owner: address(this)});
 
         votemarket.setRemote(address(campaignRemoteManager));
 
         rewardToken.mint(address(this), 1000e18);
+
+        // Whitelist the votemarket platform
+        campaignRemoteManager.setPlatformWhitelist(address(votemarket), true);
+    }
+
+    function test_getInitCodehash() public {
+        // 0x8898502ba35ab64b3562abc509befb7eb178d4df75e47f6342d5279f66004005 => 0x000000009dF57105d76B059178989E01356e4b45 => 256
+        bytes memory args = abi.encode(
+            0xF0000058000021003E4754dCA700C766DE7601C2,
+            0x96006425Da428E45c282008b00004a00002B345e,
+            0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765
+        );
+        bytes memory bytecode = abi.encodePacked(type(CampaignRemoteManager).creationCode, args);
+        console.logBytes32(keccak256(bytecode));
     }
 
     function test_CampaignManagement() public {
@@ -62,12 +73,12 @@ contract CampaignRemoteManagerTest is Test {
         vm.chainId(42161);
 
         vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
-        campaignRemoteManager.createCampaign(params, 10, 100000);
+        campaignRemoteManager.createCampaign(params, 10, 100000, address(votemarket));
 
         vm.chainId(1);
 
         rewardToken.approve(address(campaignRemoteManager), 1000e18);
-        campaignRemoteManager.createCampaign(params, 10, 100000);
+        campaignRemoteManager.createCampaign(params, 10, 100000, address(votemarket));
 
         assertEq(rewardToken.balanceOf(address(this)), 0);
         assertEq(rewardToken.balanceOf(address(campaignRemoteManager)), 0);
@@ -87,14 +98,26 @@ contract CampaignRemoteManagerTest is Test {
 
         vm.chainId(42161);
         vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
-        campaignRemoteManager.manageCampaign(managementParams, 10, 100000);
+        campaignRemoteManager.manageCampaign(managementParams, 10, 100000, address(votemarket));
 
         vm.chainId(1);
-        campaignRemoteManager.manageCampaign(managementParams, 10, 100000);
+        campaignRemoteManager.manageCampaign(managementParams, 10, 100000, address(votemarket));
 
         assertEq(rewardToken.balanceOf(address(this)), 0);
         assertEq(rewardToken.balanceOf(address(campaignRemoteManager)), 0);
         assertEq(rewardToken.balanceOf(address(0xCAFE)), 2000e18);
+    }
+
+    function test_CampaignClosing() public {
+        CampaignRemoteManager.CampaignClosingParams memory params =
+            CampaignRemoteManager.CampaignClosingParams({campaignId: 1});
+
+        vm.chainId(42161);
+        vm.expectRevert(CampaignRemoteManager.InvalidChainId.selector);
+        campaignRemoteManager.closeCampaign(params, 10, 100000, address(votemarket));
+
+        vm.chainId(1);
+        campaignRemoteManager.closeCampaign(params, 10, 100000, address(votemarket));
     }
 
     function test_receiveMessage() public {
@@ -115,8 +138,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory payload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.CREATE_CAMPAIGN,
-                parameters: parameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: parameters
             })
         );
 
@@ -160,8 +184,9 @@ contract CampaignRemoteManagerTest is Test {
         bytes memory managementPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
-                parameters: managementParameters,
-                sender: address(0xCAFE)
+                sender: address(0xCAFE),
+                votemarket: address(votemarket),
+                parameters: managementParameters
             })
         );
 
@@ -181,8 +206,9 @@ contract CampaignRemoteManagerTest is Test {
         managementPayload = abi.encode(
             CampaignRemoteManager.Payload({
                 actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
-                parameters: managementParameters,
-                sender: address(this)
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: managementParameters
             })
         );
 
@@ -208,7 +234,164 @@ contract CampaignRemoteManagerTest is Test {
         );
     }
 
+    function test_receiveMessage_closeCampaign() public {
+        // First create a campaign
+        CampaignRemoteManager.CampaignCreationParams memory createParams = CampaignRemoteManager.CampaignCreationParams({
+            chainId: 1,
+            gauge: address(0xBEEF),
+            manager: address(this),
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            maxRewardPerVote: 1000e18,
+            totalRewardAmount: 1000e18,
+            addresses: new address[](0),
+            hook: address(0),
+            isWhitelist: false
+        });
+
+        // Create campaign through message receiving
+        bytes memory createParameters = abi.encode(createParams);
+        bytes memory createPayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.CREATE_CAMPAIGN,
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: createParameters
+            })
+        );
+
+        wrappedToken.mint(address(campaignRemoteManager), createParams.totalRewardAmount);
+        receiveMessage(1, address(campaignRemoteManager), createPayload);
+
+        skip(1 weeks); // Skip to start of campaign
+
+        // Skip to the end of the campaign
+        // 1 week before the start + 2 weeks for the campaign + 1 week to the end
+        skip(4 weeks);
+
+        // We're in the claim deadline period, so it should revert with CAMPAIGN_NOT_ENDED
+        CampaignRemoteManager.CampaignClosingParams memory closeParams =
+            CampaignRemoteManager.CampaignClosingParams({campaignId: 0});
+
+        bytes memory closeParameters = abi.encode(closeParams);
+        bytes memory closePayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
+                sender: address(0xCAFE),
+                votemarket: address(votemarket),
+                parameters: closeParameters
+            })
+        );
+
+        // Update epochs before closing
+        _updateEpochs(0);
+
+        // Skip to the end of the claim deadline
+        skip(votemarket.CLAIM_WINDOW_LENGTH());
+
+        // Test with wrong manager first
+        closePayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
+                sender: address(0xCAFE), // Wrong sender
+                votemarket: address(votemarket),
+                parameters: closeParameters
+            })
+        );
+
+        vm.expectRevert(CampaignRemoteManager.InvalidCampaignManager.selector);
+        receiveMessage(1, address(campaignRemoteManager), closePayload);
+
+        // Test with correct manager
+        closePayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.CLOSE_CAMPAIGN,
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: closeParameters
+            })
+        );
+
+        receiveMessage(1, address(campaignRemoteManager), closePayload);
+
+        // Verify campaign is closed by checking if we can manage it (should revert)
+        CampaignRemoteManager.CampaignManagementParams memory managementParams = CampaignRemoteManager
+            .CampaignManagementParams({
+            campaignId: 0,
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            totalRewardAmount: 1000e18,
+            maxRewardPerVote: 1000e18
+        });
+
+        bytes memory managementParameters = abi.encode(managementParams);
+        bytes memory managementPayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.MANAGE_CAMPAIGN,
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: managementParameters
+            })
+        );
+
+        vm.expectRevert(Votemarket.CAMPAIGN_ENDED.selector); // Campaign should be closed and unmanageable
+        receiveMessage(1, address(campaignRemoteManager), managementPayload);
+    }
+
+    function test_setPlatformWhitelist() public {
+        address newPlatform = address(0xBEEF);
+
+        // Non-owner cannot whitelist
+        vm.prank(address(0xCAFE));
+        vm.expectRevert(Ownable.Unauthorized.selector);
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, true);
+
+        // Owner can whitelist
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, true);
+        assertTrue(campaignRemoteManager.whitelistedPlatforms(newPlatform));
+
+        // Owner can unwhitelist
+        campaignRemoteManager.setPlatformWhitelist(newPlatform, false);
+        assertFalse(campaignRemoteManager.whitelistedPlatforms(newPlatform));
+    }
+
+    function test_CampaignManagement_NotWhitelisted() public {
+        address nonWhitelistedPlatform = address(0xBEEF);
+
+        CampaignRemoteManager.CampaignCreationParams memory params = CampaignRemoteManager.CampaignCreationParams({
+            chainId: 1,
+            gauge: address(0xBEEF),
+            manager: address(this),
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            maxRewardPerVote: 1000e18,
+            totalRewardAmount: 1000e18,
+            addresses: new address[](0),
+            hook: address(0),
+            isWhitelist: false
+        });
+
+        vm.chainId(1);
+        rewardToken.approve(address(campaignRemoteManager), 1000e18);
+
+        vm.expectRevert(CampaignRemoteManager.PlatformNotWhitelisted.selector);
+        campaignRemoteManager.createCampaign(params, 10, 100000, nonWhitelistedPlatform);
+    }
+
     /// Mocked functions
+
+    function _updateEpochs(uint256 campaignId) internal {
+        /// Get the campaign.
+        uint256 endTimestamp = votemarket.getCampaign(campaignId).endTimestamp;
+        uint256 startTimestamp = votemarket.getCampaign(campaignId).startTimestamp;
+
+        for (uint256 i = startTimestamp; i < endTimestamp; i += 1 weeks) {
+            votemarket.updateEpoch(campaignId, i, "");
+
+            /// Get the campaign.
+            endTimestamp = votemarket.getCampaign(campaignId).endTimestamp;
+        }
+    }
 
     function sendMessage(ILaPoste.MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
         external
