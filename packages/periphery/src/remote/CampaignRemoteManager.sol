@@ -19,7 +19,8 @@ contract CampaignRemoteManager is Ownable {
     enum ActionType {
         CREATE_CAMPAIGN,
         MANAGE_CAMPAIGN,
-        CLOSE_CAMPAIGN
+        CLOSE_CAMPAIGN,
+        UPDATE_MANAGER
     }
 
     struct Payload {
@@ -313,6 +314,12 @@ contract CampaignRemoteManager is Ownable {
             if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
 
             IVotemarket(_payload.votemarket).closeCampaign(params.campaignId);
+        } else if (_payload.actionType == ActionType.UPDATE_MANAGER) {
+            (uint256 campaignId, address newManager) = abi.decode(_payload.parameters, (uint256, address));
+            Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(campaignId);
+            if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
+
+            IVotemarket(_payload.votemarket).updateManager(campaignId, newManager);
         } else {
             revert InvalidActionType();
         }

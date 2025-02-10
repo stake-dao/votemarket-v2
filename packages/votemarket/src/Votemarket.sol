@@ -721,6 +721,18 @@ contract Votemarket is ReentrancyGuard {
         emit CampaignUpgradeQueued(campaignId, epoch);
     }
 
+    /// @notice Updates the manager for a campaign
+    /// @param campaignId The ID of the campaign
+    /// @param newManager The new manager address
+    function updateManager(uint256 campaignId, address newManager)
+        external
+        nonReentrant
+        onlyManagerOrRemote(campaignId)
+        notClosed(campaignId)
+    {
+        campaignById[campaignId].manager = newManager;
+    }
+
     /// @notice Increases the total reward amount for a campaign
     /// @param campaignId The ID of the campaign
     /// @param totalRewardAmount Total reward amount to add
