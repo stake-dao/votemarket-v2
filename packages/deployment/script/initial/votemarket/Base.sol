@@ -49,8 +49,6 @@ abstract contract Base is Script {
             address oracleAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracle = Oracle(payable(oracleAddress));
 
-    
-
             salt = bytes32(0x8898502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
 
             initCode = abi.encodePacked(
@@ -60,7 +58,6 @@ abstract contract Base is Script {
 
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = VerifierV2(payable(verifierAddress));
-
 
             salt = bytes32(0x8898502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 

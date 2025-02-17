@@ -71,13 +71,12 @@ graph LR
 | Bundler | [`0x67346f8b9B7dDA4639600C190DDaEcDc654359c8`](https://arbiscan.io/address/0x67346f8b9B7dDA4639600C190DDaEcDc654359c8) | Arbitrum, Optimism, Base, Polygon |
 | L1Sender | [`0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C`](https://etherscan.io/address/0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C) | Mainnet |
 | L1BlockOracleUpdater | [`0x2292514B78799486D860a5f685c3270bcEf8E4b9`](https://arbiscan.io/address/0x2292514B78799486D860a5f685c3270bcEf8E4b9) | Arbitrum, Optimism, Base, Polygon |
-| CampaignRemoteManager | [`0x000000009dF57105d76B059178989E01356e4b45`](https://etherscan.io/address/0x000000009dF57105d76B059178989E01356e4b45) | Mainnet, Arbitrum, Optimism, Base, Polygon |
+| CampaignRemoteManager | [`0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2`](https://etherscan.io/address/0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2) | Mainnet, Arbitrum, Optimism, Base, Polygon |
 
 #### Curve Implementation
-
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Votemarket | [`0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5`](https://arbiscan.io/address/0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5) | Arbitrum, Optimism, Base, Polygon |
+| Votemarket | [`0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5`](https://arbiscan.io/address/0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5) (v1)<br/>[`0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9`](https://arbiscan.io/address/0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9) (v2) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8`](https://arbiscan.io/address/0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8) | Arbitrum, Optimism, Base, Polygon |
 | Verifier | [`0x2Fa15A44eC5737077a747ed93e4eBD5b4960a465`](https://arbiscan.io/address/0x2Fa15A44eC5737077a747ed93e4eBD5b4960a465) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x99EDB5782da5D799dd16a037FDbc00a1494b9Ead`](https://arbiscan.io/address/0x99EDB5782da5D799dd16a037FDbc00a1494b9Ead) | Arbitrum, Optimism, Base, Polygon |
