@@ -99,5 +99,7 @@ interface IVotemarket {
 
     function updateEpoch(uint256 campaignId, uint256 epoch, bytes calldata hookData) external;
 
+    function updateManager(uint256 campaignId, address newManager) external;
+
     function closeCampaign(uint256 campaignId) external;
 }

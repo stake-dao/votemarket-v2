@@ -234,6 +234,51 @@ contract CampaignRemoteManagerTest is Test {
         );
     }
 
+    function test_receiveMessage_updateManager() public {
+        CampaignRemoteManager.CampaignCreationParams memory createParams = CampaignRemoteManager.CampaignCreationParams({
+            chainId: 1,
+            gauge: address(0xBEEF),
+            manager: address(this),
+            rewardToken: address(rewardToken),
+            numberOfPeriods: 2,
+            maxRewardPerVote: 1000e18,
+            totalRewardAmount: 1000e18,
+            addresses: new address[](0),
+            hook: address(0),
+            isWhitelist: false
+        });
+
+        bytes memory createParameters = abi.encode(createParams);
+        bytes memory createPayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.CREATE_CAMPAIGN,
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: createParameters
+            })
+        );
+
+        wrappedToken.mint(address(campaignRemoteManager), createParams.totalRewardAmount);
+        receiveMessage(1, address(campaignRemoteManager), createPayload);
+
+        bytes memory updateManagerPayload = abi.encode(
+            CampaignRemoteManager.Payload({
+                actionType: CampaignRemoteManager.ActionType.UPDATE_MANAGER,
+                sender: address(this),
+                votemarket: address(votemarket),
+                parameters: abi.encode(0, address(0xCAFE))
+            })
+        );
+
+        (,, address manager,,,,,,,,) = votemarket.campaignById(0);
+
+        assertEq(manager, address(this));
+        receiveMessage(1, address(campaignRemoteManager), updateManagerPayload);
+
+        (,, manager,,,,,,,,) = votemarket.campaignById(0);
+        assertEq(manager, address(0xCAFE));
+    }
+
     function test_receiveMessage_closeCampaign() public {
         // First create a campaign
         CampaignRemoteManager.CampaignCreationParams memory createParams = CampaignRemoteManager.CampaignCreationParams({

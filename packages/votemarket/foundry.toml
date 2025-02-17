@@ -7,7 +7,7 @@ solc = "0.8.19"
 # Enables to use python scripts in forge tests.
 ffi = true
 
-verbosity = 3
+verbosity = 2
 optimizers_runs = 200
 
 gas_reports = [

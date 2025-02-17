@@ -19,7 +19,8 @@ contract CampaignRemoteManager is Ownable {
     enum ActionType {
         CREATE_CAMPAIGN,
         MANAGE_CAMPAIGN,
-        CLOSE_CAMPAIGN
+        CLOSE_CAMPAIGN,
+        UPDATE_MANAGER
     }
 
     struct Payload {
@@ -99,6 +100,9 @@ contract CampaignRemoteManager is Ownable {
 
     /// @notice The event emitted when a campaign closing payload is sent.
     event CampaignClosingPayloadSent(CampaignClosingParams indexed params);
+
+    /// @notice The event emitted when a campaign update manager payload is sent.
+    event CampaignUpdateManagerPayloadSent(address indexed sender, uint256 indexed campaignId, address indexed newManager);
 
     /// @notice Event emitted when a platform is whitelisted/unwhitelisted
     event PlatformWhitelistUpdated(address indexed platform, bool whitelisted);
@@ -221,6 +225,44 @@ contract CampaignRemoteManager is Ownable {
         emit CampaignManagementPayloadSent(params);
     }
 
+    /// @notice Updates the manager for a campaign on L2.
+    /// @param campaignId The campaign id
+    /// @param newManager The new manager address
+    /// @param destinationChainId The destination chain id
+    /// @param additionalGasLimit The additional gas limit
+    /// @param votemarket The Votemarket address on L2
+    function updateManager(
+        uint256 campaignId,
+        address newManager,
+        uint256 destinationChainId,
+        uint256 additionalGasLimit,
+        address votemarket
+    ) external payable {
+        if (block.chainid != 1) revert InvalidChainId();
+        if (!whitelistedPlatforms[votemarket]) revert PlatformNotWhitelisted();
+
+        bytes memory parameters = abi.encode(campaignId, newManager);
+        bytes memory payload = abi.encode(
+            Payload({
+                actionType: ActionType.UPDATE_MANAGER,
+                sender: msg.sender,
+                votemarket: votemarket,
+                parameters: parameters
+            })
+        );
+
+        ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
+            destinationChainId: destinationChainId,
+            to: address(this),
+            tokens: new ILaPoste.Token[](0),
+            payload: payload
+        });
+
+        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
+
+        emit CampaignUpdateManagerPayloadSent(msg.sender, campaignId, newManager);
+    }
+
     /// @notice Closes a campaign on L2.
     /// @param params The campaign closing parameters
     /// @param destinationChainId The destination chain id
@@ -313,6 +355,12 @@ contract CampaignRemoteManager is Ownable {
             if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
 
             IVotemarket(_payload.votemarket).closeCampaign(params.campaignId);
+        } else if (_payload.actionType == ActionType.UPDATE_MANAGER) {
+            (uint256 campaignId, address newManager) = abi.decode(_payload.parameters, (uint256, address));
+            Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(campaignId);
+            if (campaign.manager != _payload.sender) revert InvalidCampaignManager();
+
+            IVotemarket(_payload.votemarket).updateManager(campaignId, newManager);
         } else {
             revert InvalidActionType();
         }
