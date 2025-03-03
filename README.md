@@ -85,7 +85,7 @@ graph LR
 
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Votemarket | [`0x00000000567E1FE94a27f64D50A1a15875182c3E`](https://arbiscan.io/address/0x00000000567E1FE94a27f64D50A1a15875182c3E) | Arbitrum, Optimism, Base, Polygon |
+| Votemarket | [`0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7`](https://arbiscan.io/address/0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x000000009f42db5807378c374da13c54C856c29c`](https://arbiscan.io/address/0x000000009f42db5807378c374da13c54C856c29c) | Arbitrum, Optimism, Base, Polygon |
 | Verifier | [`0x00000000888Fb15FfbBa217F302a77FA0226Ce16`](https://arbiscan.io/address/0x00000000888Fb15FfbBa217F302a77FA0226Ce16) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x0000000064Ef5Bf60FB64BbCe5D756268cB4e7f7`](https://arbiscan.io/address/0x0000000064Ef5Bf60FB64BbCe5D756268cB4e7f7) | Arbitrum, Optimism, Base, Polygon |
@@ -94,7 +94,7 @@ graph LR
 
 | Contract | Address | Networks |
 |----------|---------|----------|
-| Votemarket | [`0x00000000EB9E04494FC17339f60EA4D26B2D727C`](https://arbiscan.io/address/0x00000000EB9E04494FC17339f60EA4D26B2D727C) | Arbitrum, Optimism, Base, Polygon |
+| Votemarket | [`0x155a7Cf21F8853c135BdeBa27FEA19674C65F2b4`](https://arbiscan.io/address/0x155a7Cf21F8853c135BdeBa27FEA19674C65F2b4) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x000000009271842F0D4Db92a7Ef5544D1F70bC1A`](https://arbiscan.io/address/0x000000009271842F0D4Db92a7Ef5544D1F70bC1A) | Arbitrum, Optimism, Base, Polygon |
 | Verifier | [`0x00000000c6906194269c9955A9E5DEF4e018CDd5`](https://arbiscan.io/address/0x00000000c6906194269c9955A9E5DEF4e018CDd5) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB`](https://arbiscan.io/address/0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB) | Arbitrum, Optimism, Base, Polygon |
