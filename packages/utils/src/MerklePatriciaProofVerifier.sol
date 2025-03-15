@@ -149,6 +149,13 @@ library MerklePatriciaProofVerifier {
                     } else {
                         nodeHashHash = node[nibble].rlpBytesKeccak256();
                     }
+
+                    // FIX: Add this check to prevent truncated proof attacks
+                    if (i == stack.length - 1) {
+                        // If this is the last node but we haven't consumed the entire path,
+                        // this is an invalid proof - we need to process more nodes
+                        revert();
+                    }
                 } else {
                     // we have consumed the entire mptKey, so we need to look at what's contained in this node.
 
