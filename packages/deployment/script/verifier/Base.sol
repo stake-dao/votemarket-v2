@@ -39,12 +39,13 @@ abstract contract Base is Script {
             Oracle(oracle).revokeAuthorizedDataProvider(address(oldVerifier));
             Oracle(oracle).setAuthorizedDataProvider(address(verifierAddress));
 
+            Oracle(oracle).transferGovernance(address(governance));
+
             vm.stopBroadcast();
         }
     }
 
     /// @dev Returns the init code for the Verifier contract
-    /// V2 is for newer vyper versions.
     function getInitCode(
         address oracle,
         address gaugeController,
@@ -59,7 +60,7 @@ abstract contract Base is Script {
     }
 
     /// @dev Returns the init code for the Verifier contract
-    /// V2 is for older vyper versions.
+    /// V2 is for newer vyper versions.
     function getInitCodeV2(
         address oracle,
         address gaugeController,

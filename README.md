@@ -78,7 +78,7 @@ graph LR
 |----------|---------|----------|
 | Votemarket | [`0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5`](https://arbiscan.io/address/0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5) (v1)<br/>[`0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9`](https://arbiscan.io/address/0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9) (v2) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8`](https://arbiscan.io/address/0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8) | Arbitrum, Optimism, Base, Polygon |
-| Verifier | [`0x2Fa15A44eC5737077a747ed93e4eBD5b4960a465`](https://arbiscan.io/address/0x2Fa15A44eC5737077a747ed93e4eBD5b4960a465) | Arbitrum, Optimism, Base, Polygon |
+| Verifier | [`0x6095EBE7EbF2E0a912d6e293b00A6241a1A23dB3`](https://arbiscan.io/address/0x6095EBE7EbF2E0a912d6e293b00A6241a1A23dB3) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x99EDB5782da5D799dd16a037FDbc00a1494b9Ead`](https://arbiscan.io/address/0x99EDB5782da5D799dd16a037FDbc00a1494b9Ead) | Arbitrum, Optimism, Base, Polygon |
 
 #### Balancer Implementation
@@ -87,7 +87,7 @@ graph LR
 |----------|---------|----------|
 | Votemarket | [`0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7`](https://arbiscan.io/address/0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x000000009f42db5807378c374da13c54C856c29c`](https://arbiscan.io/address/0x000000009f42db5807378c374da13c54C856c29c) | Arbitrum, Optimism, Base, Polygon |
-| Verifier | [`0x00000000888Fb15FfbBa217F302a77FA0226Ce16`](https://arbiscan.io/address/0x00000000888Fb15FfbBa217F302a77FA0226Ce16) | Arbitrum, Optimism, Base, Polygon |
+| Verifier | [`0xBd1Af9004e5f868FB0911Fbd61650182Bef5075a`](https://arbiscan.io/address/0xBd1Af9004e5f868FB0911Fbd61650182Bef5075a) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x0000000064Ef5Bf60FB64BbCe5D756268cB4e7f7`](https://arbiscan.io/address/0x0000000064Ef5Bf60FB64BbCe5D756268cB4e7f7) | Arbitrum, Optimism, Base, Polygon |
 
 #### FXN Implementation
@@ -96,7 +96,7 @@ graph LR
 |----------|---------|----------|
 | Votemarket | [`0x155a7Cf21F8853c135BdeBa27FEA19674C65F2b4`](https://arbiscan.io/address/0x155a7Cf21F8853c135BdeBa27FEA19674C65F2b4) | Arbitrum, Optimism, Base, Polygon |
 | Oracle | [`0x000000009271842F0D4Db92a7Ef5544D1F70bC1A`](https://arbiscan.io/address/0x000000009271842F0D4Db92a7Ef5544D1F70bC1A) | Arbitrum, Optimism, Base, Polygon |
-| Verifier | [`0x00000000c6906194269c9955A9E5DEF4e018CDd5`](https://arbiscan.io/address/0x00000000c6906194269c9955A9E5DEF4e018CDd5) | Arbitrum, Optimism, Base, Polygon |
+| Verifier | [`0xd87E05De04E22b2C4EE950DF8A63622AF76af813`](https://arbiscan.io/address/0xd87E05De04E22b2C4EE950DF8A63622AF76af813) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB`](https://arbiscan.io/address/0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB) | Arbitrum, Optimism, Base, Polygon |
 
 ## Getting Started
