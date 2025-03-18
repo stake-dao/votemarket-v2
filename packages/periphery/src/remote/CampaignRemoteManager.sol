@@ -102,7 +102,9 @@ contract CampaignRemoteManager is Ownable {
     event CampaignClosingPayloadSent(CampaignClosingParams indexed params);
 
     /// @notice The event emitted when a campaign update manager payload is sent.
-    event CampaignUpdateManagerPayloadSent(address indexed sender, uint256 indexed campaignId, address indexed newManager);
+    event CampaignUpdateManagerPayloadSent(
+        address indexed sender, uint256 indexed campaignId, address indexed newManager
+    );
 
     /// @notice Event emitted when a platform is whitelisted/unwhitelisted
     event PlatformWhitelistUpdated(address indexed platform, bool whitelisted);
