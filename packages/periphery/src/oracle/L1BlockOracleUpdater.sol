@@ -50,12 +50,12 @@ contract L1BlockOracleUpdater {
     ////////////////////////////////////////////////////////////////
 
     /// @notice Restricts update calls during the protected update window.
-    /// The window is defined as the daily epoch (UTC midnight) plus 1 hour.
-    /// If the current block.timestamp is less than (epoch + 1h), only governance may call.
+    /// The window is defined as the daily epoch (UTC midnight) plus 2 hours.
+    /// If the current block.timestamp is less than (epoch + 2h), only governance may call.
     modifier allowedUpdate() {
         // Compute the current day's epoch (UTC midnight)
         uint256 epochStart = (block.timestamp / 86400) * 86400;
-        if (block.timestamp < epochStart + 3600) {
+        if (block.timestamp < epochStart + 2 hours) {
             require(msg.sender == governance, "Only governance allowed during update window");
         }
         _;

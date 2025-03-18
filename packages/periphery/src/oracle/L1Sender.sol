@@ -46,8 +46,8 @@ contract L1Sender is Ownable {
     /// @param additionalGasLimit Additional gas limit for the message dispatch.
     /// @dev Enforces that the broadcast only occurs after the claim protection period (1 hour after the weekly period start).
     function broadcastBlock(uint256 chainId, uint256 additionalGasLimit) external payable {
-        // Enforce claim protection delay: broadcasts are only allowed 1 hour after the weekly period starts.
-        if (block.timestamp < currentPeriod() + 3600) revert TooSoon();
+        // Enforce claim protection delay: broadcasts are only allowed 2 hours after the weekly period starts.
+        if (block.timestamp < currentPeriod() + 2 hours) revert TooSoon();
 
         // Encode the block data (using the previous block)
         bytes memory payload = abi.encode(block.number - 1, blockhash(block.number - 1), block.timestamp);
