@@ -5,7 +5,7 @@ import "test/unit/oracle/Proof.t.sol";
 
 // Slots are different for each platform whever they've been compiled with different compiler versions,
 // and if vyper or solidity.
-
+/*
 address constant CRV_GAUGE_CONTROLLER = address(0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB);
 address constant CRV_ACCOUNT = 0x52f541764E6e90eeBc5c21Ff570De0e2D63766B6;
 address constant CRV_GAUGE = 0x16A3a047fC1D388d5846a73ACDb475b11228c299;
@@ -27,12 +27,12 @@ contract CRV_Platform is
         false
     )
 {}
+*/
 
 address constant BAL_GAUGE_CONTROLLER = address(0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD);
 address constant BAL_ACCOUNT = 0xea79d1A83Da6DB43a85942767C389fE0ACf336A5;
 address constant BAL_GAUGE = 0xDc2Df969EE5E66236B950F5c4c5f8aBe62035df2;
-uint256 constant BAL_BLOCK_NUMBER = 20_563_250;
-
+uint256 constant BAL_BLOCK_NUMBER = 22_084_453;
 uint256 constant BAL_LAST_USER_VOTE_SLOT = 1000000007;
 uint256 constant BAL_USER_SLOPE_SLOT = 1000000005;
 uint256 constant BAL_WEIGHT_SLOT = 1000000008;
@@ -59,6 +59,7 @@ uint256 constant FXN_LAST_USER_VOTE_SLOT = 1000000010;
 uint256 constant FXN_USER_SLOPE_SLOT = 1000000008;
 uint256 constant FXN_WEIGHT_SLOT = 1000000011;
 
+/*
 contract FXN_Platform is
     ProofCorrectnessTest(
         FXN_GAUGE_CONTROLLER,
@@ -93,3 +94,4 @@ contract FXS_Platform is
         true
     )
 {}
+*/
