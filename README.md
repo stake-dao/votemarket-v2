@@ -70,7 +70,7 @@ graph LR
 |----------|---------|----------|
 | Bundler | [`0x67346f8b9B7dDA4639600C190DDaEcDc654359c8`](https://arbiscan.io/address/0x67346f8b9B7dDA4639600C190DDaEcDc654359c8) | Arbitrum, Optimism, Base, Polygon |
 | L1Sender | [`0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C`](https://etherscan.io/address/0xD9b90F3Ab02077c21987c5fb9c4d1c5d2a10eC1C) | Mainnet |
-| L1BlockOracleUpdater | [`0x2292514B78799486D860a5f685c3270bcEf8E4b9`](https://arbiscan.io/address/0x2292514B78799486D860a5f685c3270bcEf8E4b9) | Arbitrum, Optimism, Base, Polygon |
+| L1BlockOracleUpdater | [`0xaE74643A86ca9544a41c266BC5BF2d26479f64E7`](https://optimistic.etherscan.io/address/0xaE74643A86ca9544a41c266BC5BF2d26479f64E7) | Arbitrum, Optimism, Base, Polygon |
 | CampaignRemoteManager | [`0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2`](https://etherscan.io/address/0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2) | Mainnet, Arbitrum, Optimism, Base, Polygon |
 
 #### Curve Implementation
