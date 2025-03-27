@@ -113,6 +113,17 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
             generateAndEncodeProof(account, gauge, epoch, true);
 
+        /*
+        console.logBytes32(blockHash);
+        console.log("\n");
+        console.logBytes(blockHeaderRlp);
+        
+        console.log("\n");
+        console.logBytes(controllerProof);
+        console.log("\n");
+        console.logBytes(storageProofRlp);
+        */
+
         // Simulate a block number insertion
         oracle.insertBlockNumber(
             epoch,
@@ -129,6 +140,8 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
+
+        console.logBytes(storageProofRlp);
 
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
