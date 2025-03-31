@@ -103,7 +103,27 @@ interface IVotemarket {
 
     function closeCampaign(uint256 campaignId) external;
 
-    function remote() external view returns(address);
+    function remote() external view returns (address);
 
-    function currentEpoch() external view returns(uint256);
+    function currentEpoch() external view returns (uint256);
+
+    ////////////////////////////////////////////////////////////////
+    /// --- SETTERS
+    ///////////////////////////////////////////////////////////////
+
+    function setIsProtected(address _account, bool _isProtected) external;
+
+    function setRemote(address _remote) external;
+
+    function setFee(uint256 _fee) external;
+
+    function setCustomFee(address _account, uint256 _fee) external;
+
+    function setRecipient(address _account, address _recipient) external;
+
+    function setFeeCollector(address _feeCollector) external;
+
+    function transferGovernance(address _futureGovernance) external;
+
+    function acceptGovernance() external;
 }
