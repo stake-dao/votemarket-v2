@@ -52,17 +52,8 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice The list of oracles.
     address[] public oracles;
 
-    /// @notice Is the address an oracle?
-    mapping(address => bool) public isOracle;
-
-    /// @notice Is the address a votemarket?
-    mapping(address => bool) public isVotemarket;
-
     /// @notice The list of destination chain ids.
     uint256[] public destinationChainIds;
-
-    /// @notice The error for an invalid address.
-    error InvalidAddress();
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -171,8 +162,6 @@ contract VMGovernanceHub is Remote, Ownable {
         address _recipient,
         uint256 additionalGasLimit
     ) external payable onlyOwner onlyValidChainId(block.chainid) {
-        if (!isVotemarket[_votemarket]) revert InvalidAddress();
-
         bytes memory parameters = abi.encode(_votemarket, _accounts, _recipient);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_RECIPIENT, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
@@ -260,8 +249,6 @@ contract VMGovernanceHub is Remote, Ownable {
         onlyOwner
         onlyValidChainId(block.chainid)
     {
-        if (!isOracle[_oracle]) revert InvalidAddress();
-
         bytes memory parameters = abi.encode(_oracle, _blockNumberProvider);
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.SET_AUTHORIZED_BLOCK_NUMBER_PROVIDER, parameters: parameters}));
@@ -285,8 +272,6 @@ contract VMGovernanceHub is Remote, Ownable {
         address _blockNumberProvider,
         uint256 additionalGasLimit
     ) external payable onlyOwner onlyValidChainId(block.chainid) {
-        if (!isOracle[_oracle]) revert InvalidAddress();
-
         bytes memory parameters = abi.encode(_oracle, _blockNumberProvider);
         bytes memory payload = abi.encode(
             Payload({actionType: ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER, parameters: parameters})
@@ -312,8 +297,6 @@ contract VMGovernanceHub is Remote, Ownable {
         onlyOwner
         onlyValidChainId(block.chainid)
     {
-        if (!isOracle[_oracle]) revert InvalidAddress();
-
         bytes memory parameters = abi.encode(_oracle, _dataProvider);
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.SET_AUTHORIZED_DATA_PROVIDER, parameters: parameters}));
@@ -338,8 +321,6 @@ contract VMGovernanceHub is Remote, Ownable {
         onlyOwner
         onlyValidChainId(block.chainid)
     {
-        if (!isOracle[_oracle]) revert InvalidAddress();
-
         bytes memory parameters = abi.encode(_oracle, _dataProvider);
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.REVOKE_AUTHORIZED_DATA_PROVIDER, parameters: parameters}));
@@ -401,11 +382,6 @@ contract VMGovernanceHub is Remote, Ownable {
         delete votemarkets;
         votemarkets = _votemarkets;
 
-        /// 2. Update mapping.
-        for (uint256 i = 0; i < _votemarkets.length; i++) {
-            isVotemarket[_votemarkets[i]] = true;
-        }
-
         /// 3. Send messages to L2 to synchronize state.
         bytes memory parameters = abi.encode(_votemarkets);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.ADD_VOTEMARKET, parameters: parameters}));
@@ -427,11 +403,6 @@ contract VMGovernanceHub is Remote, Ownable {
         /// 1. Update L1.
         delete oracles;
         oracles = _oracles;
-
-        /// 2. Update mapping.
-        for (uint256 i = 0; i < _oracles.length; i++) {
-            isOracle[_oracles[i]] = true;
-        }
 
         /// 3. Send messages to L2 to synchronize state.
         bytes memory parameters = abi.encode(_oracles);
@@ -545,18 +516,10 @@ contract VMGovernanceHub is Remote, Ownable {
 
             delete votemarkets;
             votemarkets = _votemarkets;
-
-            for (uint256 i = 0; i < _votemarkets.length; i++) {
-                isVotemarket[_votemarkets[i]] = true;
-            }
         } else if (_payload.actionType == ActionType.ADD_ORACLE) {
             address[] memory _oracles = abi.decode(_payload.parameters, (address[]));
             delete oracles;
             oracles = _oracles;
-
-            for (uint256 i = 0; i < _oracles.length; i++) {
-                isOracle[_oracles[i]] = true;
-            }
         } else if (_payload.actionType == ActionType.ADD_DESTINATION_CHAIN_ID) {
             uint256[] memory _destinationChainIds = abi.decode(_payload.parameters, (uint256[]));
             delete destinationChainIds;
