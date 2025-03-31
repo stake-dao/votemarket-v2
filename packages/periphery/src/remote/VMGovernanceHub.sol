@@ -133,13 +133,13 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _accounts The accounts to set the custom fee for.
     /// @param _fees The custom fees.
     /// @param additionalGasLimit The additional gas limit.
-    function setCustomFee(address[] memory _accounts, uint256[] memory _fees, uint256 additionalGasLimit)
+    function setCustomFee(address _votemarket, address[] memory _accounts, uint256[] memory _fees, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
         onlyValidChainId(block.chainid)
     {
-        bytes memory parameters = abi.encode(_accounts, _fees);
+        bytes memory parameters = abi.encode(_votemarket, _accounts, _fees);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_CUSTOM_FEE, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
             _sendMessage({
@@ -459,71 +459,140 @@ contract VMGovernanceHub is Remote, Ownable {
         Payload memory _payload = abi.decode(payload, (Payload));
 
         if (_payload.actionType == ActionType.SET_IS_PROTECTED) {
-            (address _votemarket, address[] memory _accounts, bool _isProtected) =
-                abi.decode(_payload.parameters, (address, address[], bool));
-            for (uint256 i = 0; i < _accounts.length; i++) {
-                IVotemarket(_votemarket).setIsProtected(_accounts[i], _isProtected);
-            }
+            _handleSetIsProtected(_payload.parameters);
         } else if (_payload.actionType == ActionType.SET_REMOTE) {
-            address _remote = abi.decode(_payload.parameters, (address));
-            for (uint256 i = 0; i < votemarkets.length; i++) {
-                IVotemarket(votemarkets[i]).setRemote(_remote);
-            }
+            _handleSetRemote(_payload.parameters);
         } else if (_payload.actionType == ActionType.SET_FEE) {
-            uint256 _fee = abi.decode(_payload.parameters, (uint256));
-            for (uint256 i = 0; i < votemarkets.length; i++) {
-                IVotemarket(votemarkets[i]).setFee(_fee);
-            }
+            _handleSetFee(_payload.parameters);
         } else if (_payload.actionType == ActionType.SET_CUSTOM_FEE) {
-            (address[] memory _accounts, uint256[] memory _fees) =
-                abi.decode(_payload.parameters, (address[], uint256[]));
-            for (uint256 i = 0; i < _accounts.length; i++) {
-                for (uint256 j = 0; j < votemarkets.length; j++) {
-                    IVotemarket(votemarkets[j]).setCustomFee(_accounts[i], _fees[i]);
-                }
-            }
+            _handleSetCustomFee(_payload.parameters);
         } else if (_payload.actionType == ActionType.SET_RECIPIENT) {
-            (address votemarket, address[] memory _accounts, address _recipient) =
-                abi.decode(_payload.parameters, (address, address[], address));
-            for (uint256 i = 0; i < _accounts.length; i++) {
-                IVotemarket(votemarket).setRecipient(_accounts[i], _recipient);
-            }
+            _handleSetRecipient(_payload.parameters);
         } else if (_payload.actionType == ActionType.SET_FEE_COLLECTOR) {
-            (address _feeCollector) = abi.decode(_payload.parameters, (address));
-            for (uint256 i = 0; i < votemarkets.length; i++) {
-                IVotemarket(votemarkets[i]).setFeeCollector(_feeCollector);
-            }
+            _handleSetFeeCollector(_payload.parameters);
         } else if (_payload.actionType == ActionType.TRANSFER_VOTEMARKET_GOVERNANCE) {
-            address _futureGovernance = abi.decode(_payload.parameters, (address));
-            for (uint256 i = 0; i < votemarkets.length; i++) {
-                IVotemarket(votemarkets[i]).transferGovernance(_futureGovernance);
-            }
+            _handleTransferGovernance(_payload.parameters, votemarkets);
         } else if (_payload.actionType == ActionType.ACCEPT_VOTEMARKET_GOVERNANCE) {
-            for (uint256 i = 0; i < votemarkets.length; i++) {
-                IVotemarket(votemarkets[i]).acceptGovernance();
-            }
+            _handleAcceptGovernance(_payload.parameters, votemarkets);
+        } else if (_payload.actionType == ActionType.SET_AUTHORIZED_BLOCK_NUMBER_PROVIDER) {
+            _handleSetAuthorizedBlockNumberProvider(_payload.parameters);
+        } else if (_payload.actionType == ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER) {
+            _handleRevokeAuthorizedBlockNumberProvider(_payload.parameters);
+        } else if (_payload.actionType == ActionType.SET_AUTHORIZED_DATA_PROVIDER) {
+            _handleSetAuthorizedDataProvider(_payload.parameters);
+        } else if (_payload.actionType == ActionType.REVOKE_AUTHORIZED_DATA_PROVIDER) {
+            _handleRevokeAuthorizedDataProvider(_payload.parameters);
         } else if (_payload.actionType == ActionType.TRANSFER_ORACLE_GOVERNANCE) {
-            address _futureGovernance = abi.decode(_payload.parameters, (address));
-            for (uint256 i = 0; i < oracles.length; i++) {
-                IOracle(oracles[i]).transferGovernance(_futureGovernance);
-            }
+            _handleTransferGovernance(_payload.parameters, oracles);
         } else if (_payload.actionType == ActionType.ACCEPT_ORACLE_GOVERNANCE) {
-            for (uint256 i = 0; i < oracles.length; i++) {
-                IOracle(oracles[i]).acceptGovernance();
-            }
+            _handleAcceptGovernance(_payload.parameters, oracles);
         } else if (_payload.actionType == ActionType.ADD_VOTEMARKET) {
-            address[] memory _votemarkets = abi.decode(_payload.parameters, (address[]));
-
-            delete votemarkets;
-            votemarkets = _votemarkets;
+            _handleAddVotemarket(_payload.parameters);
         } else if (_payload.actionType == ActionType.ADD_ORACLE) {
-            address[] memory _oracles = abi.decode(_payload.parameters, (address[]));
-            delete oracles;
-            oracles = _oracles;
+            _handleAddOracle(_payload.parameters);
         } else if (_payload.actionType == ActionType.ADD_DESTINATION_CHAIN_ID) {
-            uint256[] memory _destinationChainIds = abi.decode(_payload.parameters, (uint256[]));
-            delete destinationChainIds;
-            destinationChainIds = _destinationChainIds;
+            _handleAddDestinationChainId(_payload.parameters);
         }
+    }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- ACTIONS HANDLER
+    ///////////////////////////////////////////////////////////////
+
+    function _handleSetIsProtected(bytes memory parameters) internal {
+        (address _votemarket, address[] memory _accounts, bool _isProtected) =
+            abi.decode(parameters, (address, address[], bool));
+
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            IVotemarket(_votemarket).setIsProtected(_accounts[i], _isProtected);
+        }
+    }
+
+    function _handleSetRemote(bytes memory parameters) internal {
+        address _remote = abi.decode(parameters, (address));
+        for (uint256 i = 0; i < votemarkets.length; i++) {
+            IVotemarket(votemarkets[i]).setRemote(_remote);
+        }
+    }
+
+    function _handleSetFee(bytes memory parameters) internal {
+        uint256 _fee = abi.decode(parameters, (uint256));
+        for (uint256 i = 0; i < votemarkets.length; i++) {
+            IVotemarket(votemarkets[i]).setFee(_fee);
+        }
+    }
+
+    function _handleSetCustomFee(bytes memory parameters) internal {
+        (address votemarket, address[] memory _accounts, uint256[] memory _fees) =
+            abi.decode(parameters, (address, address[], uint256[]));
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            IVotemarket(votemarket).setCustomFee(_accounts[i], _fees[i]);
+        }
+    }
+
+    function _handleSetRecipient(bytes memory parameters) internal {
+        (address votemarket, address[] memory _accounts, address _recipient) =
+            abi.decode(parameters, (address, address[], address));
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            IVotemarket(votemarket).setRecipient(_accounts[i], _recipient);
+        }
+    }
+
+    function _handleSetFeeCollector(bytes memory parameters) internal {
+        (address _feeCollector) = abi.decode(parameters, (address));
+        for (uint256 i = 0; i < votemarkets.length; i++) {
+            IVotemarket(votemarkets[i]).setFeeCollector(_feeCollector);
+        }
+    }
+
+    function _handleTransferGovernance(bytes memory parameters, address[] memory _entities) internal {
+        address _futureGovernance = abi.decode(parameters, (address));
+        for (uint256 i = 0; i < _entities.length; i++) {
+            IOracle(_entities[i]).transferGovernance(_futureGovernance);
+        }
+    }
+
+    function _handleAcceptGovernance(bytes memory parameters, address[] memory _entities) internal {
+        for (uint256 i = 0; i < _entities.length; i++) {
+            IOracle(_entities[i]).acceptGovernance();
+        }
+    }
+
+    function _handleAddVotemarket(bytes memory parameters) internal {
+        address[] memory _votemarkets = abi.decode(parameters, (address[]));
+        delete votemarkets;
+        votemarkets = _votemarkets;
+    }
+
+    function _handleAddOracle(bytes memory parameters) internal {
+        address[] memory _oracles = abi.decode(parameters, (address[]));
+        delete oracles;
+        oracles = _oracles;
+    }
+
+    function _handleAddDestinationChainId(bytes memory parameters) internal {
+        uint256[] memory _destinationChainIds = abi.decode(parameters, (uint256[]));
+        delete destinationChainIds;
+        destinationChainIds = _destinationChainIds;
+    }
+
+    function _handleSetAuthorizedBlockNumberProvider(bytes memory parameters) internal {
+        (address _oracle, address _blockNumberProvider) = abi.decode(parameters, (address, address));
+        IOracle(_oracle).setAuthorizedBlockNumberProvider(_blockNumberProvider);
+    }
+
+    function _handleRevokeAuthorizedBlockNumberProvider(bytes memory parameters) internal {
+        (address _oracle, address _blockNumberProvider) = abi.decode(parameters, (address, address));
+        IOracle(_oracle).revokeAuthorizedBlockNumberProvider(_blockNumberProvider);
+    }
+
+    function _handleSetAuthorizedDataProvider(bytes memory parameters) internal {
+        (address _oracle, address _dataProvider) = abi.decode(parameters, (address, address));
+        IOracle(_oracle).setAuthorizedDataProvider(_dataProvider);
+    }
+
+    function _handleRevokeAuthorizedDataProvider(bytes memory parameters) internal {
+        (address _oracle, address _dataProvider) = abi.decode(parameters, (address, address));
+        IOracle(_oracle).revokeAuthorizedDataProvider(_dataProvider);
     }
 }
