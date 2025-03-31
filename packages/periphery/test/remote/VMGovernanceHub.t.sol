@@ -9,12 +9,15 @@ import {ILaPoste} from "src/interfaces/ILaPoste.sol";
 import {MockOracleLens} from "@votemarket/test/mocks/OracleLens.sol";
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
 import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
+
+import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
 import {VMGovernanceHub, Remote} from "src/remote/VMGovernanceHub.sol";
 
 contract VMGovernanceHubTest is Test {
     VMGovernanceHub public vmGovernanceHub;
 
     Votemarket votemarket;
+    Oracle oracle;
 
     function setUp() public {
         vmGovernanceHub =
@@ -28,13 +31,19 @@ contract VMGovernanceHubTest is Test {
             _minimumPeriods: 2
         });
 
+        oracle = new Oracle({_governance: address(vmGovernanceHub)});
+
         address[] memory votemarkets = new address[](1);
         votemarkets[0] = address(votemarket);
 
         uint256[] memory destinationChainIds = new uint256[](1);
         destinationChainIds[0] = 42161;
 
+        address[] memory oracleAddresses = new address[](1);
+        oracleAddresses[0] = address(oracle);
+
         vmGovernanceHub.setVotemarkets(votemarkets, 100000);
+        vmGovernanceHub.setOracles(oracleAddresses, 100000);
         vmGovernanceHub.setDestinationChainIds(destinationChainIds, 100000);
     }
 
@@ -222,6 +231,123 @@ contract VMGovernanceHubTest is Test {
 
         assertEq(votemarket.governance(), address(vmGovernanceHub));
         assertEq(votemarket.futureGovernance(), address(0));
+    }
+
+    function test_receiveMessage_setAuthorizedBlockNumberProvider() public {
+        address blockNumberProvider = address(0xBEEF);
+        bytes memory parameters = abi.encode(address(oracle), blockNumberProvider);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_BLOCK_NUMBER_PROVIDER,
+                parameters: parameters
+            })
+        );
+
+        assertEq(oracle.authorizedBlockNumberProviders(blockNumberProvider), false);
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(oracle.authorizedBlockNumberProviders(blockNumberProvider), true);
+    }
+
+    function test_receiveMessage_revokeAuthorizedBlockNumberProvider() public {
+        vm.prank(address(vmGovernanceHub));
+        oracle.setAuthorizedBlockNumberProvider(address(0xBEEF));
+
+        address blockNumberProvider = address(0xBEEF);
+        bytes memory parameters = abi.encode(address(oracle), blockNumberProvider);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER,
+                parameters: parameters
+            })
+        );
+
+        assertEq(oracle.authorizedBlockNumberProviders(blockNumberProvider), true);
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(oracle.authorizedBlockNumberProviders(blockNumberProvider), false);
+    }
+
+    function test_receiveMessage_setAuthorizedDataProvider() public {
+        address dataProvider = address(0xBEEF);
+        bytes memory parameters = abi.encode(address(oracle), dataProvider);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_DATA_PROVIDER,
+                parameters: parameters
+            })
+        );
+
+        assertEq(oracle.authorizedDataProviders(dataProvider), false);
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(oracle.authorizedDataProviders(dataProvider), true);
+    }
+
+    function test_receiveMessage_revokeAuthorizedDataProvider() public {
+        vm.prank(address(vmGovernanceHub));
+        oracle.setAuthorizedDataProvider(address(0xBEEF));
+
+        address dataProvider = address(0xBEEF);
+        bytes memory parameters = abi.encode(address(oracle), dataProvider);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_DATA_PROVIDER,
+                parameters: parameters
+            })
+        );
+
+        assertEq(oracle.authorizedDataProviders(dataProvider), true);
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(oracle.authorizedDataProviders(dataProvider), false);
+    }
+
+    function test_receiveMessage_transferOracleGovernance() public {
+        address futureGovernance = address(0xBEEF);
+        bytes memory parameters = abi.encode(futureGovernance);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.TRANSFER_ORACLE_GOVERNANCE,
+                parameters: parameters
+            })
+        );
+
+        assertEq(oracle.futureGovernance(), address(0));
+        receiveMessage(1, address(vmGovernanceHub), payload);
+        assertEq(oracle.futureGovernance(), futureGovernance);
+    }
+
+    function test_receiveMessage_acceptOracleGovernance() public {
+        vm.prank(address(vmGovernanceHub));
+        oracle.transferGovernance(address(0xBEEF));
+
+        vm.prank(address(0xBEEF));
+        oracle.acceptGovernance();
+
+        assertEq(oracle.governance(), address(0xBEEF));
+
+        vm.prank(address(0xBEEF));
+        oracle.transferGovernance(address(vmGovernanceHub));
+
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.ACCEPT_ORACLE_GOVERNANCE,
+                parameters: ""
+            })
+        );
+
+        assertEq(oracle.governance(), address(0xBEEF));
+        assertEq(oracle.futureGovernance(), address(vmGovernanceHub));
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(oracle.governance(), address(vmGovernanceHub));
+        assertEq(oracle.futureGovernance(), address(0));
     }
 
     function sendMessage(ILaPoste.MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
