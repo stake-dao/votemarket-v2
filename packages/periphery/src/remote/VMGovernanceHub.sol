@@ -25,7 +25,9 @@ contract VMGovernanceHub is Remote, Ownable {
         SET_RECIPIENT,
         SET_FEE_COLLECTOR,
         TRANSFER_GOVERNANCE,
-        ACCEPT_GOVERNANCE
+        ACCEPT_GOVERNANCE,
+        ADD_VOTEMARKET,
+        ADD_DESTINATION_CHAIN_ID
     }
 
     struct Payload {
@@ -62,6 +64,179 @@ contract VMGovernanceHub is Remote, Ownable {
     {
         bytes memory parameters = abi.encode(_accounts, _isProtected);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_IS_PROTECTED, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Sets the remote address.
+    /// @param _remote The remote address.
+    /// @param additionalGasLimit The additional gas limit.
+    function setRemote(address _remote, uint256 additionalGasLimit) external payable onlyOwner {
+        bytes memory parameters = abi.encode(_remote);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_REMOTE, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Sets the fee.
+    /// @param _fee The fee.
+    /// @param additionalGasLimit The additional gas limit.
+    function setFee(uint256 _fee, uint256 additionalGasLimit) external payable onlyOwner {
+        bytes memory parameters = abi.encode(_fee);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Sets the custom fee for a list of accounts.
+    /// @param _accounts The accounts to set the custom fee for.
+    /// @param _fees The custom fees.
+    /// @param additionalGasLimit The additional gas limit.
+    function setCustomFee(address[] memory _accounts, uint256[] memory _fees, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+    {
+        bytes memory parameters = abi.encode(_accounts, _fees);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_CUSTOM_FEE, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Sets the recipient for a list of accounts.
+    /// @param _accounts The accounts to set the recipient for.
+    /// @param _recipient The recipient.
+    /// @param additionalGasLimit The additional gas limit.
+    function setRecipient(address[] memory _accounts, address _recipient, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+    {
+        bytes memory parameters = abi.encode(_accounts, _recipient);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_RECIPIENT, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Sets the fee collector.
+    /// @param _feeCollector The fee collector.
+    /// @param additionalGasLimit The additional gas limit.
+    function setFeeCollector(address _feeCollector, uint256 additionalGasLimit) external payable onlyOwner {
+        bytes memory parameters = abi.encode(_feeCollector);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE_COLLECTOR, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Transfers the governance role to a new owner.
+    /// @param _futureGovernance The new owner.
+    /// @param additionalGasLimit The additional gas limit.
+    function transferGovernance(address _futureGovernance, uint256 additionalGasLimit) external payable onlyOwner {
+        bytes memory parameters = abi.encode(_futureGovernance);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.TRANSFER_GOVERNANCE, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Accepts the governance role.
+    /// @param additionalGasLimit The additional gas limit.
+    function acceptGovernance(uint256 additionalGasLimit) external payable onlyOwner {
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.ACCEPT_GOVERNANCE, parameters: new bytes(0)}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    /// @notice Adds a votemarket.
+    /// @param _votemarkets The votemarkets.
+    /// @param additionalGasLimit The additional gas limit.
+    function setVotemarkets(address[] memory _votemarkets, uint256 additionalGasLimit) external payable onlyOwner {
+        /// 1. Update L1.
+        delete votemarkets;
+        votemarkets = _votemarkets;
+
+        /// 2. Send messages to L2 to synchronize state.
+        bytes memory parameters = abi.encode(_votemarkets);
+        bytes memory payload = abi.encode(Payload({actionType: ActionType.ADD_VOTEMARKET, parameters: parameters}));
+        for (uint256 i = 0; i < destinationChainIds.length; i++) {
+            _sendMessage({
+                destinationChainId: destinationChainIds[i],
+                payload: payload,
+                tokens: new address[](0),
+                amounts: new uint256[](0),
+                additionalGasLimit: additionalGasLimit
+            });
+        }
+    }
+
+    function setDestinationChainIds(uint256[] memory _destinationChainIds, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+    {
+        /// 1. Update L1.
+        delete destinationChainIds;
+        destinationChainIds = _destinationChainIds;
+
+        /// 2. Send messages to L2 to synchronize state.
+        bytes memory parameters = abi.encode(_destinationChainIds);
+        bytes memory payload =
+            abi.encode(Payload({actionType: ActionType.ADD_DESTINATION_CHAIN_ID, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
             _sendMessage({
                 destinationChainId: destinationChainIds[i],
@@ -135,6 +310,15 @@ contract VMGovernanceHub is Remote, Ownable {
             for (uint256 i = 0; i < votemarkets.length; i++) {
                 IVotemarket(votemarkets[i]).acceptGovernance();
             }
+        } else if (_payload.actionType == ActionType.ADD_VOTEMARKET) {
+            address[] memory _votemarkets = abi.decode(_payload.parameters, (address[]));
+
+            delete votemarkets;
+            votemarkets = _votemarkets;
+        } else if (_payload.actionType == ActionType.ADD_DESTINATION_CHAIN_ID) {
+            uint256[] memory _destinationChainIds = abi.decode(_payload.parameters, (uint256[]));
+            delete destinationChainIds;
+            destinationChainIds = _destinationChainIds;
         }
     }
 }
