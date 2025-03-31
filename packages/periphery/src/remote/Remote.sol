@@ -13,6 +13,9 @@ contract Remote {
     /// @notice The La Poste address.
     address public immutable LA_POSTE;
 
+    /// @notice The chain id.
+    uint256 public immutable CHAIN_ID;
+
     /// @notice The token factory address.
     address public immutable TOKEN_FACTORY;
 
@@ -37,9 +40,15 @@ contract Remote {
         _;
     }
 
+    modifier onlyValidChainId(uint256 _chainId) {
+        if (_chainId != CHAIN_ID) revert InvalidChainId();
+        _;
+    }
+
     constructor(address _laPoste, address _tokenFactory) {
         LA_POSTE = _laPoste;
         TOKEN_FACTORY = _tokenFactory;
+        CHAIN_ID = 1;
     }
 
     /// @notice Sends a message to La Poste.

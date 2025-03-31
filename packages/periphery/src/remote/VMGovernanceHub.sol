@@ -60,6 +60,7 @@ contract VMGovernanceHub is Remote, Ownable {
     function setIsProtected(address[] memory _accounts, bool _isProtected, uint256 additionalGasLimit)
         external
         payable
+        onlyValidChainId(block.chainid)
         onlyOwner
     {
         bytes memory parameters = abi.encode(_accounts, _isProtected);
@@ -78,7 +79,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the remote address.
     /// @param _remote The remote address.
     /// @param additionalGasLimit The additional gas limit.
-    function setRemote(address _remote, uint256 additionalGasLimit) external payable onlyOwner {
+    function setRemote(address _remote, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+        onlyValidChainId(block.chainid)
+    {
         bytes memory parameters = abi.encode(_remote);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_REMOTE, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
@@ -117,6 +123,7 @@ contract VMGovernanceHub is Remote, Ownable {
         external
         payable
         onlyOwner
+        onlyValidChainId(block.chainid)
     {
         bytes memory parameters = abi.encode(_accounts, _fees);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_CUSTOM_FEE, parameters: parameters}));
@@ -139,6 +146,7 @@ contract VMGovernanceHub is Remote, Ownable {
         external
         payable
         onlyOwner
+        onlyValidChainId(block.chainid)
     {
         bytes memory parameters = abi.encode(_accounts, _recipient);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_RECIPIENT, parameters: parameters}));
@@ -156,7 +164,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the fee collector.
     /// @param _feeCollector The fee collector.
     /// @param additionalGasLimit The additional gas limit.
-    function setFeeCollector(address _feeCollector, uint256 additionalGasLimit) external payable onlyOwner {
+    function setFeeCollector(address _feeCollector, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+        onlyValidChainId(block.chainid)
+    {
         bytes memory parameters = abi.encode(_feeCollector);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE_COLLECTOR, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
@@ -173,7 +186,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Transfers the governance role to a new owner.
     /// @param _futureGovernance The new owner.
     /// @param additionalGasLimit The additional gas limit.
-    function transferGovernance(address _futureGovernance, uint256 additionalGasLimit) external payable onlyOwner {
+    function transferGovernance(address _futureGovernance, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+        onlyValidChainId(block.chainid)
+    {
         bytes memory parameters = abi.encode(_futureGovernance);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.TRANSFER_GOVERNANCE, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
