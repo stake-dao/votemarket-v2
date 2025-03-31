@@ -185,7 +185,10 @@ contract VMGovernanceHubTest is Test {
         address futureGovernance = address(0xBEEF);
         bytes memory parameters = abi.encode(futureGovernance);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.TRANSFER_GOVERNANCE, parameters: parameters})
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.TRANSFER_VOTEMARKET_GOVERNANCE,
+                parameters: parameters
+            })
         );
 
         assertEq(votemarket.futureGovernance(), address(0));
@@ -206,7 +209,10 @@ contract VMGovernanceHubTest is Test {
         votemarket.transferGovernance(address(vmGovernanceHub));
 
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.ACCEPT_GOVERNANCE, parameters: ""})
+            VMGovernanceHub.Payload({
+                actionType: VMGovernanceHub.ActionType.ACCEPT_VOTEMARKET_GOVERNANCE,
+                parameters: ""
+            })
         );
 
         assertEq(votemarket.governance(), address(0xBEEF));
