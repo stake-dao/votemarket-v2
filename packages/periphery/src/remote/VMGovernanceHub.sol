@@ -38,8 +38,14 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice The list of votemarkets.
     address[] public votemarkets;
 
+    /// @notice Is the address a votemarket?
+    mapping(address => bool) public isVotemarket;
+
     /// @notice The list of destination chain ids.
     uint256[] public destinationChainIds;
+
+    /// @notice The error for an invalid votemarket.
+    error InvalidVotemarket();
 
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
@@ -57,13 +63,13 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _accounts The accounts to set the is protected status for.
     /// @param _isProtected The is protected status.
     /// @param additionalGasLimit The additional gas limit.
-    function setIsProtected(address[] memory _accounts, bool _isProtected, uint256 additionalGasLimit)
-        external
-        payable
-        onlyValidChainId(block.chainid)
-        onlyOwner
-    {
-        bytes memory parameters = abi.encode(_accounts, _isProtected);
+    function setIsProtected(
+        address _votemarket,
+        address[] memory _accounts,
+        bool _isProtected,
+        uint256 additionalGasLimit
+    ) external payable onlyValidChainId(block.chainid) onlyOwner {
+        bytes memory parameters = abi.encode(_votemarket, _accounts, _isProtected);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_IS_PROTECTED, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
             _sendMessage({
@@ -142,13 +148,15 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _accounts The accounts to set the recipient for.
     /// @param _recipient The recipient.
     /// @param additionalGasLimit The additional gas limit.
-    function setRecipient(address[] memory _accounts, address _recipient, uint256 additionalGasLimit)
-        external
-        payable
-        onlyOwner
-        onlyValidChainId(block.chainid)
-    {
-        bytes memory parameters = abi.encode(_accounts, _recipient);
+    function setRecipient(
+        address _votemarket,
+        address[] memory _accounts,
+        address _recipient,
+        uint256 additionalGasLimit
+    ) external payable onlyOwner onlyValidChainId(block.chainid) {
+        if (!isVotemarket[_votemarket]) revert InvalidVotemarket();
+
+        bytes memory parameters = abi.encode(_votemarket, _accounts, _recipient);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_RECIPIENT, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
             _sendMessage({
@@ -228,7 +236,12 @@ contract VMGovernanceHub is Remote, Ownable {
         delete votemarkets;
         votemarkets = _votemarkets;
 
-        /// 2. Send messages to L2 to synchronize state.
+        /// 2. Update mapping.
+        for (uint256 i = 0; i < _votemarkets.length; i++) {
+            isVotemarket[_votemarkets[i]] = true;
+        }
+
+        /// 3. Send messages to L2 to synchronize state.
         bytes memory parameters = abi.encode(_votemarkets);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.ADD_VOTEMARKET, parameters: parameters}));
         for (uint256 i = 0; i < destinationChainIds.length; i++) {
@@ -283,11 +296,10 @@ contract VMGovernanceHub is Remote, Ownable {
         Payload memory _payload = abi.decode(payload, (Payload));
 
         if (_payload.actionType == ActionType.SET_IS_PROTECTED) {
-            (address[] memory _accounts, bool _isProtected) = abi.decode(_payload.parameters, (address[], bool));
+            (address _votemarket, address[] memory _accounts, bool _isProtected) =
+                abi.decode(_payload.parameters, (address, address[], bool));
             for (uint256 i = 0; i < _accounts.length; i++) {
-                for (uint256 j = 0; j < votemarkets.length; j++) {
-                    IVotemarket(votemarkets[j]).setIsProtected(_accounts[i], _isProtected);
-                }
+                IVotemarket(_votemarket).setIsProtected(_accounts[i], _isProtected);
             }
         } else if (_payload.actionType == ActionType.SET_REMOTE) {
             address _remote = abi.decode(_payload.parameters, (address));
@@ -308,14 +320,13 @@ contract VMGovernanceHub is Remote, Ownable {
                 }
             }
         } else if (_payload.actionType == ActionType.SET_RECIPIENT) {
-            (address[] memory _accounts, address _recipient) = abi.decode(_payload.parameters, (address[], address));
+            (address votemarket, address[] memory _accounts, address _recipient) =
+                abi.decode(_payload.parameters, (address, address[], address));
             for (uint256 i = 0; i < _accounts.length; i++) {
-                for (uint256 j = 0; j < votemarkets.length; j++) {
-                    IVotemarket(votemarkets[j]).setRecipient(_accounts[i], _recipient);
-                }
+                IVotemarket(votemarket).setRecipient(_accounts[i], _recipient);
             }
         } else if (_payload.actionType == ActionType.SET_FEE_COLLECTOR) {
-            address _feeCollector = abi.decode(_payload.parameters, (address));
+            (address _feeCollector) = abi.decode(_payload.parameters, (address));
             for (uint256 i = 0; i < votemarkets.length; i++) {
                 IVotemarket(votemarkets[i]).setFeeCollector(_feeCollector);
             }
@@ -333,6 +344,10 @@ contract VMGovernanceHub is Remote, Ownable {
 
             delete votemarkets;
             votemarkets = _votemarkets;
+
+            for (uint256 i = 0; i < _votemarkets.length; i++) {
+                isVotemarket[_votemarkets[i]] = true;
+            }
         } else if (_payload.actionType == ActionType.ADD_DESTINATION_CHAIN_ID) {
             uint256[] memory _destinationChainIds = abi.decode(_payload.parameters, (uint256[]));
             delete destinationChainIds;
