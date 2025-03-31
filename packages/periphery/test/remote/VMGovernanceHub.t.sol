@@ -50,16 +50,16 @@ contract VMGovernanceHubTest is Test {
 
         vm.prank(address(0xCAFE));
         vm.expectRevert(Ownable.Unauthorized.selector);
-        vmGovernanceHub.setIsProtected(accounts, true, 100000);
+        vmGovernanceHub.setIsProtected(address(votemarket), accounts, true, 100000);
 
         vm.chainId(42161);
 
         vm.prank(address(0xCAFE));
         vm.expectRevert(Remote.InvalidChainId.selector);
-        vmGovernanceHub.setIsProtected(accounts, true, 100000);
+        vmGovernanceHub.setIsProtected(address(votemarket), accounts, true, 100000);
 
         vm.chainId(1);
-        vmGovernanceHub.setIsProtected(accounts, true, 100000);
+        vmGovernanceHub.setIsProtected(address(votemarket), accounts, true, 100000);
 
         vm.chainId(1);
         vm.expectRevert(Remote.InvalidChainId.selector);
@@ -80,12 +80,9 @@ contract VMGovernanceHubTest is Test {
         accounts[0] = address(0xCAFE);
         accounts[1] = address(0xBEEF);
 
-        bytes memory parameters = abi.encode(accounts, true);
+        bytes memory parameters = abi.encode(address(votemarket), accounts, true);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_IS_PROTECTED,
-                parameters: parameters
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_IS_PROTECTED, parameters: parameters})
         );
 
         receiveMessage(1, address(vmGovernanceHub), payload);
@@ -93,12 +90,9 @@ contract VMGovernanceHubTest is Test {
         assertEq(votemarket.isProtected(accounts[0]), true);
         assertEq(votemarket.isProtected(accounts[1]), true);
 
-        parameters = abi.encode(accounts, false);
+        parameters = abi.encode(address(votemarket), accounts, false);
         payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_IS_PROTECTED,
-                parameters: parameters
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_IS_PROTECTED, parameters: parameters})
         );
 
         receiveMessage(1, address(vmGovernanceHub), payload);
@@ -111,10 +105,7 @@ contract VMGovernanceHubTest is Test {
         address remote = address(0xBEEF);
         bytes memory parameters = abi.encode(remote);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_REMOTE,
-                parameters: parameters
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_REMOTE, parameters: parameters})
         );
 
         assertEq(votemarket.remote(), address(0));
@@ -126,10 +117,7 @@ contract VMGovernanceHubTest is Test {
         uint256 fee = 0.1e18;
         bytes memory parameters = abi.encode(fee);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_FEE,
-                parameters: parameters
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_FEE, parameters: parameters})
         );
 
         /// Default fee is 4%.
@@ -149,10 +137,7 @@ contract VMGovernanceHubTest is Test {
 
         bytes memory parameters = abi.encode(accounts, fees);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_CUSTOM_FEE,
-                parameters: parameters
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_CUSTOM_FEE, parameters: parameters})
         );
 
         assertEq(votemarket.customFeeByManager(accounts[0]), 0);
@@ -164,11 +149,32 @@ contract VMGovernanceHubTest is Test {
         assertEq(votemarket.customFeeByManager(accounts[1]), fees[1]);
     }
 
+    function test_receiveMessage_setRecipient() public {
+        address[] memory accounts = new address[](2);
+        accounts[0] = address(0xCAFE);
+        accounts[1] = address(0xBEEF);
+
+        address recipient = address(0xDEAD);
+        bytes memory parameters = abi.encode(address(votemarket), accounts, recipient);
+        bytes memory payload = abi.encode(
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_RECIPIENT, parameters: parameters})
+        );
+
+        assertEq(votemarket.recipients(accounts[0]), address(0));
+        assertEq(votemarket.recipients(accounts[1]), address(0));
+
+        receiveMessage(1, address(vmGovernanceHub), payload);
+
+        assertEq(votemarket.recipients(accounts[0]), recipient);
+        assertEq(votemarket.recipients(accounts[1]), recipient);
+    }
+
     function test_receiveMessage_setFeeCollector() public {
         address feeCollector = address(0xBEEF);
         bytes memory parameters = abi.encode(feeCollector);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_FEE_COLLECTOR, parameters: parameters}));
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_FEE_COLLECTOR, parameters: parameters})
+        );
 
         assertEq(votemarket.feeCollector(), address(this));
         receiveMessage(1, address(vmGovernanceHub), payload);
@@ -179,7 +185,8 @@ contract VMGovernanceHubTest is Test {
         address futureGovernance = address(0xBEEF);
         bytes memory parameters = abi.encode(futureGovernance);
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.TRANSFER_GOVERNANCE, parameters: parameters}));
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.TRANSFER_GOVERNANCE, parameters: parameters})
+        );
 
         assertEq(votemarket.futureGovernance(), address(0));
         receiveMessage(1, address(vmGovernanceHub), payload);
@@ -199,7 +206,8 @@ contract VMGovernanceHubTest is Test {
         votemarket.transferGovernance(address(vmGovernanceHub));
 
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.ACCEPT_GOVERNANCE, parameters: ""}));
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.ACCEPT_GOVERNANCE, parameters: ""})
+        );
 
         assertEq(votemarket.governance(), address(0xBEEF));
         assertEq(votemarket.futureGovernance(), address(vmGovernanceHub));
@@ -211,8 +219,8 @@ contract VMGovernanceHubTest is Test {
     }
 
     function sendMessage(ILaPoste.MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
-    external
-    payable
+        external
+        payable
     {}
 
     function receiveMessage(uint256 chainId, address sender, bytes memory payload) public {
