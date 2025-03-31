@@ -135,7 +135,7 @@ contract VMGovernanceHubTest is Test {
         fees[0] = 0.1e18;
         fees[1] = 0.1e18;
 
-        bytes memory parameters = abi.encode(accounts, fees);
+        bytes memory parameters = abi.encode(address(votemarket), accounts, fees);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.SET_CUSTOM_FEE, parameters: parameters})
         );

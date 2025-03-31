@@ -29,6 +29,14 @@ interface IOracle {
 
     function insertAddressEpochData(address voter, address gauge, uint256 epoch, VotedSlope memory slope) external;
 
+    function setAuthorizedBlockNumberProvider(address _blockNumberProvider) external;
+
+    function revokeAuthorizedBlockNumberProvider(address _blockNumberProvider) external;
+
+    function setAuthorizedDataProvider(address _dataProvider) external;
+
+    function revokeAuthorizedDataProvider(address _dataProvider) external;
+
     function transferGovernance(address _futureGovernance) external;
 
     function acceptGovernance() external;
