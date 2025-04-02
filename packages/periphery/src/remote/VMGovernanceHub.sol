@@ -52,9 +52,6 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice The list of oracles.
     address[] public oracles;
 
-    /// @notice The list of destination chain ids.
-    uint256[] public destinationChainIds;
-
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
@@ -383,15 +380,12 @@ contract VMGovernanceHub is Remote, Ownable {
     ///////////////////////////////////////////////////////////////
 
     function _dispatch(bytes memory payload, uint256 additionalGasLimit) internal {
-        for (uint256 i = 0; i < destinationChainIds.length; i++) {
-            _sendMessage({
-                destinationChainId: destinationChainIds[i],
-                payload: payload,
-                tokens: new address[](0),
-                amounts: new uint256[](0),
-                additionalGasLimit: additionalGasLimit
-            });
-        }
+        _sendMessage({
+            payload: payload,
+            tokens: new address[](0),
+            amounts: new uint256[](0),
+            additionalGasLimit: additionalGasLimit
+        });
     }
 
     ////////////////////////////////////////////////////////////////

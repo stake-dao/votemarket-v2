@@ -335,10 +335,7 @@ contract VMGovernanceHubTest is Test {
         oracle.transferGovernance(address(vmGovernanceHub));
 
         bytes memory payload = abi.encode(
-            VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.ACCEPT_ORACLE_GOVERNANCE,
-                parameters: ""
-            })
+            VMGovernanceHub.Payload({actionType: VMGovernanceHub.ActionType.ACCEPT_ORACLE_GOVERNANCE, parameters: ""})
         );
 
         assertEq(oracle.governance(), address(0xBEEF));
