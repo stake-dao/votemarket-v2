@@ -7,7 +7,7 @@ import "src/interfaces/ILaPoste.sol";
 import "src/interfaces/ITokenFactory.sol";
 
 /// @notice A module for sending and receiving messages from La Poste.
-contract Remote {
+abstract contract Remote {
     using SafeTransferLib for address;
 
     /// @notice The La Poste address.
@@ -31,6 +31,9 @@ contract Remote {
     /// @notice The error thrown when the array length mismatch.
     error ArrayLengthMismatch();
 
+    /// @notice The list of destination chain ids.
+    uint256[] public destinationChainIds;
+
     ////////////////////////////////////////////////////////////////
     /// --- MODIFIERS
     ///////////////////////////////////////////////////////////////
@@ -52,13 +55,11 @@ contract Remote {
     }
 
     /// @notice Sends a message to La Poste.
-    /// @param destinationChainId The destination chain id
     /// @param payload The payload
     /// @param tokens The tokens
     /// @param amounts The amounts
     /// @param additionalGasLimit The additional gas limit
     function _sendMessage(
-        uint256 destinationChainId,
         bytes memory payload,
         address[] memory tokens,
         uint256[] memory amounts,
@@ -74,14 +75,20 @@ contract Remote {
             pTokens[i] = ILaPoste.Token({tokenAddress: tokens[i], amount: amounts[i]});
         }
 
-        ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: address(this),
-            tokens: pTokens,
-            payload: payload
-        });
+        uint256 numDestinationChainIds = destinationChainIds.length;
+        ILaPoste.MessageParams memory messageParams;
+        for (uint256 i = 0; i < numDestinationChainIds; i++) {
+            messageParams = ILaPoste.MessageParams({
+                destinationChainId: destinationChainIds[i],
+                to: address(this),
+                tokens: pTokens,
+                payload: payload
+            });
 
-        ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
+            ILaPoste(LA_POSTE).sendMessage{value: msg.value / numDestinationChainIds}(
+                messageParams, additionalGasLimit, msg.sender
+            );
+        }
     }
 
     /// @notice Receives a message from La Poste.
