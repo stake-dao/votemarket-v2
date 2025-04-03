@@ -1,0 +1,40 @@
+{
+	"count": 7,
+	"data": [
+		{
+			"protocol": "fxn",
+			"chainId": 42161,
+			"platform": "0x155a7Cf21F8853c135BdeBa27FEA19674C65F2b4"
+		},
+		{
+			"protocol": "curve",
+			"chainId": 42161,
+			"platform": "0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9"
+		},
+		{
+			"protocol": "curve",
+			"chainId": 42161,
+			"platform": "0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5"
+		},
+		{
+			"protocol": "curve",
+			"chainId": 8453,
+			"platform": "0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9"
+		},
+		{
+			"protocol": "curve",
+			"chainId": 8453,
+			"platform": "0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5"
+		},
+		{
+			"protocol": "curve",
+			"chainId": 10,
+			"platform": "0x5e5C922a5Eeab508486eB906ebE7bDFFB05D81e5"
+		},
+		{
+			"protocol": "balancer",
+			"chainId": 42161,
+			"platform": "0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7"
+		}
+	]
+}
