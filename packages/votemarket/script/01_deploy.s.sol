@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.19;
 
-import {Script, console} from "@forge-std/src/Script.sol";
+import {Script, console, VmSafe} from "@forge-std/src/Script.sol";
 import {Oracle} from "src/oracle/Oracle.sol";
 import {VerifierV2} from "src/verifiers/VerifierV2.sol";
 import {OracleLens} from "src/oracle/OracleLens.sol";
@@ -10,9 +10,9 @@ import {ICreate3Factory} from "src/interfaces/ICreate3Factory.sol";
 import {SafeCastLib} from "@solady/src/utils/SafeCastLib.sol";
 
 /// @notice A library that contains all the addresses needed by this script
-/// @dev if you want to add a new gauge controller:
-///      - add the address of the new gauge controller in this library
-///      - update the `VoteMarketDeploy._getGaugeController()` function with a new case
+/// @dev • How to add a new gauge controller:
+///         - add the address of the new gauge controller in this library
+///         - update the `VoteMarketDeploy._getGaugeController()` function with a new case
 library AddressBook {
     // All the gauge controllers supported by this script
     address internal constant CURVE_GAUGE_CONTROLLER = 0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB;
@@ -43,12 +43,37 @@ library ContractIdentifier {
     string internal constant VOTEMARKET = "VOTEMARKET";
 }
 
+/// @dev • How to add a new chain:
+///         - ensure the rpc_endpoints are defined in the `foundry.toml` file
+///         - add the chain name to the `chains` array
+///
+///      • How to run the script using an account stored in the keystore:
+///         `MIN_PERIODS=<value> EPOCH_LENGTH=<value>  LAST_USER_VOTE_SLOT=<value>  \
+///         USER_SLOPE_SLOT=<value>  WEIGHT_SLOT=<value>  forge script VoteMarketDeploy \
+///         --account <account_name> [--broadcast]`
+///
+///      • How to run the script using a ledger account:
+///      `MIN_PERIODS=<value> EPOCH_LENGTH=<value>  LAST_USER_VOTE_SLOT=<value>  \
+///      USER_SLOPE_SLOT=<value>  WEIGHT_SLOT=<value>  forge script VoteMarketDeploy \
+///      --ledger --account-index <account_index> [--broadcast]`
+///
+///      • How to run the script locally for testing purposes:
+///         - Run 4 instances of ANVIL, one for each chain.
+///             - `anvil --fork-url <rpc_arbitrum> --fork-chain-id 42161 --port 8545`
+///             - `anvil --fork-url <rpc_optimism> --fork-chain-id 10 --port 8546`
+///             - `anvil --fork-url <rpc_base> --fork-chain-id 137 --port 8547`
+///             - `anvil --fork-url <rpc_polygon> --fork-chain-id 8453 --port 8548`
+///         - Run the script with the following command.
+///         `MIN_PERIODS=25 EPOCH_LENGTH=1000 LAST_USER_VOTE_SLOT=10000 \
+///         USER_SLOPE_SLOT=10000 WEIGHT_SLOT=10000 forge script VoteMarketDeploy \
+///          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+///          --broadcast`
 contract VoteMarketDeploy is Script {
     ICreate3Factory internal constant create3Factory = ICreate3Factory(AddressBook.CREATE3_FACTORY);
 
     /// @notice The seed used to generate the salt for the deterministic deployment of the protocol.
     /// @dev This seed is the same for all the deployments across all chains. It is generated once at the construction time.
-    bytes8 internal RANDOM_SEED;
+    bytes8 internal immutable RANDOM_SEED;
 
     /// @notice The list of chains on which the protocol will be deployed.
     string[] internal chains = ["arbitrum", "optimism", "base", "polygon"];
@@ -79,6 +104,7 @@ contract VoteMarketDeploy is Script {
     /// @param chainId The chain ID when the protocol was deployed.
     struct DeployedProtocol {
         address platform;
+        string protocol;
         uint256 chainId;
     }
 
@@ -154,6 +180,36 @@ contract VoteMarketDeploy is Script {
         return keccak256(abi.encodePacked(prefix, contractIdentifier));
     }
 
+    /// @notice Update the database with the new deployed protocols.
+    /// @dev This modifier is used to update the database with the new deployed protocols. It is a post-hook attached
+    ///      to the `run()` function. It is called only if the script runs well and is executed in broadcast mode.
+    /// @custom:throws DatabaseUpdateFailed if the `update-votemarket.js` script fails to update the database
+    modifier postHook_updateDataBase() {
+        _;
+
+        // If the script is executed in broadcast mode, update the database
+        if (vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) {
+            // Concatenate the chain IDs into a single string separated by commas
+            string memory chainIds;
+            for (uint256 i; i < deployedProtocols.length; i++) {
+                string memory separator = i == deployedProtocols.length - 1 ? "" : ",";
+                chainIds = string.concat(chainIds, vm.toString(deployedProtocols[i].chainId), separator);
+            }
+
+            // inputs = `node data/update-votemarket.js <protocol> <platform> <chainIds> <seed>`
+            string[] memory inputs = new string[](6);
+            inputs[0] = "node";
+            inputs[1] = "data/update-votemarket.js";
+            inputs[2] = deployedProtocols[0].protocol;
+            inputs[3] = vm.toString(deployedProtocols[0].platform);
+            inputs[4] = string.concat("[", chainIds, "]"); // Convert the chain IDs array to a valid JSON array string
+            inputs[5] = vm.toString(abi.encodePacked(RANDOM_SEED));
+
+            // 0xAA is the valid expected output of the update-votemarket.js script. If the script fails, it will revert.
+            require(bytes32(vm.ffi(inputs)) == bytes32(hex"AA"), "DatabaseUpdateFailed");
+        }
+    }
+
     /// @notice Deploy the protocol on one chain.
     /// @param protocol The protocol configuration parameters.
     /// @param saltPrefix The constant prefix of the salt shared by all the deployments of the protocol.
@@ -216,13 +272,14 @@ contract VoteMarketDeploy is Script {
         protocol.lastUserVoteSlot = vm.envUint("LAST_USER_VOTE_SLOT");
         protocol.userSlopeSlot = vm.envUint("USER_SLOPE_SLOT");
         protocol.weightSlot = vm.envUint("WEIGHT_SLOT");
-        // Load the `minPeriods` env variable. Revert if the given value is greater than 255
+        // Load the `minPeriods` env variable. Revert if the given value is greater than 255 (uint8 max value)
         protocol.minPeriods = SafeCastLib.toUint8(vm.envUint("MIN_PERIODS"));
         // Prompt the user to enter the protocol name.
         protocol.name = vm.toUppercase(vm.prompt("Enter the protocol name: (CURVE, BALANCER or FXN)"));
         // Load the optional `seed` env variable. If not provided, use the random seed generated at the construction time.
-        // @dev: This env variable is not really intended to be used in production. Only use it for testing purposes, or deploying
-        //       already deployed protocols on a new chain.
+        // @dev: This env variable is not really intended to be used in production. Only use it for testing purposes,
+        //       or for deploying already deployed protocols on a new chain. To do so, set the `SEED` env variable to the
+        //       same value as the one stored in the database.
         bytes8 seed = bytes8(vm.envOr("SEED", RANDOM_SEED));
 
         // Get the correct gauge controller address for the given protocol name. Revert if the given protocol name is not supported.
@@ -232,12 +289,13 @@ contract VoteMarketDeploy is Script {
 
         // Deploy the protocol on all the authorized chains and store the deployment data
         for (uint256 i; i < chains.length; i++) {
-            // Create a new fork for the chain, make it active then deploy the protocol
             vm.createSelectFork(vm.rpcUrl(chains[i]));
             address platform = _deploy(protocol, saltPrefix);
 
-            // Store the deployment data
-            deployedProtocols.push(DeployedProtocol({platform: platform, chainId: block.chainid}));
+            // Store the deployed protocol data
+            deployedProtocols.push(
+                DeployedProtocol({platform: platform, protocol: protocol.name, chainId: block.chainid})
+            );
         }
 
         // Assert that the deployment is deterministic
@@ -246,12 +304,5 @@ contract VoteMarketDeploy is Script {
         // Extra log for the developer
         _logDeployments();
         _logReminderGovernance();
-    }
-
-    modifier postHook_updateDataBase() {
-        _;
-        // TODO: Insert all the deployment data into the JSON database
-
-        console.log("Deployment data updated in the JSON database");
     }
 }
