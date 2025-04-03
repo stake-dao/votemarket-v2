@@ -1,9 +1,10 @@
 {
-  "name": "@stake-dao/votemarket",
-  "version": "1.0.0",
-  "devDependencies": {
-    "solady": "github:vectorized/solady",
-    "forge-std": "github:foundry-rs/forge-std",
-    "@stake-dao/vm-utils": "workspace:*"
-  }
+	"name": "@stake-dao/votemarket",
+	"version": "1.0.0",
+	"devDependencies": {
+		"solady": "github:vectorized/solady",
+		"forge-std": "github:foundry-rs/forge-std",
+		"@stake-dao/vm-utils": "workspace:*",
+		"@stake-dao/periphery": "workspace:*"
+	}
 }
