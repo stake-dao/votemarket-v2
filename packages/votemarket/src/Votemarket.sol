@@ -8,16 +8,16 @@ import "@solady/src/utils/EnumerableSetLib.sol";
 import "@solady/src/utils/FixedPointMathLib.sol";
 
 /// Project Interfaces & Libraries
-import "src/interfaces/IHook.sol";
-import "src/interfaces/IVotemarket.sol";
-import "src/interfaces/IOracleLens.sol";
+import {IHook} from "src/interfaces/IHook.sol";
+import {IOracleLens} from "src/interfaces/IOracleLens.sol";
+import {Campaign, CampaignUpgrade, Period, ClaimData, IVotemarket} from "src/interfaces/IVotemarket.sol";
 
 /// @notice Vote market contract.
 /// Next iteration of the Votemarket contract. This contract is designed to store the state of each campaign and allow the claim at any point in time.
 /// It uses storage proofs to validate and verify the votes and distribute the rewards accordingly.
 /// @dev This contract is better suited for L2s. Unadvised to deploy on L1.
 /// @custom:contact contact@stakedao.org
-contract Votemarket is ReentrancyGuard {
+contract Votemarket is IVotemarket, ReentrancyGuard {
     using FixedPointMathLib for uint256;
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
