@@ -52,6 +52,9 @@ importers:
 
   packages/votemarket:
     devDependencies:
+      '@stake-dao/periphery':
+        specifier: workspace:*
+        version: link:../periphery
       '@stake-dao/vm-utils':
         specifier: workspace:*
         version: link:../utils

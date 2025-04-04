@@ -2,7 +2,9 @@
 pragma solidity 0.8.19;
 
 ///  Project Interfaces & Libraries
-import "src/verifiers/RLPDecoder.sol";
+import {RLPDecoder} from "src/verifiers/RLPDecoder.sol";
+import {StateProofVerifier, RLPReader} from "@utils/src/StateProofVerifier.sol";
+import {IOracle} from "src/interfaces/IOracle.sol";
 
 /// @title Verifier
 /// @notice A contract for verifying and extracting data from block headers and proofs
