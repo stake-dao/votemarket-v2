@@ -5,6 +5,7 @@
 		"solady": "github:vectorized/solady",
 		"forge-std": "github:foundry-rs/forge-std",
 		"@stake-dao/vm-utils": "workspace:*",
-		"@stake-dao/periphery": "workspace:*"
+		"@stake-dao/periphery": "workspace:*",
+		"solhint": "^5.0.5"
 	}
 }
