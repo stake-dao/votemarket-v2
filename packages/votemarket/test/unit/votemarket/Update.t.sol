@@ -7,7 +7,7 @@ contract UpdateEpochTest is BaseTest {
     using FixedPointMathLib for uint256;
 
     uint256 public campaignId;
-    address voter = address(0xBEEF);
+    address internal voter = address(0xBEEF);
 
     function setUp() public override {
         BaseTest.setUp();

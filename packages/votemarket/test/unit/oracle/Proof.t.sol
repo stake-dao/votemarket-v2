@@ -2,26 +2,25 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
+import "src/interfaces/IGaugeController.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IGaugeController.sol";
 
 abstract contract ProofCorrectnessTest is Test, VerifierFactory {
-    Oracle oracle;
+    Oracle internal oracle;
     IVerifierBase public verifier;
     address public immutable GAUGE_CONTROLLER;
     bool public immutable isV2;
 
-    address account;
-    address gauge;
-    uint256 blockNumber;
+    address internal account;
+    address internal gauge;
+    uint256 internal blockNumber;
 
-    uint256 lastUserVoteSlot;
-    uint256 userSlopeSlot;
-    uint256 weightSlot;
+    uint256 internal lastUserVoteSlot;
+    uint256 internal userSlopeSlot;
+    uint256 internal weightSlot;
 
     constructor(
         address _gaugeController,
@@ -117,7 +116,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         console.logBytes32(blockHash);
         console.log("\n");
         console.logBytes(blockHeaderRlp);
-        
+
         console.log("\n");
         console.logBytes(controllerProof);
         console.log("\n");
@@ -203,40 +202,41 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         }
     }
 
-    function generateAndEncodeProof(address account, address gauge, uint256 epoch, bool isGaugeProof)
+    function generateAndEncodeProof(address _account, address _gauge, uint256 epoch, bool isGaugeProof)
         internal
         returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
         uint256[] memory positions =
-            isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
+            isGaugeProof ? generateGaugeProof(_gauge, epoch) : generateAccountProof(_account, _gauge);
 
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
     }
 
-    function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
+    function generateGaugeProof(address _gauge, uint256 epoch) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](1);
 
         uint256 pointWeightsPosition;
         if (isV2) {
-            pointWeightsPosition = uint256(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)));
+            pointWeightsPosition = uint256(keccak256(abi.encode(keccak256(abi.encode(weightSlot, _gauge)), epoch)));
         } else {
             pointWeightsPosition =
-                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
+                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, _gauge)), epoch)))));
         }
         positions[0] = pointWeightsPosition;
         return positions;
     }
 
-    function generateAccountProof(address account, address gauge) internal view returns (uint256[] memory) {
+    function generateAccountProof(address _account, address _gauge) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](3);
-        positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
+        positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, _account)), _gauge)));
 
         uint256 voteUserSlopePosition;
         if (isV2) {
-            voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
+            voteUserSlopePosition =
+                uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, _account)), _gauge)));
         } else {
             voteUserSlopePosition = uint256(
-                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
+                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, _account)), _gauge))))
             );
         }
         positions[1] = voteUserSlopePosition;

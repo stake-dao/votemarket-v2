@@ -7,7 +7,7 @@ import "test/unit/votemarket/Base.t.sol";
 contract CreateCampaignTest is BaseTest {
     using EnumerableSetLib for EnumerableSetLib.AddressSet;
 
-    EnumerableSetLib.AddressSet set;
+    EnumerableSetLib.AddressSet internal set;
     uint256 private constant _ZERO_SENTINEL = 0xfbb67fda52d4bfb8bf;
 
     struct CampaignCreationParams {
