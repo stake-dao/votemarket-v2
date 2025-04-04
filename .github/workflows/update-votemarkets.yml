@@ -1,0 +1,40 @@
+name: Votemarket Registry Synchronization
+
+# This workflow is responsible of synchronizing the votemarkets.json file
+# from the Votemarket repository to the Registry repository. It is
+#  triggered when a push is made to the main branch and `votemarkets.json` changes.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/votemarket/data/votemarkets.json"
+
+jobs:
+  votemarket-registry-update:
+    name: Process Votemarket Registry Changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Votemarket Repository
+        uses: actions/checkout@v4
+        with:
+          path: votemarket
+
+      - name: Checkout Registry Repository
+        uses: actions/checkout@v4
+        with:
+            repository: stake-dao/offchain-registry
+            path: registry
+            ssh-key: ${{ secrets.REGISTRY_DEPLOY_KEY }}
+
+      - name: Synchronize votemarkets.json from Votemarket to Registry
+        run: |
+          cp votemarket/packages/votemarket/data/votemarkets.json registry/data/votemarket/votemarkets.json
+          cd registry
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/votemarket/votemarkets.json
+          git commit -m "Sync votemarkets.json from Votemarket Repository"
+          git push origin main
