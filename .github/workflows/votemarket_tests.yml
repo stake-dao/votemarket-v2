@@ -1,0 +1,83 @@
+name: Votemarket - Unit Tests
+
+env:
+  FOUNDRY_PROFILE: "ci"
+  ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+  MNEMONIC: ${{ secrets.MNEMONIC }}
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+# This CI workflow is responsible of running the tests for the votemarket package.
+# It is triggered
+# - only when the changes are made to the votemarket package or the address-book package
+# - when a PR is opened or when a push is made to the main branch
+# - when a PR is opened or when a push is made to the feat/onlyboost-v2 branch
+# - when the workflow is manually triggered
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/votemarket/**"
+      - ".github/workflows/votemarket_unit-tests.yml" # this file
+      - "packages/utils/**" # dependency
+      - "packages/periphery/**" # dependency
+    branches:
+      - main
+      - develop
+  push:
+    paths:
+      - "packages/votemarket/**"
+      - ".github/workflows/votemarket_unit-tests.yml" # this file
+      - "packages/utils/**" # dependency
+      - "packages/periphery/**" # dependency
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21.4
+          cache: "pnpm"
+
+      - name: Install node dependencies
+        run: pnpm install
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+
+      - name: Install python dependencies
+        working-directory: packages/votemarket
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      # the seed changes weekly to avoid burning through RPC allowance
+      - name: Generate the weekly fuzz seed
+        run: >
+          echo "FOUNDRY_FUZZ_SEED=$(
+            echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800))
+          )" >> $GITHUB_ENV
+
+      - name: Run tests
+        working-directory: packages/votemarket
+        run: forge test
