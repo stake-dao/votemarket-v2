@@ -2,12 +2,10 @@
 pragma solidity 0.8.19;
 
 /// External Libraries
-import "@solady/src/utils/ReentrancyGuard.sol";
-import "@solady/src/utils/SafeTransferLib.sol";
 import "@solady/src/utils/EnumerableSetLib.sol";
 import "@solady/src/utils/FixedPointMathLib.sol";
-
-/// Project Interfaces & Libraries
+import "@solady/src/utils/ReentrancyGuard.sol";
+import "@solady/src/utils/SafeTransferLib.sol";
 import {IHook} from "src/interfaces/IHook.sol";
 import {IOracleLens} from "src/interfaces/IOracleLens.sol";
 import {Campaign, CampaignUpgrade, Period, ClaimData, IVotemarket} from "src/interfaces/IVotemarket.sol";

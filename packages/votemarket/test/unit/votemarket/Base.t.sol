@@ -1,37 +1,35 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "@forge-std/src/Test.sol";
 import "@forge-std/src/mocks/MockERC20.sol";
-
+import "@forge-std/src/Test.sol";
 import "src/Votemarket.sol";
-
 import "test/mocks/Hooks.sol";
 import "test/mocks/OracleLens.sol";
 
 abstract contract BaseTest is Test {
-    address creator = address(this);
+    address internal creator = address(this);
 
-    MockOracleLens oracleLens;
+    MockOracleLens internal oracleLens;
 
-    MockERC20 rewardToken;
-    Votemarket votemarket;
+    MockERC20 internal rewardToken;
+    Votemarket internal votemarket;
 
     // Test variables
-    address HOOK;
-    address[] blacklist;
-    uint256 CHAIN_ID = 1;
-    uint8 VALID_PERIODS = 4;
-    address GAUGE = address(0x1234);
-    address MANAGER = address(0x5678);
-    uint256 MAX_REWARD_PER_VOTE = 1e18;
-    uint256 TOTAL_REWARD_AMOUNT = 1000e18;
+    address internal HOOK;
+    address[] internal blacklist;
+    uint256 internal CHAIN_ID = 1;
+    uint8 internal VALID_PERIODS = 4;
+    address internal GAUGE = address(0x1234);
+    address internal MANAGER = address(0x5678);
+    uint256 internal MAX_REWARD_PER_VOTE = 1e18;
+    uint256 internal TOTAL_REWARD_AMOUNT = 1000e18;
 
-    uint256 TOTAL_VOTES = 2000e18;
-    uint256 ACCOUNT_VOTES = 1000e18;
+    uint256 internal TOTAL_VOTES = 2000e18;
+    uint256 internal ACCOUNT_VOTES = 1000e18;
 
-    uint256 maxAddressesSize;
-    uint256 minimiumPeriodsSize;
+    uint256 internal maxAddressesSize;
+    uint256 internal minimiumPeriodsSize;
 
     function setUp() public virtual {
         /// To avoid timestamp = 0.

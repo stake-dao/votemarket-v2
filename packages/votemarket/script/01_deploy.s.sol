@@ -2,12 +2,12 @@
 pragma solidity 0.8.19;
 
 import {Script, console, VmSafe} from "@forge-std/src/Script.sol";
-import {Oracle} from "src/oracle/Oracle.sol";
-import {VerifierV2} from "src/verifiers/VerifierV2.sol";
-import {OracleLens} from "src/oracle/OracleLens.sol";
-import {Votemarket} from "src/Votemarket.sol";
-import {ICreate3Factory} from "src/interfaces/ICreate3Factory.sol";
 import {SafeCastLib} from "@solady/src/utils/SafeCastLib.sol";
+import {ICreate3Factory} from "src/interfaces/ICreate3Factory.sol";
+import {Oracle} from "src/oracle/Oracle.sol";
+import {OracleLens} from "src/oracle/OracleLens.sol";
+import {VerifierV2} from "src/verifiers/VerifierV2.sol";
+import {Votemarket} from "src/Votemarket.sol";
 
 /// @notice A library that contains all the addresses needed by this script
 /// @dev • How to add a new gauge controller:

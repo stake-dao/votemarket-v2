@@ -273,7 +273,7 @@ contract ReentrancyAttacker {
         SafeTransferLib.safeTransfer(token, to, amount);
     }
 
-    fallback() external {
+    fallback() external payable {
         votemarket.claim(0, 0, "", address(this));
     }
 }
