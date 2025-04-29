@@ -12,7 +12,7 @@ contract NoRolloverHook is Ownable {
     mapping(address => bool) public votemarkets;
 
     /// @notice Left over recipient by campaign id by votemarket
-    mapping(address => mapping(uint256 => address)) public leftOverRecipient;
+    mapping(address => mapping(uint256 => address)) public leftOverRecipients;
 
     /// @notice Error thrown when an address shouldn't be zero
     error ZERO_ADDRESS();
@@ -40,7 +40,7 @@ contract NoRolloverHook is Ownable {
         IVotemarket votemarket = IVotemarket(msg.sender);
 
         // 1. Define the recipient, either the custom one set, or the manager by default
-        address recipient = leftOverRecipient[msg.sender][_campaignId];
+        address recipient = leftOverRecipients[msg.sender][_campaignId];
 
         if (recipient == address(0)) recipient = votemarket.getCampaign(_campaignId).manager;
         if (recipient == address(0)) revert ZERO_ADDRESS();
@@ -61,10 +61,10 @@ contract NoRolloverHook is Ownable {
 
         if (
             votemarket.getCampaign(_campaignId).manager != msg.sender
-                || leftOverRecipient[_votemarket][_campaignId] != msg.sender
+                && leftOverRecipients[_votemarket][_campaignId] != msg.sender
         ) revert UNAUTHORIZED();
 
-        leftOverRecipient[_votemarket][_campaignId] = _recipient;
+        leftOverRecipients[_votemarket][_campaignId] = _recipient;
     }
 
     /// @notice A function to toggle usable votemarkets on this contract
