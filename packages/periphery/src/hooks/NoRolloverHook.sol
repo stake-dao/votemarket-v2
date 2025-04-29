@@ -3,11 +3,15 @@ pragma solidity 0.8.19;
 
 import "@votemarket/src/interfaces/IVotemarket.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
+import "@solady/src/auth/Ownable.sol";
 
 /// @notice Votemarket hook for receiving leftovers
 /// @custom:contact contact@stakedao.org
-contract NoRolloverHook {
-    /// @notice Left over recipient by campaign id by platform
+contract NoRolloverHook is Ownable {
+    /// @notice Votemarket whitelist
+    mapping(address => bool) public votemarkets;
+
+    /// @notice Left over recipient by campaign id by votemarket
     mapping(address => mapping(uint256 => address)) public leftOverRecipient;
 
     /// @notice Error thrown when an address shouldn't be zero
@@ -16,32 +20,66 @@ contract NoRolloverHook {
     /// @notice Error thrown when the address isn't authorized
     error UNAUTHORIZED();
 
+    /// @notice Error thrown when a votemarket isn't whitelisted
+    error UNAUTHORIZED_VOTEMARKET();
+
+    /// @notice Initializes the owner.
+    /// @param _owner The address that will become the initial owner.
+    constructor(address _owner) {
+        _initializeOwner(_owner);
+    }
+
     /// @notice Function called by votemarket during an _updateRewardPerVote when hook address is set
-    function doSomething(uint256 campaignId, uint256, address rewardToken, uint256, uint256 leftOver, bytes calldata)
+    /// @param _campaignId Campaign id on the votemarket calling
+    /// @param _rewardToken Reward token address
+    /// @param _leftOver Left over amount
+    function doSomething(uint256 _campaignId, uint256, address _rewardToken, uint256, uint256 _leftOver, bytes calldata)
         external
     {
+        if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
         IVotemarket votemarket = IVotemarket(msg.sender);
 
         // 1. Define the recipient, either the custom one set, or the manager by default
-        address recipient = leftOverRecipient[msg.sender][campaignId];
+        address recipient = leftOverRecipient[msg.sender][_campaignId];
 
-        if (recipient == address(0)) recipient = votemarket.getCampaign(campaignId).manager;
+        if (recipient == address(0)) recipient = votemarket.getCampaign(_campaignId).manager;
         if (recipient == address(0)) revert ZERO_ADDRESS();
 
         // 2. Transfer the claimed amount to the recipient.
-        SafeTransferLib.safeTransfer(rewardToken, recipient, leftOver);
+        SafeTransferLib.safeTransfer(_rewardToken, recipient, _leftOver);
     }
 
-    /// @notice Set the left over recipient for a campaign on a votemarket platform
-    /// Can only be called by the campaign amanager or the already set recipient
-    function setLeftOverRecipient(address platform, uint256 campaignId, address recipient) external {
-        IVotemarket votemarket = IVotemarket(platform);
+    /// @notice Set the left over recipient for a campaign on a votemarket votemarket
+    /// Can only be called by the campaign manager or the already set recipient
+    /// @param _votemarket Votemarket address
+    /// @param _campaignId Campaign id on the votemarket
+    /// @param _recipient New recipient of leftovers
+    function setLeftOverRecipient(address _votemarket, uint256 _campaignId, address _recipient) external {
+        if (!votemarkets[_votemarket]) revert UNAUTHORIZED_VOTEMARKET();
+
+        IVotemarket votemarket = IVotemarket(_votemarket);
 
         if (
-            votemarket.getCampaign(campaignId).manager != msg.sender
-                || leftOverRecipient[platform][campaignId] != msg.sender
+            votemarket.getCampaign(_campaignId).manager != msg.sender
+                || leftOverRecipient[_votemarket][_campaignId] != msg.sender
         ) revert UNAUTHORIZED();
 
-        leftOverRecipient[platform][campaignId] = recipient;
+        leftOverRecipient[_votemarket][_campaignId] = _recipient;
+    }
+
+    /// @notice A function to toggle usable votemarkets on this contract
+    /// @param _votemarket Votemarket address to toggle
+    function toggleVotemarket(address _votemarket) external onlyOwner {
+        votemarkets[_votemarket] = !votemarkets[_votemarket];
+    }
+
+    /// @notice A function that rescue any ERC20 token
+    /// @dev Can be called only by the owner
+    /// @param _token token address
+    /// @param _amount amount to rescue
+    /// @param _recipient address to send token rescued
+    function rescueERC20(address _token, uint256 _amount, address _recipient) external onlyOwner {
+        if (_recipient == address(0)) revert ZERO_ADDRESS();
+        SafeTransferLib.safeTransfer(_token, _recipient, _amount);
     }
 }
