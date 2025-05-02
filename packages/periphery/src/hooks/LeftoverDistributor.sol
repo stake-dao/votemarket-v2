@@ -3,16 +3,24 @@ pragma solidity 0.8.19;
 
 import "@votemarket/src/interfaces/IVotemarket.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
-import "@solady/src/auth/Ownable.sol";
 
 /// @notice Votemarket hook for receiving leftovers
 /// @custom:contact contact@stakedao.org
-contract NoRolloverHook is Ownable {
+contract LeftoverDistributor {
+    /// @notice Governance address.
+    address public governance;
+
+    /// @notice Future governance address.
+    address public futureGovernance;
+
     /// @notice Votemarket whitelist
     mapping(address => bool) public votemarkets;
 
     /// @notice Leftover recipient by campaign id by votemarket
     mapping(address => mapping(uint256 => address)) public leftoverRecipients;
+
+    /// @notice Thrown when a non-governance address attempts a governance-only action.
+    error AUTH_GOVERNANCE_ONLY();
 
     /// @notice Error thrown when an address shouldn't be zero
     error ZERO_ADDRESS();
@@ -35,13 +43,21 @@ contract NoRolloverHook is Ownable {
     /// @notice Emitted when a leftoverRecipients is set
     event LeftOverRecipientSet(address indexed votemarket, uint256 indexed campaignId, address indexed recipient);
 
+    /// @notice Emitted when a votemarket is enabled
+    event EnabledVotemarket(address indexed votemarket);
     /// @notice Emitted when a votemarket is toggled
-    event ToggleVotemarket(address indexed votemarket, bool enabled);
+    event DisabledVotemarket(address indexed votemarket);
 
-    /// @notice Initializes the owner.
-    /// @param _owner The address that will become the initial owner.
-    constructor(address _owner) {
-        _initializeOwner(_owner);
+    /// @notice Ensures that only the governance address can call the function.
+    modifier onlyGovernance() {
+        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+        _;
+    }
+
+    /// @notice Initializes the governance.
+    /// @param _governance The address that will become the initial governance.
+    constructor(address _governance) {
+        governance = _governance;
     }
 
     /// @notice Function called by votemarket during an _updateRewardPerVote when hook address is set
@@ -86,11 +102,18 @@ contract NoRolloverHook is Ownable {
         emit LeftOverRecipientSet(_votemarket, _campaignId, _recipient);
     }
 
-    /// @notice A function to toggle usable votemarkets on this contract
+    /// @notice A function to enable votemarkets on this contract
     /// @param _votemarket Votemarket address to toggle
-    function toggleVotemarket(address _votemarket) external onlyOwner {
-        votemarkets[_votemarket] = !votemarkets[_votemarket];
-        emit ToggleVotemarket(_votemarket, votemarkets[_votemarket]);
+    function enableVotemarket(address _votemarket) external onlyGovernance {
+        votemarkets[_votemarket] = true;
+        emit EnabledVotemarket(_votemarket);
+    }
+
+    /// @notice A function to disable votemarkets on this contract
+    /// @param _votemarket Votemarket address to toggle
+    function disableVotemarket(address _votemarket) external onlyGovernance {
+        votemarkets[_votemarket] = false;
+        emit DisabledVotemarket(_votemarket);
     }
 
     /// @notice A function that rescue any ERC20 token
@@ -98,8 +121,22 @@ contract NoRolloverHook is Ownable {
     /// @param _token token address
     /// @param _amount amount to rescue
     /// @param _recipient address to send token rescued
-    function rescueERC20(address _token, uint256 _amount, address _recipient) external onlyOwner {
+    function rescueERC20(address _token, uint256 _amount, address _recipient) external onlyGovernance {
         if (_recipient == address(0)) revert ZERO_ADDRESS();
         SafeTransferLib.safeTransfer(_token, _recipient, _amount);
+    }
+
+    /// @notice Sets the future governance address
+    /// @param _futureGovernance The new future governance address
+    function transferGovernance(address _futureGovernance) external onlyGovernance {
+        if (_futureGovernance == address(0)) revert ZERO_ADDRESS();
+        futureGovernance = _futureGovernance;
+    }
+
+    /// @notice Accepts the governance role via the future governance address
+    function acceptGovernance() external {
+        if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
+        governance = futureGovernance;
+        futureGovernance = address(0);
     }
 }
