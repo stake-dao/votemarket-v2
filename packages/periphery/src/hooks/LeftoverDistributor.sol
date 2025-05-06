@@ -14,10 +14,10 @@ contract LeftoverDistributor {
     address public futureGovernance;
 
     /// @notice Votemarket whitelist
-    mapping(address => bool) public votemarkets;
+    mapping(address votemarket => bool isAuthorized) public votemarkets;
 
     /// @notice Leftover recipient by campaign id by votemarket
-    mapping(address => mapping(uint256 => address)) public leftoverRecipients;
+    mapping(address votemarket => mapping(uint256 campainId => address recipient)) public leftoverRecipients;
 
     /// @notice Thrown when a non-governance address attempts a governance-only action.
     error AUTH_GOVERNANCE_ONLY();
@@ -45,7 +45,7 @@ contract LeftoverDistributor {
 
     /// @notice Emitted when a votemarket is enabled
     event EnabledVotemarket(address indexed votemarket);
-    /// @notice Emitted when a votemarket is toggled
+    /// @notice Emitted when a votemarket is disabled
     event DisabledVotemarket(address indexed votemarket);
 
     /// @notice Ensures that only the governance address can call the function.
