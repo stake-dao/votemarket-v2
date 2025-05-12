@@ -17,7 +17,7 @@ contract LeftoverDistributor {
     mapping(address votemarket => bool isAuthorized) public votemarkets;
 
     /// @notice Leftover recipient by campaign id by votemarket
-    mapping(address votemarket => mapping(uint256 campainId => address recipient)) public leftoverRecipients;
+    mapping(address votemarket => mapping(uint256 campaignId => address recipient)) public leftoverRecipients;
 
     /// @notice Thrown when a non-governance address attempts a governance-only action.
     error AUTH_GOVERNANCE_ONLY();
@@ -35,7 +35,9 @@ contract LeftoverDistributor {
     event LeftOverSent(
         address indexed votemarket,
         uint256 indexed campaignId,
+        uint256 chainId,
         address rewardToken,
+        uint256 indexed epoch,
         uint256 leftoverAmount,
         address recipient
     );
@@ -64,7 +66,7 @@ contract LeftoverDistributor {
     /// @param _campaignId Campaign id on the votemarket calling
     /// @param _rewardToken Reward token address
     /// @param _leftover Leftover amount
-    function doSomething(uint256 _campaignId, uint256, address _rewardToken, uint256, uint256 _leftover, bytes calldata)
+    function doSomething(uint256 _campaignId, uint256 _chainId, address _rewardToken, uint256 _epoch, uint256 _leftover, bytes calldata)
         external
     {
         if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
@@ -79,7 +81,7 @@ contract LeftoverDistributor {
         // 2. Transfer the claimed amount to the recipient.
         SafeTransferLib.safeTransfer(_rewardToken, recipient, _leftover);
 
-        emit LeftOverSent(msg.sender, _campaignId, _rewardToken, _leftover, recipient);
+        emit LeftOverSent(msg.sender, _campaignId, _chainId, _rewardToken, _epoch, _leftover, recipient);
     }
 
     /// @notice Set the leftover recipient for a campaign on a votemarket votemarket
