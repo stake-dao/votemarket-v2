@@ -84,7 +84,7 @@ contract LeftoverDistributor {
         emit LeftOverSent(msg.sender, _campaignId, _chainId, _rewardToken, _epoch, _leftover, recipient);
     }
 
-    /// @notice Set the leftover recipient for a campaign on a votemarket votemarket
+    /// @notice Set the leftover recipient for a campaign on a votemarket
     /// Can only be called by the campaign manager or the already set recipient
     /// @param _votemarket Votemarket address
     /// @param _campaignId Campaign id on the votemarket
@@ -98,6 +98,19 @@ contract LeftoverDistributor {
             votemarket.getCampaign(_campaignId).manager != msg.sender
                 && leftoverRecipients[_votemarket][_campaignId] != msg.sender
         ) revert UNAUTHORIZED();
+
+        leftoverRecipients[_votemarket][_campaignId] = _recipient;
+
+        emit LeftOverRecipientSet(_votemarket, _campaignId, _recipient);
+    }
+
+    /// @notice Overrides the leftover recipient for a campaign on a votemarket
+    /// Can only be called by the governance
+    /// @param _votemarket Votemarket address
+    /// @param _campaignId Campaign id on the votemarket
+    /// @param _recipient New recipient of leftovers
+    function overrideLeftOverRecipient(address _votemarket, uint256 _campaignId, address _recipient) external onlyGovernance {
+        if (!votemarkets[_votemarket]) revert UNAUTHORIZED_VOTEMARKET();
 
         leftoverRecipients[_votemarket][_campaignId] = _recipient;
 

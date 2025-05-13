@@ -116,6 +116,20 @@ contract LeftoverDistributorTest is Test {
         hook.setLeftOverRecipient(address(votemarket), campaignId + 1, address(this));
     }
 
+    /// Tests for recipient overrides
+    function test_overrideLeftoverRecipient() public {
+        hook.enableVotemarket(address(votemarket));
+
+        // Not governance can't override the recipient
+        vm.expectRevert();
+        vm.prank(alice);
+        hook.overrideLeftOverRecipient(address(votemarket), campaignId, address(this));
+
+        // The governance can set the recipient
+        hook.overrideLeftOverRecipient(address(votemarket), campaignId, address(this));
+        assertEq(hook.leftoverRecipients(address(votemarket), campaignId), address(this));
+    }
+
     /// Test default flow, leftover is sent to the manager
     function test_defaultFlowWithVotemarket() public {
         hook.enableVotemarket(address(votemarket));
