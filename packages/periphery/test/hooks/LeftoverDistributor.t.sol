@@ -4,12 +4,12 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Test.sol";
 import {IVotemarket, Campaign} from "@votemarket/src/interfaces/IVotemarket.sol";
 import {FakeToken} from "../mocks/FakeToken.sol";
-import {LeftoverDistributor} from "../../src/hooks/LeftoverDistributor.sol";
+import {LeftoverDistributorHook} from "../../src/hooks/LeftoverDistributorHook.sol";
 
 contract LeftoverDistributorTest is Test {
     FakeToken rewardToken;
     IVotemarket votemarket = IVotemarket(0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9);
-    LeftoverDistributor hook;
+    LeftoverDistributorHook hook;
     uint256 campaignId;
     uint256 expectedLeftOver = 499992810414009245950;
 
@@ -25,7 +25,7 @@ contract LeftoverDistributorTest is Test {
         rewardToken = new FakeToken("Mock Token", "MOCK", 18);
         rewardToken.mint(address(this), 1000e18);
 
-        hook = new LeftoverDistributor(address(this));
+        hook = new LeftoverDistributorHook(address(this));
 
         rewardToken.approve(address(votemarket), 1000e18);
         // sdCRV gauge, which has votes
@@ -60,11 +60,11 @@ contract LeftoverDistributorTest is Test {
     // Test errors on a votemarket platform not set
     function test_unsetVotemarketExpectedErrors() public {
         // calling doSomething if not whitelisted in the hook
-        vm.expectRevert(LeftoverDistributor.UNAUTHORIZED_VOTEMARKET.selector);
+        vm.expectRevert(LeftoverDistributorHook.UNAUTHORIZED_VOTEMARKET.selector);
         hook.doSomething(campaignId, 0, address(rewardToken), 0, 1 gwei, bytes("0x"));
 
         // calling setRecipient on a not set votemarket
-        vm.expectRevert(LeftoverDistributor.UNAUTHORIZED_VOTEMARKET.selector);
+        vm.expectRevert(LeftoverDistributorHook.UNAUTHORIZED_VOTEMARKET.selector);
         hook.setLeftOverRecipient(address(votemarket), campaignId, alice);
     }
 
@@ -95,7 +95,7 @@ contract LeftoverDistributorTest is Test {
         hook.enableVotemarket(address(votemarket));
 
         // Not anyone can set the recipient
-        vm.expectRevert(LeftoverDistributor.UNAUTHORIZED.selector);
+        vm.expectRevert(LeftoverDistributorHook.UNAUTHORIZED.selector);
         hook.setLeftOverRecipient(address(votemarket), campaignId, address(this));
 
         // Alice is the manager, can set the recipient
@@ -108,11 +108,11 @@ contract LeftoverDistributorTest is Test {
         assertEq(hook.leftoverRecipients(address(votemarket), campaignId), bob);
 
         // Old recipient can't set an other recipient
-        vm.expectRevert(LeftoverDistributor.UNAUTHORIZED.selector);
+        vm.expectRevert(LeftoverDistributorHook.UNAUTHORIZED.selector);
         hook.setLeftOverRecipient(address(votemarket), campaignId, address(this));
 
         // Can't set recipient for not existing campaign
-        vm.expectRevert(LeftoverDistributor.UNAUTHORIZED.selector);
+        vm.expectRevert(LeftoverDistributorHook.UNAUTHORIZED.selector);
         hook.setLeftOverRecipient(address(votemarket), campaignId + 1, address(this));
     }
 

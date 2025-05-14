@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.19;
 
-import "@votemarket/src/interfaces/IVotemarket.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
+import "@votemarket/src/interfaces/IVotemarket.sol";
 
 /// @notice Votemarket hook for receiving leftovers
 /// @custom:contact contact@stakedao.org
-contract LeftoverDistributor {
+contract LeftoverDistributorHook {
     /// @notice Governance address.
     address public governance;
 
@@ -66,9 +66,14 @@ contract LeftoverDistributor {
     /// @param _campaignId Campaign id on the votemarket calling
     /// @param _rewardToken Reward token address
     /// @param _leftover Leftover amount
-    function doSomething(uint256 _campaignId, uint256 _chainId, address _rewardToken, uint256 _epoch, uint256 _leftover, bytes calldata)
-        external
-    {
+    function doSomething(
+        uint256 _campaignId,
+        uint256 _chainId,
+        address _rewardToken,
+        uint256 _epoch,
+        uint256 _leftover,
+        bytes calldata
+    ) external {
         if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
         IVotemarket votemarket = IVotemarket(msg.sender);
 
@@ -109,7 +114,10 @@ contract LeftoverDistributor {
     /// @param _votemarket Votemarket address
     /// @param _campaignId Campaign id on the votemarket
     /// @param _recipient New recipient of leftovers
-    function overrideLeftOverRecipient(address _votemarket, uint256 _campaignId, address _recipient) external onlyGovernance {
+    function overrideLeftOverRecipient(address _votemarket, uint256 _campaignId, address _recipient)
+        external
+        onlyGovernance
+    {
         if (!votemarkets[_votemarket]) revert UNAUTHORIZED_VOTEMARKET();
 
         leftoverRecipients[_votemarket][_campaignId] = _recipient;
