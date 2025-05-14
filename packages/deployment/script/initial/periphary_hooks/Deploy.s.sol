@@ -7,14 +7,11 @@ import {LeftoverDistributorHook} from "@periphery/src/hooks/LeftoverDistributorH
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);
-    function computeCreate3Address(bytes32 salt, address deployer) external view returns (address);
 }
 
 contract Deploy is Script {
     address public deployer = 0x606A503e5178908F10597894B35b2Be8685EAB90;
     address public governance = 0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765;
-
-    address public oracle = 0x36F5B50D70df3D3E1c7E1BAf06c32119408Ef7D8;
 
     address public CRV_VOTEMARKET = 0x8c2c5A295450DDFf4CB360cA73FCCC12243D14D9;
     address public BAL_VOTEMARKET = 0xDD2FaD5606cD8ec0c3b93Eb4F9849572b598F4c7;
