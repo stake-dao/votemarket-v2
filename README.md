@@ -99,6 +99,12 @@ graph LR
 | Verifier | [`0xd87E05De04E22b2C4EE950DF8A63622AF76af813`](https://arbiscan.io/address/0xd87E05De04E22b2C4EE950DF8A63622AF76af813) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB`](https://arbiscan.io/address/0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB) | Arbitrum, Optimism, Base, Polygon |
 
+#### Hooks
+
+| Contract | Address | Networks |
+|----------|---------|----------|
+| LeftoverDistributorHook | [`0x7a3830C1383312985cc2256F22ba6a0ce25c4304`](https://arbiscan.io/address/0x7a3830C1383312985cc2256F22ba6a0ce25c4304) | Arbitrum, Optimism, Base, Polygon |
+
 ## Getting Started
 
 ### Prerequisites
