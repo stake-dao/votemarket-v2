@@ -3,6 +3,7 @@ src = "src"
 out = "out"
 libs = ["node_modules"]
 solc = "0.8.19"
+prompt_timeout = 120
 
 # Enables to use python scripts in forge tests.
 ffi = true

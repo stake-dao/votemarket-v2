@@ -2,11 +2,14 @@
 pragma solidity 0.8.19;
 
 ///  Project Interfaces & Libraries
-import "src/verifiers/RLPDecoderV2.sol";
+import {RLPReader, RLPDecoderV2} from "src/verifiers/RLPDecoderV2.sol";
+import {IOracle} from "src/interfaces/IOracle.sol";
+import {StateProofVerifier} from "@utils/src/StateProofVerifier.sol";
 
 /// @title Verifier
 /// @notice A contract for verifying and extracting data from block headers and proofs
 /// @dev This contract uses RLP decoding and interacts with an Oracle contract
+
 contract VerifierV2 is RLPDecoderV2 {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;

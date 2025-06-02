@@ -3,10 +3,6 @@ pragma solidity 0.8.19;
 
 /// External Libraries
 import "@utils/src/StateProofVerifier.sol";
-import "@solady/src/utils/LibString.sol";
-
-/// Project Interfaces & Libraries
-import "src/interfaces/IOracle.sol";
 
 abstract contract RLPDecoderV2 {
     function extractMappingValue(
