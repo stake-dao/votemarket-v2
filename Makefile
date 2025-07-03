@@ -16,7 +16,10 @@ install:
 	pnpm i
 
 test:
-	@forge test --gas-report
+	@forge test -vvvvv --gas-report
+
+test-f-testGetProofParams:
+	@FOUNDRY_MATCH_TEST=testGetProofParams make test
 
 test-f-%:
 	@FOUNDRY_MATCH_TEST=$* make test

@@ -39,6 +39,7 @@ BLOCK_HEADER = (
     "blobGasUsed",
     "excessBlobGas",
     "parentBeaconBlockRoot",
+    "requestsHash",
 )
 
 

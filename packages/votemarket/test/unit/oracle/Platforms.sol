@@ -27,8 +27,8 @@ contract CRV_Platform is
         false
     )
 {}
-*/
 
+/*
 address constant BAL_GAUGE_CONTROLLER = address(0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD);
 address constant BAL_ACCOUNT = 0xea79d1A83Da6DB43a85942767C389fE0ACf336A5;
 address constant BAL_GAUGE = 0xDc2Df969EE5E66236B950F5c4c5f8aBe62035df2;
@@ -59,7 +59,7 @@ uint256 constant FXN_LAST_USER_VOTE_SLOT = 1000000010;
 uint256 constant FXN_USER_SLOPE_SLOT = 1000000008;
 uint256 constant FXN_WEIGHT_SLOT = 1000000011;
 
-/*
+
 contract FXN_Platform is
     ProofCorrectnessTest(
         FXN_GAUGE_CONTROLLER,
@@ -95,3 +95,27 @@ contract FXS_Platform is
     )
 {}
 */
+
+address constant PENDLE_GAUGE_CONTROLLER = address(0x44087E105137a5095c008AaB6a6530182821F2F0);
+address constant PENDLE_ACCOUNT = 0xD8fa8dC5aDeC503AcC5e026a98F32Ca5C1Fa289A;
+address constant PENDLE_GAUGE = 0xC64D59eb11c869012C686349d24e1D7C91C86ee2;
+address constant PENDLE_VE = 0x4f30A9D41B80ecC5B94306AB4364951AE3170210;
+uint256 constant PENDLE_BLOCK_NUMBER = 22_829_942;
+
+uint256 constant PENDLE_LAST_USER_VOTE_SLOT = 1;
+uint256 constant PENDLE_USER_SLOPE_SLOT = 162;
+uint256 constant PENDLE_WEIGHT_SLOT = 161;
+
+contract PENDLE_Platform is
+    ProofCorrectnessTest(
+        PENDLE_GAUGE_CONTROLLER,
+        PENDLE_ACCOUNT,
+        PENDLE_GAUGE,
+        PENDLE_BLOCK_NUMBER,
+        PENDLE_LAST_USER_VOTE_SLOT,
+        PENDLE_USER_SLOPE_SLOT,
+        PENDLE_WEIGHT_SLOT,
+        true,
+        PENDLE_VE
+    )
+{}

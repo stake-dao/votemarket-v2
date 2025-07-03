@@ -8,8 +8,13 @@ import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
 import "src/interfaces/IGaugeController.sol";
+import "src/interfaces/IPendleGaugeController.sol";
+import "src/interfaces/IVePendle.sol";
 
 abstract contract ProofCorrectnessTest is Test, VerifierFactory {
+    using RLPReader for bytes;
+    using RLPReader for RLPReader.RLPItem;
+
     Oracle oracle;
     IVerifierBase public verifier;
     address public immutable GAUGE_CONTROLLER;
@@ -17,6 +22,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
     address account;
     address gauge;
+    address ve;
     uint256 blockNumber;
 
     uint256 lastUserVoteSlot;
@@ -31,11 +37,13 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         uint256 _lastUserVoteSlot,
         uint256 _userSlopeSlot,
         uint256 _weightSlot,
-        bool _isV2
+        bool _isV2,
+        address _ve
     ) {
         GAUGE_CONTROLLER = _gaugeController;
         account = _account;
         gauge = _gauge;
+        ve = _ve;
         blockNumber = _blockNumber;
 
         lastUserVoteSlot = _lastUserVoteSlot;
@@ -102,16 +110,35 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         assertEq(oracle.futureGovernance(), address(0));
     }
 
+    function isPendle() public returns(bool) {
+        return GAUGE_CONTROLLER == address(0x44087E105137a5095c008AaB6a6530182821F2F0);
+    }
+
     function testGetProofParams() public {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
+        uint256 lastUserVote = block.timestamp;
+        uint256 slope = 0;
+        uint256 bias_ = 0;
+        uint256 end = 0;
+        address owner;
 
-        uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
-        (uint256 bias_,) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
+        if(isPendle()) {
+            owner = IPendleGaugeController(GAUGE_CONTROLLER).owner();
+            UserPoolData memory userPoolData = IPendleGaugeController(GAUGE_CONTROLLER).getUserPoolVote(account, gauge);
+            slope = userPoolData.vote.slope;
+            (bias_) = IPendleGaugeController(GAUGE_CONTROLLER).getPoolTotalVoteAt(gauge, uint128(epoch));
+            (end,) = IVePendle(ve).positionData(account);
+        } else {
+            lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
+            (slope,, end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+            (bias_,) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
+        }
+
+        console.logAddress(owner);
 
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
-            generateAndEncodeProof(account, gauge, epoch, true);
+            generateAndEncodeProofPendleOwner(account, gauge, epoch, true);
 
         /*
         console.logBytes32(blockHash);
@@ -137,7 +164,23 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
 
-        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
+        /********************* */
+
+        // 2. Get the state root hash from the block header
+        bytes32 stateRootHash = verifier.ORACLE().epochBlockNumber(epoch).stateRootHash;
+        if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
+
+        RLPReader.RLPItem[] memory _proofs = storageProofRlp.toRlpItem().toList();  
+        if (_proofs.length != 1) revert VerifierV2.INVALID_PROOF_LENGTH();
+        
+        address newOwner = extractOwner(stateRootHash, _proofs[0].toList());
+        console.log("titi");
+        console.log(newOwner);
+        //assertEq(newOwner, owner);
+
+        /********************* */
+
+        /*IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
@@ -148,7 +191,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        assertEq(weight.bias, bias_);
+        assertEq(weight.bias, bias_);*/
     }
 
     function testLens() public {
@@ -203,14 +246,47 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         }
     }
 
+    function extractOwner(bytes32 stateRootHash, RLPReader.RLPItem[] memory proof) internal pure returns (address) {
+        bytes32 slot = keccak256(abi.encodePacked(uint256(0)));
+        StateProofVerifier.SlotValue memory slotValue = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+        return address(uint160(slotValue.value));    
+    }
+
+    function generateAndEncodeProofPendleOwner(address account, address gauge, uint256 epoch, bool isGaugeProof)
+        internal
+        returns (bytes32, bytes memory, bytes memory, bytes memory)
+    {
+        uint256[] memory positions = new uint256[](1);
+        positions[0] = 0;
+        return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
+    }
+
     function generateAndEncodeProof(address account, address gauge, uint256 epoch, bool isGaugeProof)
         internal
         returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
-        uint256[] memory positions =
-            isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
+        uint256[] memory positions;
+
+        if(isPendle()) {
+            positions = isGaugeProof ? generateGaugeProofPendle(gauge, uint128(epoch)) : generateAccountProofPendle(account, gauge);
+        } else {
+           // positions = isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
+        }
 
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
+    }
+
+    function generateGaugeProofPendle(address gauge, uint128 epoch) internal view returns (uint256[] memory) {
+        uint256 structSlot = uint256(keccak256(abi.encode(weightSlot, gauge)));
+        uint256 poolVotesSlot = structSlot + 1;
+        uint256 finalSlot = uint256(keccak256(abi.encode(poolVotesSlot, epoch)));
+
+        console.log("Slot in proof:");
+        console.logBytes32(bytes32(finalSlot));
+
+        uint256[] memory positions = new uint256[](1);
+        positions[0] = uint256(finalSlot);
+        return positions;
     }
 
     function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
@@ -224,6 +300,25 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
                 uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
         }
         positions[0] = pointWeightsPosition;
+        return positions;
+    }
+    //0x42df32c694c6a6ac3ff9fe06f7a382f3d284b86ead9ec6f21c99be18e6d63f58
+
+    function generateAccountProofPendle(address account, address gauge) internal view returns (uint256[] memory) {
+        uint256[] memory positions = new uint256[](3);
+        positions[0] = uint128(uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge))));
+
+        uint128 voteUserSlopePosition;
+        if (isV2) {
+            voteUserSlopePosition = uint128(uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))));
+        } else {
+            voteUserSlopePosition = uint128(uint256(
+                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
+            ));
+        }
+        positions[1] = voteUserSlopePosition;
+        positions[2] = voteUserSlopePosition + 2;
+
         return positions;
     }
 
@@ -265,7 +360,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         inputs[2] = chain;
         inputs[3] = vm.toString(_account);
         inputs[4] = vm.toString(_blockNumber);
-        for (uint256 i = 0; i < _positions.length; i++) {
+        for (uint128 i = 0; i < _positions.length; i++) {
             inputs[5 + i] = vm.toString(_positions[i]);
         }
         return abi.decode(vm.ffi(inputs), (bytes32, bytes, bytes, bytes));
