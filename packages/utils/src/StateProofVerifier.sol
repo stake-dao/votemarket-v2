@@ -109,7 +109,7 @@ library StateProofVerifier {
         returns (SlotValue memory)
     {   
 
-        console.logBytes32(_slotHash); // vérifie que c’est 0x00..
+        console.logBytes32(_slotHash);
         for (uint i = 0; i < _proof.length; i++) {
             console.logBytes(_proof[i].toRlpBytes());
         }

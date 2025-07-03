@@ -118,7 +118,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         uint128 epoch = 1750896000;
         address gauge = 0xC64D59eb11c869012C686349d24e1D7C91C86ee2;
         uint128 expectedVotes = IPendleGaugeController(GAUGE_CONTROLLER).getPoolTotalVoteAt(gauge, epoch);
-        console.log("Expected total votes:", expectedVotes);
+        console.log("Expected total votes:", expectedVotes); // daff58e043f2c7cd2000
 
         // Génère les proofs
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory accountProof, bytes memory storageProofRlp) =
@@ -138,10 +138,10 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         verifier.setBlockData(blockHeaderRlp, accountProof);
 
         bytes32 stateRootHash = verifier.ORACLE().epochBlockNumber(epoch).stateRootHash;
-        require(stateRootHash != bytes32(0), "Invalid root");
+        if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
 
         RLPReader.RLPItem[] memory proofItems = storageProofRlp.toRlpItem().toList();
-        require(proofItems.length == 1, "Invalid proof length");
+        if (proofItems.length != 1) revert VerifierV2.INVALID_PROOF_LENGTH();
 
         uint128 decodedVotes = extractPoolTotalVoteAt(stateRootHash, gauge, epoch, proofItems[0].toList());
         console.log("Decoded votes:", decodedVotes);
@@ -163,6 +163,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         // Step 3: Final slot is keccak(gauge . poolVotesSlot)
         uint256 finalSlot = uint256(keccak256(abi.encode(gauge, poolVotesSlot)));
 
+
         uint256[] memory positions = new uint256[](1);
         positions[0] = finalSlot;
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
@@ -174,10 +175,12 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         uint128 epoch,
         RLPReader.RLPItem[] memory proof
     ) internal pure returns (uint128) {
+        
         uint256 weekDataSlot = 161;
-        uint256 structSlot = uint256(keccak256(abi.encode(epoch, weekDataSlot)));
+
+        uint256 structSlot = uint256(keccak256(abi.encode( epoch, weekDataSlot)));
         uint256 poolVotesSlot = structSlot + 1;
-        bytes32 slot = keccak256(abi.encode(gauge, poolVotesSlot));
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot)))));
 
         StateProofVerifier.SlotValue memory value = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
         return uint128(value.value);
