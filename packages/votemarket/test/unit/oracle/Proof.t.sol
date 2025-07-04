@@ -115,6 +115,94 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     }
 
     function testGetProofParams() public {
+        uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
+        UserPoolData memory userPoolData = IPendleGaugeController(GAUGE_CONTROLLER).getUserPoolVote(account, gauge);
+
+        // Génère les proofs
+        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory accountProof, bytes memory storageProofRlp) =
+            generateAndEncodeProofPendleUserPoolVote(account, gauge);
+
+        // Injecte dans l’oracle
+        oracle.insertBlockNumber(
+            epoch,
+            StateProofVerifier.BlockHeader({
+                hash: blockHash,
+                stateRootHash: bytes32(0),
+                number: block.number,
+                timestamp: block.timestamp
+            })
+        );
+
+        verifier.setBlockData(blockHeaderRlp, accountProof);
+
+        bytes32 stateRootHash = verifier.ORACLE().epochBlockNumber(epoch).stateRootHash;
+        if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
+
+        RLPReader.RLPItem[] memory proofItems = storageProofRlp.toRlpItem().toList();
+        if (proofItems.length != 2) revert VerifierV2.INVALID_PROOF_LENGTH();
+
+        uint128 weight = extractUserPoolVote(stateRootHash, account, gauge, proofItems[0].toList());
+        (uint128 slope, uint128 bias) = extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofItems[1].toList());
+        
+        assertEq(userPoolData.weight, weight);
+        assertEq(userPoolData.vote.bias, bias);
+        assertEq(userPoolData.vote.slope, slope);
+    }
+
+    function generateAndEncodeProofPendleUserPoolVote(address user, address gauge)
+        internal
+        returns (bytes32, bytes memory, bytes memory, bytes memory)
+    {
+        
+        uint256 slot = 162;
+        uint256 structSlot = uint256(keccak256(abi.encode(user, slot)));
+        uint256 poolVotesSlot = structSlot + 1;
+        uint256 finalSlot = uint256(keccak256(abi.encode(gauge, poolVotesSlot)));
+
+        uint256[] memory positions = new uint256[](2);
+        positions[0] = finalSlot;
+        positions[1] = finalSlot + 1;
+        return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
+    }
+
+    function extractUserPoolVote(
+        bytes32 stateRootHash,
+        address user,
+        address gauge,
+        RLPReader.RLPItem[] memory proof
+    ) internal pure returns (uint128) {
+        
+        uint256 weekDataSlot = 162;
+
+        uint256 structSlot = uint256(keccak256(abi.encode( user, weekDataSlot)));
+        uint256 poolVotesSlot = structSlot + 1;
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(gauge, poolVotesSlot)))));
+
+        StateProofVerifier.SlotValue memory value = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+        return uint128(value.value);
+    }
+
+    function extractUserPoolVoteBiasAndSlope(
+        bytes32 stateRootHash,
+        address user,
+        address gauge,
+        RLPReader.RLPItem[] memory proof
+    ) internal pure returns (uint128 bias, uint128 slope) {
+        uint256 slot = 162;
+        uint256 structSlot = uint256(keccak256(abi.encode(user, slot)));
+        uint256 poolVotesSlot = structSlot + 1;
+        bytes32 finalSlot = keccak256(abi.encode(gauge, poolVotesSlot));
+        bytes32 slotBiasSlope = keccak256(abi.encode(uint256(finalSlot) + 1));
+
+        StateProofVerifier.SlotValue memory value =
+            StateProofVerifier.extractSlotValueFromProof(slotBiasSlope, stateRootHash, proof);
+
+        uint256 word = uint256(value.value);
+        bias = uint128(word >> 128);
+        slope = uint128(word & type(uint128).max);
+    }
+
+    function testGetProofPoolTotalVoteAtParams() public {
         uint128 epoch = 1750896000;
         address gauge = 0xC64D59eb11c869012C686349d24e1D7C91C86ee2;
         uint128 expectedVotes = IPendleGaugeController(GAUGE_CONTROLLER).getPoolTotalVoteAt(gauge, epoch);
@@ -149,8 +237,8 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     }
 
     function generateAndEncodeProofPendlePoolTotalVoteAt(address gauge, uint128 epoch)
-    internal
-    returns (bytes32, bytes memory, bytes memory, bytes memory)
+        internal
+        returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
         
         // Step 1: mapping(uint128 => WeekData) => keccak(epoch . slot)
@@ -180,7 +268,8 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
         uint256 structSlot = uint256(keccak256(abi.encode( epoch, weekDataSlot)));
         uint256 poolVotesSlot = structSlot + 1;
-        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot)))));
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot))))); // => OK
+        //bytes32 slot = keccak256(abi.encode( gauge, poolVotesSlot)); // => KO
 
         StateProofVerifier.SlotValue memory value = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
         return uint128(value.value);
