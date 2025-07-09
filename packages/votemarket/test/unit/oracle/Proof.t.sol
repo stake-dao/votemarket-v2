@@ -17,6 +17,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
     Oracle oracle;
     IVerifierBase public verifier;
+    IVerifierBase public verifier_ve;
     address public immutable GAUGE_CONTROLLER;
     bool public immutable isV2;
 
@@ -58,27 +59,46 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         oracle = new Oracle(address(this));
 
         verifier = createVerifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot, isV2);
+        verifier_ve = createVerifier(address(oracle), ve, lastUserVoteSlot, userSlopeSlot, weightSlot, isV2);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
         oracle.setAuthorizedBlockNumberProvider(address(verifier));
+
+        oracle.setAuthorizedDataProvider(address(verifier_ve));
+        oracle.setAuthorizedBlockNumberProvider(address(this));
+        oracle.setAuthorizedBlockNumberProvider(address(verifier_ve));
     }
 
     function testInitialSetup() public {
         assertEq(address(verifier.ORACLE()), address(oracle));
+        assertEq(address(verifier_ve.ORACLE()), address(oracle));
         assertEq(verifier.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(GAUGE_CONTROLLER)));
+        assertEq(verifier_ve.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(ve)));
 
         assertEq(oracle.authorizedDataProviders(address(verifier)), true);
         assertEq(oracle.authorizedBlockNumberProviders(address(this)), true);
         assertEq(oracle.authorizedBlockNumberProviders(address(verifier)), true);
 
+        assertEq(oracle.authorizedDataProviders(address(verifier_ve)), true);
+        assertEq(oracle.authorizedBlockNumberProviders(address(this)), true);
+        assertEq(oracle.authorizedBlockNumberProviders(address(verifier_ve)), true);
+
         oracle.revokeAuthorizedDataProvider(address(verifier));
         oracle.revokeAuthorizedBlockNumberProvider(address(this));
         oracle.revokeAuthorizedBlockNumberProvider(address(verifier));
 
+        oracle.revokeAuthorizedDataProvider(address(verifier_ve));
+        oracle.revokeAuthorizedBlockNumberProvider(address(this));
+        oracle.revokeAuthorizedBlockNumberProvider(address(verifier_ve));
+
         assertEq(oracle.authorizedDataProviders(address(verifier)), false);
         assertEq(oracle.authorizedBlockNumberProviders(address(this)), false);
         assertEq(oracle.authorizedBlockNumberProviders(address(verifier)), false);
+
+        assertEq(oracle.authorizedDataProviders(address(verifier_ve)), false);
+        assertEq(oracle.authorizedBlockNumberProviders(address(this)), false);
+        assertEq(oracle.authorizedBlockNumberProviders(address(verifier_ve)), false);
 
         Verifier newVerifier =
             new Verifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
@@ -87,6 +107,14 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         assertEq(newVerifier.WEIGHT_MAPPING_SLOT(), weightSlot);
         assertEq(newVerifier.LAST_VOTE_MAPPING_SLOT(), lastUserVoteSlot);
         assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), userSlopeSlot);
+
+        Verifier newVerifierVe =
+            new Verifier(address(oracle), ve, lastUserVoteSlot, userSlopeSlot, weightSlot);
+        assertEq(address(newVerifierVe.ORACLE()), address(oracle));
+        assertEq(newVerifierVe.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(ve)));
+        assertEq(newVerifierVe.WEIGHT_MAPPING_SLOT(), weightSlot);
+        assertEq(newVerifierVe.LAST_VOTE_MAPPING_SLOT(), lastUserVoteSlot);
+        assertEq(newVerifierVe.USER_SLOPE_MAPPING_SLOT(), userSlopeSlot);
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
@@ -114,7 +142,77 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         return GAUGE_CONTROLLER == address(0x44087E105137a5095c008AaB6a6530182821F2F0);
     }
 
+
+    /*function testGetProofParams() public {
+
+    uint256 finalSlot = uint256(keccak256(abi.encode(account, 1)));
+
+    // slot 0 = weight
+    bytes32 weight = vm.load(address(ve), bytes32(finalSlot));
+    emit log_named_bytes32("slot 0 - weight", weight);
+
+}*/
+
     function testGetProofParams() public {
+        uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
+        (uint128 amount, uint128 end) = IVePendle(ve).positionData(account);
+
+        // Génère les proofs
+        (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory accountProof, bytes memory storageProofRlp) =
+            generateAndEncodeProofPendleEndLock(account);
+
+        // Injecte dans l’oracle
+        oracle.insertBlockNumber(
+            epoch,
+            StateProofVerifier.BlockHeader({
+                hash: blockHash,
+                stateRootHash: bytes32(0),
+                number: block.number,
+                timestamp: block.timestamp
+            })
+        );
+
+        verifier_ve.setBlockData(blockHeaderRlp, accountProof);
+        
+        bytes32 stateRootHash = verifier_ve.ORACLE().epochBlockNumber(epoch).stateRootHash;
+        
+        if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
+
+        RLPReader.RLPItem[] memory proofItems = storageProofRlp.toRlpItem().toList();
+        if (proofItems.length != 1) revert VerifierV2.INVALID_PROOF_LENGTH();
+
+        uint128 endDecoded = extractPendleEndLock(stateRootHash, account, proofItems[0].toList());
+        
+        assertEq(end, endDecoded);
+    }
+
+    function generateAndEncodeProofPendleEndLock(address user)
+        internal
+        returns (bytes32, bytes memory, bytes memory, bytes memory)
+    {
+        uint256 slot = 1; // positionData mapping is at slot 1
+        uint256 finalSlot = uint256(keccak256(abi.encode(user, slot)));
+
+        uint256[] memory positions = new uint256[](1);
+        positions[0] = finalSlot;
+        return getRLPEncodedProofs("mainnet", ve, positions, block.number);
+    }
+
+    function extractPendleEndLock(
+        bytes32 stateRootHash,
+        address user,
+        RLPReader.RLPItem[] memory proof
+    ) internal pure returns (uint128) {
+        uint256 baseSlot = 1;
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(user, baseSlot)))));
+
+        StateProofVerifier.SlotValue memory value =
+            StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+
+        return uint128(uint256(value.value) >> 128);
+    }
+
+    function testGetProofUserPoolVoteParams() public {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
         UserPoolData memory userPoolData = IPendleGaugeController(GAUGE_CONTROLLER).getUserPoolVote(account, gauge);
 
