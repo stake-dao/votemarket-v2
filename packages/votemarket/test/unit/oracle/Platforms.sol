@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "test/unit/oracle/Proof.t.sol";
+import "test/unit/oracle/ProofPendle.t.sol";
 
 // Slots are different for each platform whever they've been compiled with different compiler versions,
 // and if vyper or solidity.
@@ -107,7 +108,7 @@ uint256 constant PENDLE_USER_SLOPE_SLOT = 162;
 uint256 constant PENDLE_WEIGHT_SLOT = 161;
 
 contract PENDLE_Platform is
-    ProofCorrectnessTest(
+    ProofCorrectnessTestPendle(
         PENDLE_GAUGE_CONTROLLER,
         PENDLE_ACCOUNT,
         PENDLE_GAUGE,
@@ -115,7 +116,6 @@ contract PENDLE_Platform is
         PENDLE_LAST_USER_VOTE_SLOT,
         PENDLE_USER_SLOPE_SLOT,
         PENDLE_WEIGHT_SLOT,
-        true,
         PENDLE_VE
     )
 {}

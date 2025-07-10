@@ -2,8 +2,10 @@
 pragma solidity 0.8.19;
 
 import "test/mocks/IVerifierBase.sol";
+import "test/mocks/IVerifierBasePendle.sol";
 import "src/verifiers/Verifier.sol";
 import "src/verifiers/VerifierV2.sol";
+import "src/verifiers/VerifierV3.sol";
 
 abstract contract VerifierFactory {
     function createVerifier(
@@ -14,6 +16,7 @@ abstract contract VerifierFactory {
         uint256 weightMappingSlot,
         bool isV2
     ) internal returns (IVerifierBase) {
+
         if (isV2) {
             return IVerifierBase(
                 address(
@@ -22,12 +25,28 @@ abstract contract VerifierFactory {
                     )
                 )
             );
-        } else {
-            return IVerifierBase(
+        }
+
+        return IVerifierBase(
+            address(
+                new Verifier(oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot)
+            )
+        );
+    }
+
+    function createVerifierPendle(
+        address oracle,
+        address gaugeController,
+        uint256 lastVoteMappingSlot,
+        uint256 userSlopeMappingSlot,
+        uint256 weightMappingSlot
+    ) internal returns (IVerifierBasePendle) {
+        return IVerifierBasePendle(
                 address(
-                    new Verifier(oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot)
+                    new VerifierV3(
+                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
+                    )
                 )
             );
-        }
     }
 }
