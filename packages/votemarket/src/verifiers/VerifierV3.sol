@@ -253,14 +253,3 @@ contract VerifierV3 is RLPDecoderV2 {
         slope = uint128(word & type(uint128).max);
     }
 }
-
-/*
-struct UserPoolData {
-        uint64 weight;
-        VeBalance vote;
-    }
-    struct VeBalance {
-    uint128 bias;
-    uint128 slope;
-}
-*/

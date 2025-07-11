@@ -205,17 +205,6 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
     }
 
-    function generateAndEncodeEndLockProof(address account)
-        internal
-        returns (bytes32, bytes memory, bytes memory, bytes memory)
-    {
-        uint256 finalSlot = uint256(keccak256(abi.encode(account, lastUserVoteSlot)));
-
-        uint256[] memory positions = new uint256[](1);
-        positions[0] = finalSlot;
-        return getRLPEncodedProofs("mainnet", ve, positions, block.number);
-    }
-
     function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
         uint256 structSlot = uint256(keccak256(abi.encode(epoch, weightSlot)));
         uint256 finalSlot = uint256(keccak256(abi.encode(gauge, structSlot + 1)));

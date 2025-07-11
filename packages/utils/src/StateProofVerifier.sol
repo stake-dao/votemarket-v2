@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@forge-std/src/Test.sol";
 import "src/RLPReader.sol";
 import "src/MerklePatriciaProofVerifier.sol";
 
@@ -107,23 +106,16 @@ library StateProofVerifier {
         internal
         pure
         returns (SlotValue memory)
-    {   
-
-        console.logBytes32(_slotHash);
-        for (uint i = 0; i < _proof.length; i++) {
-            console.logBytes(_proof[i].toRlpBytes());
-        }
-
-        bytes memory valueRlpBytes = 
+    {
+        bytes memory valueRlpBytes =
             MerklePatriciaProofVerifier.extractProofValue(_storageRootHash, abi.encodePacked(_slotHash), _proof);
-        console.log("tata");
+
         SlotValue memory value;
 
         if (valueRlpBytes.length != 0) {
             value.exists = true;
             value.value = valueRlpBytes.toRlpItem().toUint();
         }
-        console.log("tutu");
 
         return value;
     }
