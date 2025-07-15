@@ -3,8 +3,8 @@ pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
 
-import "src/oracle/Oracle.sol";
-import "src/oracle/OracleLens.sol";
+import "src/oracle/PendleOracle.sol";
+import "src/oracle/PendleOracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
 import "src/interfaces/IGaugeController.sol";
@@ -12,7 +12,7 @@ import "src/interfaces/IPendleGaugeController.sol";
 import "src/interfaces/IVePendle.sol";
 
 abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
-    Oracle oracle;
+    PendleOracle oracle;
     IVerifierBasePendle public verifier;
     address public immutable GAUGE_CONTROLLER;
 
@@ -49,7 +49,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
     function setUp() public {
         vm.createSelectFork("mainnet", blockNumber);
 
-        oracle = new Oracle(address(this));
+        oracle = new PendleOracle(address(this));
 
         verifier = createVerifierPendle(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
 
@@ -83,15 +83,15 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), userSlopeSlot);
 
         vm.prank(address(0xBEEF));
-        vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
+        vm.expectRevert(PendleOracle.AUTH_GOVERNANCE_ONLY.selector);
         oracle.transferGovernance(address(0));
 
-        vm.expectRevert(Oracle.ZERO_ADDRESS.selector);
+        vm.expectRevert(PendleOracle.ZERO_ADDRESS.selector);
         oracle.transferGovernance(address(0));
 
         oracle.transferGovernance(address(0xBEEF));
 
-        vm.expectRevert(Oracle.AUTH_GOVERNANCE_ONLY.selector);
+        vm.expectRevert(PendleOracle.AUTH_GOVERNANCE_ONLY.selector);
         oracle.acceptGovernance();
 
         assertEq(oracle.governance(), address(this));
@@ -129,22 +129,21 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
 
-        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
+        IPendleOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
         console.logBytes(storageProofRlp);
 
-        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
+        IPendleOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         assertEq(userSlope.slope, slope);
         assertLt(userSlope.end, end);
-        //assertEq(userSlope.lastVote, lastUserVote);
         assertEq(weight.bias, bias_);
     }
 
     function testLensPendle() public {
-        OracleLens oracleLens = new OracleLens(address(oracle));
+        PendleOracleLens oracleLens = new PendleOracleLens(address(oracle));
         assertEq(oracleLens.oracle(), address(oracle));
 
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
@@ -163,20 +162,20 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
                 timestamp: block.timestamp
             })
         );
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(PendleOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getAccountVotes(account, gauge, epoch);
 
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(PendleOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getTotalVotes(gauge, epoch);
 
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(PendleOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.isVoteValid(account, gauge, epoch);
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
 
-        IOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
+        IPendleOracle.Point memory weight = verifier.setPointData(gauge, epoch, storageProofRlp);
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
-        IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
+        IPendleOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         uint256 totalVotes = oracleLens.getTotalVotes(gauge, epoch);
         uint256 accountVotes = oracleLens.getAccountVotes(account, gauge, epoch);
@@ -188,7 +187,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }
 
-        if (userSlope.slope > 0 && epoch <= userSlope.end && epoch > userSlope.lastVote) {
+        if (userSlope.slope > 0 && epoch <= userSlope.end) {
             assertTrue(oracleLens.isVoteValid(account, gauge, epoch));
         } else {
             assertFalse(oracleLens.isVoteValid(account, gauge, epoch));

@@ -11,7 +11,7 @@ contract VerifierV3 is RLPDecoderV2 {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
-    IOracle public immutable ORACLE;
+    IPendleOracle public immutable ORACLE;
     bytes32 public immutable SOURCE_GAUGE_CONTROLLER_HASH;
 
     uint256 public immutable WEIGHT_MAPPING_SLOT;
@@ -42,7 +42,7 @@ contract VerifierV3 is RLPDecoderV2 {
         uint256 _userSlopeMappingSlot,
         uint256 _weightMappingSlot
     ) {
-        ORACLE = IOracle(_oracle);
+        ORACLE = IPendleOracle(_oracle);
         SOURCE_GAUGE_CONTROLLER_HASH = keccak256(abi.encodePacked(_gaugeController));
 
         USER_SLOPE_MAPPING_SLOT = _userSlopeMappingSlot;
@@ -82,7 +82,7 @@ contract VerifierV3 is RLPDecoderV2 {
     /// @return userSlope The extracted user slope data
     function setAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         external
-        returns (IOracle.VotedSlope memory userSlope)
+        returns (IPendleOracle.VotedSlope memory userSlope)
     {
         userSlope = ORACLE.votedSlopeByEpoch(account, gauge, epoch);
         if (userSlope.lastUpdate != 0) revert ALREADY_REGISTERED();
@@ -99,7 +99,7 @@ contract VerifierV3 is RLPDecoderV2 {
     /// @return weight The extracted weight data
     function setPointData(address gauge, uint256 epoch, bytes calldata proof)
         external
-        returns (IOracle.Point memory weight)
+        returns (IPendleOracle.Point memory weight)
     {
         weight = ORACLE.pointByEpoch(gauge, epoch);
         if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
@@ -117,7 +117,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         internal
         
-        returns (IOracle.VotedSlope memory userSlope)
+        returns (IPendleOracle.VotedSlope memory userSlope)
     {
         // 1. Retrieve the registered block header for the given epoch
         StateProofVerifier.BlockHeader memory registered_block_header = ORACLE.epochBlockNumber(epoch);
@@ -142,7 +142,6 @@ contract VerifierV3 is RLPDecoderV2 {
             proofSlope: proofs[1].toList()
         });
 
-        userSlope.lastVote = 0;
         userSlope.lastUpdate = block.timestamp;
     }
 
@@ -154,7 +153,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractPointData(address gauge, uint256 epoch, bytes calldata proof)
         internal
         view
-        returns (IOracle.Point memory weight)
+        returns (IPendleOracle.Point memory weight)
     {
         // 1. Retrieve the registered block header for the given epoch
         StateProofVerifier.BlockHeader memory registered_block_header = ORACLE.epochBlockNumber(epoch);
@@ -205,7 +204,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractWeight(address gauge, uint256 epoch, bytes32 stateRootHash, RLPReader.RLPItem[] memory proofBias)
         internal
         view
-        returns (IOracle.Point memory weight)
+        returns (IPendleOracle.Point memory weight)
     {
         uint256 structSlot = uint256(keccak256(abi.encode( epoch, WEIGHT_MAPPING_SLOT)));
         uint256 poolVotesSlot = structSlot + 1;
@@ -225,7 +224,7 @@ contract VerifierV3 is RLPDecoderV2 {
         address gauge,
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proofSlope
-    ) internal returns (IOracle.VotedSlope memory userSlope) {
+    ) internal returns (IPendleOracle.VotedSlope memory userSlope) {
         // 1. Extract the slope value from the nested mapping
         (uint128 bias, uint128 slope) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
         emit DebugBytes32(bytes32(uint256(bias))); // => wrong
