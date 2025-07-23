@@ -25,7 +25,6 @@ contract VerifierV3 is RLPDecoderV2 {
     error INVALID_BLOCK_NUMBER();
     error INVALID_PROOF_LENGTH();
     error GAUGE_CONTROLLER_NOT_FOUND();
-    event DebugBytes32(bytes32 data);
     event DebugString(string data);
     event DebugUint256(uint256 data);
 
@@ -62,9 +61,6 @@ contract VerifierV3 is RLPDecoderV2 {
         uint256 epoch = blockHeader_.timestamp / 1 weeks * 1 weeks;
         // 2. Retrieve the epoch block header from the Oracle
         StateProofVerifier.BlockHeader memory epochBlockHeader = ORACLE.epochBlockNumber(epoch);
-
-        //emit DebugBytes32(epochBlockHeader.hash);
-        //emit DebugBytes32(blockHeader_.hash); // => wrong
 
         if (blockHeader_.hash != epochBlockHeader.hash) revert INVALID_BLOCK_HASH();
         if (blockHeader_.number != epochBlockHeader.number) revert INVALID_BLOCK_NUMBER();
@@ -130,11 +126,6 @@ contract VerifierV3 is RLPDecoderV2 {
 
         if (proofs.length != 2) revert INVALID_PROOF_LENGTH();
 
-        // 4. Extract the last vote data
-        emit DebugBytes32(bytes32(0));
-
-        // 5. Extract the user slope data
-        emit DebugBytes32(bytes32(0));
         userSlope = _extractUserSlope({
             account: account,
             gauge: gauge,
@@ -225,13 +216,14 @@ contract VerifierV3 is RLPDecoderV2 {
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proofSlope
     ) internal returns (IPendleOracle.VotedSlope memory userSlope) {
-        // 1. Extract the slope value from the nested mapping
-        (uint128 bias, uint128 slope) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
-        emit DebugBytes32(bytes32(uint256(bias))); // => wrong
-        userSlope.slope = bias;
+        (uint128 slope, uint128 bias) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
+        userSlope.slope = slope;
         
-        // 2. Extract the end value from the nested mapping
-        userSlope.end = slope / bias;
+        if(bias > 0) {
+            userSlope.end = bias / slope;
+        } else {
+            userSlope.end = 0;
+        }   
     }
 
     function _extractUserPoolVoteBiasAndSlope(

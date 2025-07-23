@@ -48,6 +48,7 @@ contract PendleOracle {
     mapping(address => mapping(address => mapping(uint256 => VotedSlope))) public votedSlopeByEpoch;
 
     constructor(address _governance) {
+        if (_governance == address(0)) revert ZERO_ADDRESS();
         governance = _governance;
     }
 
@@ -66,7 +67,7 @@ contract PendleOracle {
     ///////////////////////////////////////////////////////////////
 
     modifier validEpoch(uint256 epoch) {
-        StateProofVerifier.BlockHeader memory blockData = epochBlockNumber[epoch];
+        StateProofVerifier.BlockHeader storage blockData = epochBlockNumber[epoch];
         if (blockData.number == 0) revert INVALID_EPOCH();
         _;
     }
@@ -91,7 +92,7 @@ contract PendleOracle {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Insert the block number for an epoch.
-    function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader memory blockData)
+    function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader calldata blockData)
         external
         onlyAuthorizedBlockNumberProvider
     {
@@ -102,7 +103,7 @@ contract PendleOracle {
     /// @param gauge Gauge address.
     /// @param epoch Epoch number.
     /// @param point Point struct.
-    function insertPoint(address gauge, uint256 epoch, Point memory point)
+    function insertPoint(address gauge, uint256 epoch, Point calldata point)
         external
         validEpoch(epoch)
         onlyAuthorizedDataProvider
@@ -115,7 +116,7 @@ contract PendleOracle {
     /// @param gauge Gauge address.
     /// @param epoch Epoch number.
     /// @param slope Voted slope struct.
-    function insertAddressEpochData(address voter, address gauge, uint256 epoch, VotedSlope memory slope)
+    function insertAddressEpochData(address voter, address gauge, uint256 epoch, VotedSlope calldata slope)
         external
         validEpoch(epoch)
         onlyAuthorizedDataProvider
