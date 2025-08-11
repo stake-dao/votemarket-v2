@@ -16,4 +16,5 @@ interface IVerifierBasePendle {
         external
         returns (IPendleOracle.VotedSlope memory);
     function setPointData(address gauge, uint256 epoch, bytes calldata proof) external returns (IPendleOracle.Point memory);
+    function setAuthorizedDataProvider(address dataProvider) external;
 }

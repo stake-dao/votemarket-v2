@@ -11,12 +11,21 @@ contract VerifierV3 is RLPDecoderV2 {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
+    /// @notice Governance address.
+    address public governance;
+
+    /// @notice Future governance address.
+    address public futureGovernance;
+
     IPendleOracle public immutable ORACLE;
     bytes32 public immutable SOURCE_GAUGE_CONTROLLER_HASH;
 
     uint256 public immutable WEIGHT_MAPPING_SLOT;
     uint256 public immutable LAST_VOTE_MAPPING_SLOT;
     uint256 public immutable USER_SLOPE_MAPPING_SLOT;
+
+    /// @notice Mapping of addresses authorized to insert data into the contract.
+    mapping(address => bool) public authorizedDataProviders;
 
     error INVALID_HASH();
     error NO_BLOCK_NUMBER();
@@ -25,8 +34,9 @@ contract VerifierV3 is RLPDecoderV2 {
     error INVALID_BLOCK_NUMBER();
     error INVALID_PROOF_LENGTH();
     error GAUGE_CONTROLLER_NOT_FOUND();
-    event DebugString(string data);
-    event DebugUint256(uint256 data);
+    error NOT_AUTHORIZED_DATA_PROVIDER();
+    error AUTH_GOVERNANCE_ONLY();
+    error ZERO_ADDRESS();
 
     /// @notice Constructor to initialize the Verifier contract
     /// @param _oracle Address of the Oracle contract
@@ -39,8 +49,12 @@ contract VerifierV3 is RLPDecoderV2 {
         address _gaugeController,
         uint256 _lastVoteMappingSlot,
         uint256 _userSlopeMappingSlot,
-        uint256 _weightMappingSlot
+        uint256 _weightMappingSlot,
+        address _governance
     ) {
+        if (_governance == address(0)) revert ZERO_ADDRESS();
+        governance = _governance;
+
         ORACLE = IPendleOracle(_oracle);
         SOURCE_GAUGE_CONTROLLER_HASH = keccak256(abi.encodePacked(_gaugeController));
 
@@ -49,23 +63,30 @@ contract VerifierV3 is RLPDecoderV2 {
         WEIGHT_MAPPING_SLOT = _weightMappingSlot;
     }
 
+    modifier onlyAuthorizedDataProvider() {
+        if (!authorizedDataProviders[msg.sender]) revert NOT_AUTHORIZED_DATA_PROVIDER();
+        _;
+    }
+
+    modifier onlyGovernance() {
+        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
+        _;
+    }
+
     /// @notice Sets block data and registers the block header
     /// @param blockHeader The block header data
     /// @param proof The proof for block header verification
     /// @return stateRootHash The state root hash of the registered block
-    function setBlockData(bytes calldata blockHeader, bytes calldata proof) external returns (bytes32 stateRootHash) {
+    function setBlockData(bytes calldata blockHeader, bytes calldata proof) 
+        external 
+        onlyAuthorizedDataProvider 
+        returns (bytes32 stateRootHash) 
+    {
         StateProofVerifier.BlockHeader memory blockHeader_ = StateProofVerifier.parseBlockHeader(blockHeader);
         if (blockHeader_.number == 0) revert NO_BLOCK_NUMBER();
 
         // 1. Calculate the epoch based on the block timestamp
         uint256 epoch = blockHeader_.timestamp / 1 weeks * 1 weeks;
-        // 2. Retrieve the epoch block header from the Oracle
-        StateProofVerifier.BlockHeader memory epochBlockHeader = ORACLE.epochBlockNumber(epoch);
-
-        if (blockHeader_.hash != epochBlockHeader.hash) revert INVALID_BLOCK_HASH();
-        if (blockHeader_.number != epochBlockHeader.number) revert INVALID_BLOCK_NUMBER();
-
-        if (epochBlockHeader.stateRootHash != bytes32(0)) revert ALREADY_REGISTERED();
 
         stateRootHash = _registerBlockHeader(epoch, blockHeader_, proof.toRlpItem().toList());
     }
@@ -242,5 +263,25 @@ contract VerifierV3 is RLPDecoderV2 {
         uint256 word = uint256(value.value);
         bias = uint128(word >> 128);
         slope = uint128(word & type(uint128).max);
+    }
+
+    function setAuthorizedDataProvider(address dataProvider) external onlyGovernance {
+        authorizedDataProviders[dataProvider] = true;
+    }
+
+    function revokeAuthorizedDataProvider(address dataProvider) external onlyGovernance {
+        authorizedDataProviders[dataProvider] = false;
+    }
+
+    function transferGovernance(address _governance) external onlyGovernance {
+        if (_governance == address(0)) revert ZERO_ADDRESS();
+
+        futureGovernance = _governance;
+    }
+
+    function acceptGovernance() external {
+        if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
+        governance = futureGovernance;
+        futureGovernance = address(0);
     }
 }

@@ -39,12 +39,13 @@ abstract contract VerifierFactory {
         address gaugeController,
         uint256 lastVoteMappingSlot,
         uint256 userSlopeMappingSlot,
-        uint256 weightMappingSlot
+        uint256 weightMappingSlot,
+        address governance
     ) internal returns (IVerifierBasePendle) {
         return IVerifierBasePendle(
                 address(
                     new VerifierV3(
-                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
+                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot, governance
                     )
                 )
             );

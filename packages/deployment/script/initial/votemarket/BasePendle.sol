@@ -53,7 +53,7 @@ abstract contract BasePendle is Script {
 
             initCode = abi.encodePacked(
                 type(VerifierV3).creationCode,
-                abi.encode(address(oracle), gaugeController, lastUserVoteSlot, userSlopeSlot, weightSlot)
+                abi.encode(address(oracle), gaugeController, lastUserVoteSlot, userSlopeSlot, weightSlot, governance)
             );
 
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);

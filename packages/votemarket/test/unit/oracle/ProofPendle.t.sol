@@ -51,7 +51,9 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         oracle = new PendleOracle(address(this));
 
-        verifier = createVerifierPendle(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
+        verifier = createVerifierPendle(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot, address(this));
+
+        verifier.setAuthorizedDataProvider(address(this));
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -162,6 +164,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
                 timestamp: block.timestamp
             })
         );
+
         vm.expectRevert(PendleOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getAccountVotes(account, gauge, epoch);
 
@@ -182,7 +185,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(totalVotes, 0);
+            assertEq(accountVotes, 0);
         } else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }
