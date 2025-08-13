@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Script.sol";
 
 import {PendleOracle} from "@votemarket/src/oracle/PendleOracle.sol";
-import {VerifierV3} from "@votemarket/src/verifiers/VerifierV3.sol";
+import {VerifierPendle} from "@votemarket/src/verifiers/VerifierPendle.sol";
 import {PendleOracleLens} from "@votemarket/src/oracle/PendleOracleLens.sol";
 
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
@@ -21,7 +21,7 @@ abstract contract BasePendle is Script {
     address public governance = 0x428419Ad92317B09FE00675F181ac09c87D16450;
 
     PendleOracle public oracle;
-    VerifierV3 public verifier;
+    VerifierPendle public verifier;
     PendleOracleLens public oracleLens;
 
     Votemarket public votemarket;
@@ -52,12 +52,12 @@ abstract contract BasePendle is Script {
             salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
 
             initCode = abi.encodePacked(
-                type(VerifierV3).creationCode,
+                type(VerifierPendle).creationCode,
                 abi.encode(address(oracle), gaugeController, lastUserVoteSlot, userSlopeSlot, weightSlot, governance)
             );
 
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
-            verifier = VerifierV3(payable(verifierAddress));
+            verifier = VerifierPendle(payable(verifierAddress));
 
             salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 

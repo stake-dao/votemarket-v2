@@ -7,17 +7,11 @@ import "src/verifiers/RLPDecoderV2.sol";
 /// @title Verifier
 /// @notice A contract for verifying and extracting data from block headers and proofs
 /// @dev This contract uses RLP decoding and interacts with an Oracle contract
-contract VerifierV3 is RLPDecoderV2 {
+contract VerifierPendle is RLPDecoderV2 {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
-    /// @notice Governance address.
-    address public governance;
-
-    /// @notice Future governance address.
-    address public futureGovernance;
-
-    IPendleOracle public immutable ORACLE;
+    IOracle public immutable ORACLE;
     bytes32 public immutable SOURCE_GAUGE_CONTROLLER_HASH;
 
     uint256 public immutable WEIGHT_MAPPING_SLOT;
@@ -49,28 +43,15 @@ contract VerifierV3 is RLPDecoderV2 {
         address _gaugeController,
         uint256 _lastVoteMappingSlot,
         uint256 _userSlopeMappingSlot,
-        uint256 _weightMappingSlot,
-        address _governance
+        uint256 _weightMappingSlot
     ) {
-        if (_governance == address(0)) revert ZERO_ADDRESS();
-        governance = _governance;
 
-        ORACLE = IPendleOracle(_oracle);
+        ORACLE = IOracle(_oracle);
         SOURCE_GAUGE_CONTROLLER_HASH = keccak256(abi.encodePacked(_gaugeController));
 
         USER_SLOPE_MAPPING_SLOT = _userSlopeMappingSlot;
         LAST_VOTE_MAPPING_SLOT = _lastVoteMappingSlot;
         WEIGHT_MAPPING_SLOT = _weightMappingSlot;
-    }
-
-    modifier onlyAuthorizedDataProvider() {
-        if (!authorizedDataProviders[msg.sender]) revert NOT_AUTHORIZED_DATA_PROVIDER();
-        _;
-    }
-
-    modifier onlyGovernance() {
-        if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
-        _;
     }
 
     /// @notice Sets block data and registers the block header
@@ -79,7 +60,6 @@ contract VerifierV3 is RLPDecoderV2 {
     /// @return stateRootHash The state root hash of the registered block
     function setBlockData(bytes calldata blockHeader, bytes calldata proof) 
         external 
-        onlyAuthorizedDataProvider 
         returns (bytes32 stateRootHash) 
     {
         StateProofVerifier.BlockHeader memory blockHeader_ = StateProofVerifier.parseBlockHeader(blockHeader);
@@ -87,6 +67,14 @@ contract VerifierV3 is RLPDecoderV2 {
 
         // 1. Calculate the epoch based on the block timestamp
         uint256 epoch = blockHeader_.timestamp / 1 weeks * 1 weeks;
+
+        // 2. Retrieve the epoch block header from the Oracle
+        StateProofVerifier.BlockHeader memory epochBlockHeader = ORACLE.epochBlockNumber(epoch);
+
+        if (blockHeader_.hash != epochBlockHeader.hash) revert INVALID_BLOCK_HASH();
+        if (blockHeader_.number != epochBlockHeader.number) revert INVALID_BLOCK_NUMBER();
+
+        if (epochBlockHeader.stateRootHash != bytes32(0)) revert ALREADY_REGISTERED();
 
         stateRootHash = _registerBlockHeader(epoch, blockHeader_, proof.toRlpItem().toList());
     }
@@ -99,7 +87,7 @@ contract VerifierV3 is RLPDecoderV2 {
     /// @return userSlope The extracted user slope data
     function setAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         external
-        returns (IPendleOracle.VotedSlope memory userSlope)
+        returns (IOracle.VotedSlope memory userSlope)
     {
         userSlope = ORACLE.votedSlopeByEpoch(account, gauge, epoch);
         if (userSlope.lastUpdate != 0) revert ALREADY_REGISTERED();
@@ -116,7 +104,7 @@ contract VerifierV3 is RLPDecoderV2 {
     /// @return weight The extracted weight data
     function setPointData(address gauge, uint256 epoch, bytes calldata proof)
         external
-        returns (IPendleOracle.Point memory weight)
+        returns (IOracle.Point memory weight)
     {
         weight = ORACLE.pointByEpoch(gauge, epoch);
         if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
@@ -134,7 +122,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         internal
         
-        returns (IPendleOracle.VotedSlope memory userSlope)
+        returns (IOracle.VotedSlope memory userSlope)
     {
         // 1. Retrieve the registered block header for the given epoch
         StateProofVerifier.BlockHeader memory registered_block_header = ORACLE.epochBlockNumber(epoch);
@@ -165,7 +153,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractPointData(address gauge, uint256 epoch, bytes calldata proof)
         internal
         view
-        returns (IPendleOracle.Point memory weight)
+        returns (IOracle.Point memory weight)
     {
         // 1. Retrieve the registered block header for the given epoch
         StateProofVerifier.BlockHeader memory registered_block_header = ORACLE.epochBlockNumber(epoch);
@@ -216,7 +204,7 @@ contract VerifierV3 is RLPDecoderV2 {
     function _extractWeight(address gauge, uint256 epoch, bytes32 stateRootHash, RLPReader.RLPItem[] memory proofBias)
         internal
         view
-        returns (IPendleOracle.Point memory weight)
+        returns (IOracle.Point memory weight)
     {
         uint256 structSlot = uint256(keccak256(abi.encode( epoch, WEIGHT_MAPPING_SLOT)));
         uint256 poolVotesSlot = structSlot + 1;
@@ -236,7 +224,7 @@ contract VerifierV3 is RLPDecoderV2 {
         address gauge,
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proofSlope
-    ) internal returns (IPendleOracle.VotedSlope memory userSlope) {
+    ) internal returns (IOracle.VotedSlope memory userSlope) {
         (uint128 slope, uint128 bias) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
         userSlope.slope = slope;
         
@@ -263,25 +251,5 @@ contract VerifierV3 is RLPDecoderV2 {
         uint256 word = uint256(value.value);
         bias = uint128(word >> 128);
         slope = uint128(word & type(uint128).max);
-    }
-
-    function setAuthorizedDataProvider(address dataProvider) external onlyGovernance {
-        authorizedDataProviders[dataProvider] = true;
-    }
-
-    function revokeAuthorizedDataProvider(address dataProvider) external onlyGovernance {
-        authorizedDataProviders[dataProvider] = false;
-    }
-
-    function transferGovernance(address _governance) external onlyGovernance {
-        if (_governance == address(0)) revert ZERO_ADDRESS();
-
-        futureGovernance = _governance;
-    }
-
-    function acceptGovernance() external {
-        if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
-        governance = futureGovernance;
-        futureGovernance = address(0);
     }
 }
