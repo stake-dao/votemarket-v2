@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 import "test/mocks/IVerifierBase.sol";
-import "test/mocks/IVerifierBase.sol";
 import "src/verifiers/Verifier.sol";
 import "src/verifiers/VerifierV2.sol";
 import "src/verifiers/VerifierPendle.sol";
