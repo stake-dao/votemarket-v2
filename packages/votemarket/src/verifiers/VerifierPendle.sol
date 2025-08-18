@@ -18,9 +18,6 @@ contract VerifierPendle is RLPDecoderV2 {
     uint256 public immutable LAST_VOTE_MAPPING_SLOT;
     uint256 public immutable USER_SLOPE_MAPPING_SLOT;
 
-    /// @notice Mapping of addresses authorized to insert data into the contract.
-    mapping(address => bool) public authorizedDataProviders;
-
     error INVALID_HASH();
     error NO_BLOCK_NUMBER();
     error ALREADY_REGISTERED();
@@ -28,9 +25,6 @@ contract VerifierPendle is RLPDecoderV2 {
     error INVALID_BLOCK_NUMBER();
     error INVALID_PROOF_LENGTH();
     error GAUGE_CONTROLLER_NOT_FOUND();
-    error NOT_AUTHORIZED_DATA_PROVIDER();
-    error AUTH_GOVERNANCE_ONLY();
-    error ZERO_ADDRESS();
 
     /// @notice Constructor to initialize the Verifier contract
     /// @param _oracle Address of the Oracle contract

@@ -19,6 +19,8 @@ interface ICreate3Factory {
 abstract contract BasePendle is Script {
     address public deployer = 0x428419Ad92317B09FE00675F181ac09c87D16450;
     address public governance = 0x428419Ad92317B09FE00675F181ac09c87D16450;
+    address public allMight = 0x0000000a3Fc396B89e4c11841B39D9dff85a5D05;
+    address public executor = 0x90569D8A1cF801709577B24dA526118f0C83Fc75;
 
     Oracle public oracle;
     VerifierPendle public verifier;
@@ -42,14 +44,22 @@ abstract contract BasePendle is Script {
             vm.createSelectFork(vm.rpcUrl(chains[i]));
             vm.startBroadcast(deployer);
 
-            bytes32 salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
+            bytes32 salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
 
             bytes memory initCode = abi.encodePacked(type(Oracle).creationCode, abi.encode(deployer));
 
             address oracleAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracle = Oracle(payable(oracleAddress));
 
-            salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
+            // Remove before real deployement
+            oracle.setAuthorizedBlockNumberProvider(deployer);
+            oracle.setAuthorizedDataProvider(deployer);
+            oracle.setAuthorizedBlockNumberProvider(allMight);
+            oracle.setAuthorizedDataProvider(allMight);
+            oracle.setAuthorizedBlockNumberProvider(executor);
+            oracle.setAuthorizedDataProvider(executor);
+
+            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
 
             initCode = abi.encodePacked(
                 type(VerifierPendle).creationCode,
@@ -59,13 +69,13 @@ abstract contract BasePendle is Script {
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = VerifierPendle(payable(verifierAddress));
 
-            salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
+            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 
             initCode = abi.encodePacked(type(PendleOracleLens).creationCode, abi.encode(address(oracle)));
             address oracleLensAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracleLens = PendleOracleLens(payable(oracleLensAddress));
 
-            salt = bytes32(0x7898502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
+            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
 
             initCode = abi.encodePacked(
                 type(Votemarket).creationCode,
