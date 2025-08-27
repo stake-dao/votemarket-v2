@@ -16,7 +16,15 @@ install:
 	pnpm i
 
 test:
-	@forge test --gas-report
+	@forge test -vvvvv --gas-report
+
+test-f-testGetProofParams:
+	@FOUNDRY_MATCH_TEST=testGetProofPendleParams make test
+test-f-testLensPendle:
+	@FOUNDRY_MATCH_TEST=testLensPendle make test
+
+test-f-testGetProofUserPoolVoteParams:
+	@FOUNDRY_MATCH_TEST=testGetProofUserPoolVoteParams make test
 
 test-f-%:
 	@FOUNDRY_MATCH_TEST=$* make test

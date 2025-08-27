@@ -7,7 +7,7 @@ import "src/verifiers/RLPDecoderV2.sol";
 /// @title Verifier
 /// @notice A contract for verifying and extracting data from block headers and proofs
 /// @dev This contract uses RLP decoding and interacts with an Oracle contract
-contract VerifierV2 is RLPDecoderV2 {
+contract VerifierPendle is RLPDecoderV2 {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
@@ -39,6 +39,7 @@ contract VerifierV2 is RLPDecoderV2 {
         uint256 _userSlopeMappingSlot,
         uint256 _weightMappingSlot
     ) {
+
         ORACLE = IOracle(_oracle);
         SOURCE_GAUGE_CONTROLLER_HASH = keccak256(abi.encodePacked(_gaugeController));
 
@@ -51,12 +52,16 @@ contract VerifierV2 is RLPDecoderV2 {
     /// @param blockHeader The block header data
     /// @param proof The proof for block header verification
     /// @return stateRootHash The state root hash of the registered block
-    function setBlockData(bytes calldata blockHeader, bytes calldata proof) external returns (bytes32 stateRootHash) {
+    function setBlockData(bytes calldata blockHeader, bytes calldata proof) 
+        external 
+        returns (bytes32 stateRootHash) 
+    {
         StateProofVerifier.BlockHeader memory blockHeader_ = StateProofVerifier.parseBlockHeader(blockHeader);
         if (blockHeader_.number == 0) revert NO_BLOCK_NUMBER();
 
         // 1. Calculate the epoch based on the block timestamp
         uint256 epoch = blockHeader_.timestamp / 1 weeks * 1 weeks;
+
         // 2. Retrieve the epoch block header from the Oracle
         StateProofVerifier.BlockHeader memory epochBlockHeader = ORACLE.epochBlockNumber(epoch);
 
@@ -110,7 +115,7 @@ contract VerifierV2 is RLPDecoderV2 {
     /// @return userSlope The extracted user slope data
     function _extractAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         internal
-        view
+        
         returns (IOracle.VotedSlope memory userSlope)
     {
         // 1. Retrieve the registered block header for the given epoch
@@ -122,22 +127,15 @@ contract VerifierV2 is RLPDecoderV2 {
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
-        if (proofs.length != 3) revert INVALID_PROOF_LENGTH();
+        if (proofs.length != 2) revert INVALID_PROOF_LENGTH();
 
-        // 4. Extract the last vote data
-        uint256 lastVote =
-            _extractLastVote({account: account, gauge: gauge, stateRootHash: stateRootHash, proof: proofs[0].toList()});
-
-        // 5. Extract the user slope data
         userSlope = _extractUserSlope({
             account: account,
             gauge: gauge,
             stateRootHash: stateRootHash,
-            proofSlope: proofs[1].toList(),
-            proofEnd: proofs[2].toList()
+            proofSlope: proofs[1].toList()
         });
 
-        userSlope.lastVote = lastVote;
         userSlope.lastUpdate = block.timestamp;
     }
 
@@ -156,14 +154,14 @@ contract VerifierV2 is RLPDecoderV2 {
         // 2. Get the state root hash from the block header
         bytes32 stateRootHash = registered_block_header.stateRootHash;
         if (stateRootHash == bytes32(0)) revert INVALID_HASH();
-
+        
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
         if (proofs.length != 1) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the weight data
-        weight =
+        weight = 
             _extractWeight({gauge: gauge, epoch: epoch, stateRootHash: stateRootHash, proofBias: proofs[0].toList()});
 
         weight.lastUpdate = block.timestamp;
@@ -191,20 +189,6 @@ contract VerifierV2 is RLPDecoderV2 {
         return block_header.stateRootHash;
     }
 
-    /// @notice Extracts the last vote value from the proof
-    /// @param account The account address
-    /// @param gauge The gauge address
-    /// @param stateRootHash The state root hash
-    /// @param proof The proof for last vote extraction
-    /// @return The extracted last vote value
-    function _extractLastVote(address account, address gauge, bytes32 stateRootHash, RLPReader.RLPItem[] memory proof)
-        internal
-        view
-        returns (uint256)
-    {
-        return extractMappingValue(LAST_VOTE_MAPPING_SLOT, account, gauge, stateRootHash, proof);
-    }
-
     /// @notice Extracts weight data from the proof
     /// @param gauge The gauge address
     /// @param epoch The epoch number
@@ -216,9 +200,11 @@ contract VerifierV2 is RLPDecoderV2 {
         view
         returns (IOracle.Point memory weight)
     {
-        // 1. Extract the bias value from the nested mapping
-        weight.bias =
-            extractNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, bytes32(epoch), 0, stateRootHash, proofBias);
+        uint256 structSlot = uint256(keccak256(abi.encode( epoch, WEIGHT_MAPPING_SLOT)));
+        uint256 poolVotesSlot = structSlot + 1;
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot)))));
+
+        weight.bias = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proofBias).value;
     }
 
     /// @notice Extracts user slope data from the proof
@@ -226,20 +212,38 @@ contract VerifierV2 is RLPDecoderV2 {
     /// @param gauge The gauge address
     /// @param stateRootHash The state root hash
     /// @param proofSlope The proof for slope extraction
-    /// @param proofEnd The proof for end extraction
     /// @return userSlope The extracted user slope data
     function _extractUserSlope(
         address account,
         address gauge,
         bytes32 stateRootHash,
-        RLPReader.RLPItem[] memory proofSlope,
-        RLPReader.RLPItem[] memory proofEnd
-    ) internal view returns (IOracle.VotedSlope memory userSlope) {
-        // 1. Extract the slope value from the nested mapping
-        userSlope.slope =
-            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope);
-        // 2. Extract the end value from the nested mapping
-        userSlope.end =
-            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 2, stateRootHash, proofEnd);
+        RLPReader.RLPItem[] memory proofSlope
+    ) internal returns (IOracle.VotedSlope memory userSlope) {
+        (uint128 slope, uint128 bias) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
+        userSlope.slope = slope;
+        
+        if(bias > 0) {
+            userSlope.end = bias / slope;
+        } else {
+            userSlope.end = 0;
+        }   
+    }
+
+    function _extractUserPoolVoteBiasAndSlope(
+        bytes32 stateRootHash,
+        address user,
+        address gauge,
+        RLPReader.RLPItem[] memory proof
+    ) internal view returns (uint128 bias, uint128 slope) {
+        uint256 structSlot = uint256(keccak256(abi.encode(user, USER_SLOPE_MAPPING_SLOT)));
+        bytes32 finalSlot = keccak256(abi.encode(gauge, structSlot + 1));
+        bytes32 slotBiasSlope = keccak256(abi.encode(uint256(finalSlot) + 1));
+
+        StateProofVerifier.SlotValue memory value =
+            StateProofVerifier.extractSlotValueFromProof(slotBiasSlope, stateRootHash, proof);
+
+        uint256 word = uint256(value.value);
+        bias = uint128(word >> 128);
+        slope = uint128(word & type(uint128).max);
     }
 }
