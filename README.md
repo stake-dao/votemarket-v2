@@ -99,6 +99,15 @@ graph LR
 | Verifier | [`0xd87E05De04E22b2C4EE950DF8A63622AF76af813`](https://arbiscan.io/address/0xd87E05De04E22b2C4EE950DF8A63622AF76af813) | Arbitrum, Optimism, Base, Polygon |
 | OracleLens | [`0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB`](https://arbiscan.io/address/0x00000000e4172A7A8Edf7C17B4C1793AF0EA76bB) | Arbitrum, Optimism, Base, Polygon |
 
+#### PENDLE Implementation
+
+| Contract | Address | Networks |
+|----------|---------|----------|
+| Votemarket | [`0x105694FC5204787eD571842671d1262A54a8135B`](https://arbiscan.io/address/0x105694FC5204787eD571842671d1262A54a8135B) | Arbitrum, Optimism, Base, Polygon |
+| Oracle | [`0x16048a62aaEB91b922f1020469B7bA200c1c41E9`](https://arbiscan.io/address/0x16048a62aaEB91b922f1020469B7bA200c1c41E9) | Arbitrum, Optimism, Base, Polygon |
+| Verifier | [`0x7afEc0EA7e2B2AC3f45f6fD84561173821065CCd`](https://arbiscan.io/address/0x7afEc0EA7e2B2AC3f45f6fD84561173821065CCd) | Arbitrum, Optimism, Base, Polygon |
+| OracleLens | [`0x0225E246a41b76319954720Bcfc63bDb9dd4A9A6`](https://arbiscan.io/address/0x0225E246a41b76319954720Bcfc63bDb9dd4A9A6) | Arbitrum, Optimism, Base, Polygon |
+
 #### Hooks
 
 | Contract | Address | Networks |

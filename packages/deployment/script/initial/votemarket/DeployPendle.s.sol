@@ -11,7 +11,7 @@ contract DeployPendle is BasePendle {
         /// Pendle
         super.run({
             gaugeController: PENDLE_GAUGE_CONTROLLER,
-            minPeriods: 2,
+            minPeriods: 1,
             epochLength: 1 weeks,
             lastUserVoteSlot: 1,
             userSlopeSlot: 162,
