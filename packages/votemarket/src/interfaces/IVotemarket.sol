@@ -102,4 +102,6 @@ interface IVotemarket {
     function updateManager(uint256 campaignId, address newManager) external;
 
     function closeCampaign(uint256 campaignId) external;
+
+    function remote() external view returns(address);
 }
