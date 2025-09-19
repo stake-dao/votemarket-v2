@@ -102,7 +102,6 @@ contract IncentiveGaugeHook {
     /// @param _rewardToken Address of the reward token on the current L2
     /// @param _epoch Epoch number (unused in current implementation)
     /// @param _leftover Amount of leftover tokens to bridge and use for incentives
-    /// @param Additional data (unused in current implementation)
     function doSomething(
         uint256 _campaignId,
         uint256 _chainId,
