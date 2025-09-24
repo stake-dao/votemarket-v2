@@ -7,48 +7,69 @@ import "src/interfaces/ILaPoste.sol";
 import "src/interfaces/ITokenFactory.sol";
 import "src/interfaces/IRemote.sol";
 
-/// @title IncentiveGaugeHook - Hook to redistribute leftovers to Merkl
-/// @notice This contract automatically bridges unspent amounts (leftovers) from L2 
-///         to Ethereum mainnet to incentivize gauges via Merkl
-/// @dev Hook called automatically by Votemarket during _updateRewardPerVote
+/// @title IncentiveGaugeHook - Hook to redistribute unspent campaign rewards (leftovers) to Merkl
+/// @notice This hook collects campaign leftovers on L2 and bridges them to Ethereum mainnet
+///         where Merkl redistributes them to incentivize gauges.
+/// @dev Intended to be used by Votemarket during `_updateRewardPerVote` when configured.
 /// @custom:contact contact@stakedao.org
 contract IncentiveGaugeHook {
-    /// @notice Governance address of the contract
+    /// -----------------------------------------------------------------------
+    /// Governance state
+    /// -----------------------------------------------------------------------
+
+    /// @notice Active governance address
     address public governance;
 
-    /// @notice Future governance address (for 2-step governance transfer)
+    /// @notice Future governance address for 2-step governance transfer
     address public futureGovernance;
 
-    /// @notice Address of the Merkl contract on Ethereum mainnet that will receive incentives
+    /// -----------------------------------------------------------------------
+    /// Incentive configuration
+    /// -----------------------------------------------------------------------
+
+    /// @notice Address of the Merkl contract on Ethereum mainnet
     address public merkl;
 
-    /// @notice Default duration for incentives in seconds
+    /// @notice Default duration (in seconds) for newly bridged incentives
     uint256 public duration;
 
-    /// @notice Whitelist of votemarkets authorized to use this hook
-    /// @dev Only whitelisted votemarkets can call doSomething()
+    /// -----------------------------------------------------------------------
+    /// Internal storage
+    /// -----------------------------------------------------------------------
+
+    /// @notice Structure for incentives pending bridging
+    struct PendingIncentive {
+        address votemarket;   // Votemarket contract that generated the leftover
+        uint256 _campaignId;  // Campaign ID within the votemarket
+        address _rewardToken; // Reward token address on the current L2
+        uint256 _leftover;    // Amount of leftover reward tokens
+    }
+
+    /// @notice Queue of pending incentives waiting to be bridged
+    mapping(uint256 id => PendingIncentive) pendingIncentives;
+
+    /// @notice Current number of pending incentives (also serves as next ID)
+    uint256 public nbPendingIncentives;
+
+    /// @notice Whitelist of authorized votemarkets
+    /// @dev Only whitelisted votemarkets can call {doSomething}
     mapping(address votemarket => bool isAuthorized) public votemarkets;
 
-    /// @notice Thrown when a governance-only action is attempted by non-governance
-    error AUTH_GOVERNANCE_ONLY();
+    /// -----------------------------------------------------------------------
+    /// Errors
+    /// -----------------------------------------------------------------------
 
-    /// @notice Thrown when an address should not be zero
-    error ZERO_ADDRESS();
+    error AUTH_GOVERNANCE_ONLY();   // Thrown when caller is not governance
+    error ZERO_ADDRESS();           // Thrown when a required address is zero
+    error UNAUTHORIZED();           // Thrown when an address is not authorized
+    error UNAUTHORIZED_VOTEMARKET();// Thrown when caller is not an authorized votemarket
+    error WRONG_INCENTIVE();        // Thrown when trying to bridge an invalid/non-existent incentive
 
-    /// @notice Thrown when an address is not authorized
-    error UNAUTHORIZED();
+    /// -----------------------------------------------------------------------
+    /// Events
+    /// -----------------------------------------------------------------------
 
-    /// @notice Thrown when a votemarket is not whitelisted
-    error UNAUTHORIZED_VOTEMARKET();
-
-    /// @notice Emitted when leftover is bridged to Merkl to incentivize a gauge
-    /// @param votemarket Address of the votemarket that generated the leftover
-    /// @param campaignId ID of the concerned campaign
-    /// @param gauge Address of the gauge that will be incentivized on mainnet
-    /// @param rewardToken Original reward token on L2
-    /// @param nativeToken Corresponding native token on mainnet
-    /// @param leftoverAmount Amount of leftover bridged
-    /// @param duration Duration of the incentive
+    /// @notice Emitted when leftover is bridged to Merkl
     event IncentiveSent(
         address indexed votemarket,
         uint256 indexed campaignId,
@@ -59,49 +80,57 @@ contract IncentiveGaugeHook {
         uint256 duration
     );
 
-    /// @notice Emitted when a votemarket is added to the whitelist
     event EnabledVotemarket(address indexed votemarket);
-    
-    /// @notice Emitted when a votemarket is removed from the whitelist
     event DisabledVotemarket(address indexed votemarket);
-
-    /// @notice Emitted when the default duration is updated
     event NewDuration(uint256 duration);
-
-    /// @notice Emitted when the Merkl address is updated
     event NewMerkl(address merkl);
 
-    /// @notice Structure to transmit cross-chain incentive data
-    /// @dev Minimal structure to reduce gas costs during bridging
+    /// -----------------------------------------------------------------------
+    /// Cross-chain data structures
+    /// -----------------------------------------------------------------------
+
+    /// @notice Data sent in the payload to Merkl on mainnet
+    /// @dev Encoded and passed through LaPoste bridge
     struct CrossChainIncentive {
-        address gauge;    // Address of the gauge that will receive rewards on mainnet
-        address reward;   // Address of the native ERC20 token used as reward
-        uint256 duration; // Duration of the incentive in seconds
+        address gauge;    // Gauge to incentivize on mainnet
+        address reward;   // Native ERC20 token (mainnet equivalent)
+        uint256 duration; // Duration of the incentive
     }
 
-    /// @notice Modifier to ensure only governance can call the function
+    /// -----------------------------------------------------------------------
+    /// Modifiers
+    /// -----------------------------------------------------------------------
+
+    /// @notice Restricts function access to governance only
     modifier onlyGovernance() {
         if (msg.sender != governance) revert AUTH_GOVERNANCE_ONLY();
         _;
     }
 
-    /// @notice Initializes the contract with base parameters
-    /// @param _governance Address that will become the initial governance
-    /// @param _duration Default duration for incentives in seconds
-    /// @param _merkl Address of the Merkl contract on mainnet
+    /// -----------------------------------------------------------------------
+    /// Constructor
+    /// -----------------------------------------------------------------------
+
+    /// @param _governance Initial governance address
+    /// @param _duration Default incentive duration
+    /// @param _merkl Merkl contract address on Ethereum mainnet
     constructor(address _governance, uint256 _duration, address _merkl) {
         governance = _governance;
         duration = _duration;
         merkl = _merkl;
     }
 
-    /// @notice Main hook function called by Votemarket when processing campaign leftovers
-    /// @dev Called automatically during _updateRewardPerVote when hook address is set
+    /// -----------------------------------------------------------------------
+    /// Core functions
+    /// -----------------------------------------------------------------------
+
+    /// @notice Called by Votemarket when campaign leftovers are detected
+    /// @dev Adds a new pending incentive entry that can later be bridged
     /// @param _campaignId ID of the campaign generating the leftover
-    /// @param _chainId Chain ID where the campaign is running (unused in current implementation)
-    /// @param _rewardToken Address of the reward token on the current L2
-    /// @param _epoch Epoch number (unused in current implementation)
-    /// @param _leftover Amount of leftover tokens to bridge and use for incentives
+    /// @param _chainId Current chain ID (unused in current implementation)
+    /// @param _rewardToken Address of the reward token on this L2
+    /// @param _epoch Campaign epoch (unused in current implementation)
+    /// @param _leftover Amount of leftover tokens to bridge
     function doSomething(
         uint256 _campaignId,
         uint256 _chainId,
@@ -112,106 +141,109 @@ contract IncentiveGaugeHook {
     ) external payable {
         if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
 
-        bridge(_campaignId, _rewardToken, _leftover);
+        // Register pending incentive
+        PendingIncentive memory pendingIncentive = PendingIncentive({
+            votemarket: msg.sender,
+            _campaignId: _campaignId,
+            _rewardToken: _rewardToken,
+            _leftover: _leftover
+        });
+
+        pendingIncentives[nbPendingIncentives] = pendingIncentive;
+        nbPendingIncentives++;
     }
 
-    /// @notice Internal function to bridge leftover tokens to mainnet for Merkl incentives
-    /// @dev Retrieves campaign info, maps tokens, and sends cross-chain message via LaPoste
-    /// @param _campaignId ID of the campaign to get gauge information
-    /// @param _rewardToken L2 reward token address to bridge
-    /// @param _leftover Amount of tokens to bridge
-    function bridge(uint256 _campaignId, address _rewardToken, uint256 _leftover) internal {
-        IVotemarket votemarket = IVotemarket(msg.sender);
-        
-        // Get the gauge address from the campaign
+    /// @notice Bridges a specific pending incentive to Merkl on mainnet
+    /// @dev Maps L2 reward token to mainnet equivalent, prepares payload,
+    ///      and calls LaPoste bridge to transfer funds and data.
+    /// @param pendingIncentiveId ID of the pending incentive to bridge
+    function bridge(uint256 pendingIncentiveId) external payable {
+        PendingIncentive memory pendingIncentive = pendingIncentives[pendingIncentiveId];
+        if (pendingIncentive.votemarket == address(0)) revert WRONG_INCENTIVE();
+
+        IVotemarket votemarket = IVotemarket(pendingIncentive.votemarket);
+
+        // Retrieve gauge from campaign
+        uint256 _campaignId = pendingIncentive._campaignId;
         address gauge = votemarket.getCampaign(_campaignId).gauge;
 
-        // Get bridge infrastructure contracts
+        // Resolve bridge infrastructure contracts
         address remote = votemarket.remote();
         address laPoste = IRemote(remote).LA_POSTE();
         address tokenFactory = IRemote(remote).TOKEN_FACTORY();
-        
-        // Map L2 token to its mainnet equivalent
+
+        // Map L2 token to native mainnet token
+        address _rewardToken = pendingIncentive._rewardToken;
         address nativeToken = ITokenFactory(tokenFactory).nativeTokens(_rewardToken);
 
         // Prepare tokens for bridging
+        uint256 _leftover = pendingIncentive._leftover;
         ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](1);
         laPosteTokens[0] = ILaPoste.Token({tokenAddress: _rewardToken, amount: _leftover});
 
-        // Prepare incentive data for Merkl
+        // Encode cross-chain incentive for Merkl
         CrossChainIncentive memory crossChainIncentive = CrossChainIncentive({
             gauge: gauge,
             reward: nativeToken,
             duration: duration
         });
 
-        // Prepare bridge message to mainnet
+        // Prepare bridge message
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: 1, // Ethereum mainnet
-            to: merkl,             // Merkl contract will receive the incentive
+            to: merkl,             // Merkl contract receives incentive
             tokens: laPosteTokens,
             payload: abi.encode(crossChainIncentive)
         });
 
-        // Send the cross-chain message with tokens
+        // Execute bridge call
         ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, 0, address(this));
 
         emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
+
+        delete pendingIncentives[pendingIncentiveId];
     }
 
-    /// @notice Adds a votemarket to the authorized whitelist
-    /// @dev Only governance can authorize new votemarkets to use this hook
-    /// @param _votemarket Address of the votemarket to enable
+    /// -----------------------------------------------------------------------
+    /// Governance functions
+    /// -----------------------------------------------------------------------
+
     function enableVotemarket(address _votemarket) external onlyGovernance {
         votemarkets[_votemarket] = true;
         emit EnabledVotemarket(_votemarket);
     }
 
-    /// @notice Removes a votemarket from the authorized whitelist
-    /// @dev Only governance can revoke votemarket authorization
-    /// @param _votemarket Address of the votemarket to disable
     function disableVotemarket(address _votemarket) external onlyGovernance {
         votemarkets[_votemarket] = false;
         emit DisabledVotemarket(_votemarket);
     }
 
-    /// @notice Emergency function to rescue any ERC20 token from the contract
-    /// @dev Only callable by governance, useful for recovering stuck tokens
-    /// @param _token Address of the token to rescue
-    /// @param _amount Amount of tokens to rescue
-    /// @param _recipient Address that will receive the rescued tokens
+    /// @notice Rescue any ERC20 token mistakenly sent to this contract
     function rescueERC20(address _token, uint256 _amount, address _recipient) external onlyGovernance {
         if (_recipient == address(0)) revert ZERO_ADDRESS();
         SafeTransferLib.safeTransfer(_token, _recipient, _amount);
     }
 
-    /// @notice Initiates governance transfer to a new address (step 1 of 2)
-    /// @dev New governance must call acceptGovernance() to complete the transfer
-    /// @param _futureGovernance Address of the proposed new governance
+    /// @notice Step 1/2 - Propose new governance
     function transferGovernance(address _futureGovernance) external onlyGovernance {
         if (_futureGovernance == address(0)) revert ZERO_ADDRESS();
         futureGovernance = _futureGovernance;
     }
 
-    /// @notice Completes governance transfer (step 2 of 2)
-    /// @dev Can only be called by the address set in transferGovernance()
+    /// @notice Step 2/2 - Accept governance
     function acceptGovernance() external {
         if (msg.sender != futureGovernance) revert AUTH_GOVERNANCE_ONLY();
         governance = futureGovernance;
         futureGovernance = address(0);
     }
 
-    /// @notice Updates the default duration for incentives
-    /// @dev Duration is used for all future incentives bridged to Merkl
-    /// @param _duration New duration in seconds
+    /// @notice Update default incentive duration
     function setDuration(uint256 _duration) external onlyGovernance {
         duration = _duration;
         emit NewDuration(duration);
     }
 
-    /// @notice Updates the Merkl contract address on mainnet
-    /// @dev Changes where incentives are sent on Ethereum mainnet
-    /// @param _merkl New Merkl contract address
+    /// @notice Update Merkl contract address (mainnet)
     function setMerkl(address _merkl) external onlyGovernance {
         merkl = _merkl;
         emit NewMerkl(merkl);
