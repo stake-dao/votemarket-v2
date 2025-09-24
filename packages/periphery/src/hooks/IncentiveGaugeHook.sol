@@ -95,6 +95,7 @@ contract IncentiveGaugeHook {
         address gauge;    // Gauge to incentivize on mainnet
         address reward;   // Native ERC20 token (mainnet equivalent)
         uint256 duration; // Duration of the incentive
+        uint256 amount; // Amount to incentivize
     }
 
     /// -----------------------------------------------------------------------
@@ -185,7 +186,8 @@ contract IncentiveGaugeHook {
         CrossChainIncentive memory crossChainIncentive = CrossChainIncentive({
             gauge: gauge,
             reward: nativeToken,
-            duration: duration
+            duration: duration,
+            amount: _leftover,
         });
 
         // Prepare bridge message
