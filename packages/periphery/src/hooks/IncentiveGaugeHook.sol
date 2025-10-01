@@ -170,9 +170,7 @@ contract IncentiveGaugeHook {
         address gauge = votemarket.getCampaign(_campaignId).gauge;
 
         // Resolve bridge infrastructure contracts
-        address remote = votemarket.remote();
-        address laPoste = IRemote(remote).LA_POSTE();
-        address tokenFactory = IRemote(remote).TOKEN_FACTORY();
+        (address laPoste, address tokenFactory) = _get_addresses(votemarket);
 
         // Map L2 token to native mainnet token
         address _rewardToken = pendingIncentive._rewardToken;
@@ -180,6 +178,28 @@ contract IncentiveGaugeHook {
 
         // Prepare tokens for bridging
         uint256 _leftover = pendingIncentive._leftover;
+
+        // Prepare bridge message
+        ILaPoste.MessageParams memory messageParams = _get_laposte_message(gauge, nativeToken, _rewardToken, _leftover);
+
+        // Execute bridge call
+        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, address(this));
+
+        emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
+
+        delete pendingIncentives[pendingIncentiveId];
+    }
+
+    function _get_addresses(IVotemarket votemarket) internal returns (address, address) {
+        address remote = votemarket.remote();
+        address laPoste = IRemote(remote).LA_POSTE();
+        address tokenFactory = IRemote(remote).TOKEN_FACTORY();
+
+        return (laPoste, tokenFactory);
+    }
+
+    function _get_laposte_message(address gauge, address nativeToken, address _rewardToken, uint256 _leftover) internal returns (ILaPoste.MessageParams memory) {
+
         ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](1);
         laPosteTokens[0] = ILaPoste.Token({tokenAddress: _rewardToken, amount: _leftover});
 
@@ -192,19 +212,12 @@ contract IncentiveGaugeHook {
         });
 
         // Prepare bridge message
-        ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
+        return ILaPoste.MessageParams({
             destinationChainId: 1, // Ethereum mainnet
             to: merkl,             // Merkl contract receives incentive
             tokens: laPosteTokens,
             payload: abi.encode(crossChainIncentive)
         });
-
-        // Execute bridge call
-        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, address(this));
-
-        emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
-
-        delete pendingIncentives[pendingIncentiveId];
     }
 
     /// -----------------------------------------------------------------------
