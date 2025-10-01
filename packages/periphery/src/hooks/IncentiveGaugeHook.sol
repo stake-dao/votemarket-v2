@@ -214,7 +214,7 @@ contract IncentiveGaugeHook {
         ILaPoste.MessageParams memory messageParams = _get_laposte_message(gauge, nativeToken, _rewardToken, _leftover);
 
         // Execute bridge call (requires ETH for bridge fees)
-        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, address(this));
+        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
 
         // Emit event for tracking
         emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
