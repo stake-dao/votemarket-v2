@@ -187,7 +187,7 @@ contract IncentiveGaugeHook {
             gauge: gauge,
             reward: nativeToken,
             duration: duration,
-            amount: _leftover,
+            amount: _leftover
         });
 
         // Prepare bridge message
