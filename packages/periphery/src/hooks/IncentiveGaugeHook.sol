@@ -46,7 +46,7 @@ contract IncentiveGaugeHook {
     }
 
     /// @notice Queue of pending incentives waiting to be bridged
-    mapping(uint256 id => PendingIncentive) pendingIncentives;
+    mapping(uint256 id => PendingIncentive) public pendingIncentives;
 
     /// @notice Current number of pending incentives (also serves as next ID)
     uint256 public nbPendingIncentives;
