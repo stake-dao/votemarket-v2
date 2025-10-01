@@ -158,7 +158,8 @@ contract IncentiveGaugeHook {
     /// @dev Maps L2 reward token to mainnet equivalent, prepares payload,
     ///      and calls LaPoste bridge to transfer funds and data.
     /// @param pendingIncentiveId ID of the pending incentive to bridge
-    function bridge(uint256 pendingIncentiveId) external payable {
+    /// @param additionalGasLimit Additional gas to add to bridge
+    function bridge(uint256 pendingIncentiveId, uint256 additionalGasLimit) external payable {
         PendingIncentive memory pendingIncentive = pendingIncentives[pendingIncentiveId];
         if (pendingIncentive.votemarket == address(0)) revert WRONG_INCENTIVE();
 
@@ -199,7 +200,7 @@ contract IncentiveGaugeHook {
         });
 
         // Execute bridge call
-        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, 0, address(this));
+        ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, address(this));
 
         emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
 
