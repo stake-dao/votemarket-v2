@@ -218,10 +218,9 @@ contract IncentiveGaugeHook {
         if (from >= to) revert INVALID_PAGINATION();
         
         PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
-        uint256 totalIncentives = incentives.length;
         
-        if (to > totalIncentives) revert INVALID_PAGINATION();
-        if (from >= totalIncentives) revert NO_INCENTIVES_TO_BRIDGE();
+        if (to > incentives.length) revert INVALID_PAGINATION();
+        if (from >= incentives.length) revert NO_INCENTIVES_TO_BRIDGE();
 
         IVotemarket vm = IVotemarket(votemarket);
         
@@ -233,41 +232,8 @@ contract IncentiveGaugeHook {
         ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](batchSize);
         CrossChainIncentive[] memory crossChainIncentives = new CrossChainIncentive[](batchSize);
 
-        // Process each incentive in the range
-        for (uint256 i = from; i < to; i++) {
-            PendingIncentive memory pendingIncentive = incentives[i];
-            
-            // Retrieve gauge address from the campaign
-            address gauge = vm.getCampaign(pendingIncentive.campaignId).gauge;
-            
-            // Map L2 token to its native mainnet equivalent
-            address nativeToken = ITokenFactory(tokenFactory).nativeTokens(pendingIncentive.rewardToken);
-
-            // Prepare token for bridging
-            laPosteTokens[i - from] = ILaPoste.Token({
-                tokenAddress: pendingIncentive.rewardToken,
-                amount: pendingIncentive.leftover
-            });
-
-            // Prepare cross-chain incentive data
-            crossChainIncentives[i - from] = CrossChainIncentive({
-                gauge: gauge,
-                reward: nativeToken,
-                duration: duration,
-                amount: pendingIncentive.leftover
-            });
-
-            // Emit event for each individual incentive
-            emit IncentiveSent(
-                votemarket,
-                pendingIncentive.campaignId,
-                gauge,
-                pendingIncentive.rewardToken,
-                nativeToken,
-                pendingIncentive.leftover,
-                duration
-            );
-        }
+        // Populate the arrays
+        _populateArrays(incentives, vm, tokenFactory, from, to, laPosteTokens, crossChainIncentives);
 
         // Prepare complete bridge message with batched data
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
@@ -286,6 +252,61 @@ contract IncentiveGaugeHook {
         // Clean up the bridged incentives
         for (uint256 i = from; i < to; i++) {
             delete incentives[i];
+        }
+    }
+
+    /// @notice Internal function to populate the token and incentive arrays
+    /// @param incentives Storage array of pending incentives
+    /// @param vm Votemarket contract instance
+    /// @param tokenFactory TokenFactory contract address
+    /// @param from Starting index
+    /// @param to Ending index
+    /// @param laPosteTokens Array to populate with tokens
+    /// @param crossChainIncentives Array to populate with incentives
+    function _populateArrays(
+        PendingIncentive[] storage incentives,
+        IVotemarket vm,
+        address tokenFactory,
+        uint256 from,
+        uint256 to,
+        ILaPoste.Token[] memory laPosteTokens,
+        CrossChainIncentive[] memory crossChainIncentives
+    ) internal {
+        for (uint256 i = from; i < to; i++) {
+            PendingIncentive memory pendingIncentive = incentives[i];
+            
+            // Retrieve gauge address from the campaign
+            address gauge = vm.getCampaign(pendingIncentive.campaignId).gauge;
+            
+            // Map L2 token to its native mainnet equivalent
+            address nativeToken = ITokenFactory(tokenFactory).nativeTokens(pendingIncentive.rewardToken);
+
+            uint256 arrayIndex = i - from;
+
+            // Prepare token for bridging
+            laPosteTokens[arrayIndex] = ILaPoste.Token({
+                tokenAddress: pendingIncentive.rewardToken,
+                amount: pendingIncentive.leftover
+            });
+
+            // Prepare cross-chain incentive data
+            crossChainIncentives[arrayIndex] = CrossChainIncentive({
+                gauge: gauge,
+                reward: nativeToken,
+                duration: duration,
+                amount: pendingIncentive.leftover
+            });
+
+            // Emit event for each individual incentive
+            emit IncentiveSent(
+                address(vm),
+                pendingIncentive.campaignId,
+                gauge,
+                pendingIncentive.rewardToken,
+                nativeToken,
+                pendingIncentive.leftover,
+                duration
+            );
         }
     }
 
