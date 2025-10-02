@@ -222,6 +222,44 @@ contract IncentiveGaugeHook {
         if (to > incentives.length) revert INVALID_PAGINATION();
         if (from >= incentives.length) revert NO_INCENTIVES_TO_BRIDGE();
 
+        _bridgeBatch(votemarket, epoch, from, to, additionalGasLimit);
+    }
+
+    /// @notice Bridges all pending incentives for a specific epoch and votemarket to Merkl on mainnet
+    /// @dev Maps L2 reward tokens to mainnet equivalents, prepares batched payload,
+    ///      and calls LaPoste bridge to transfer funds and data.
+    ///      This function can be called by anyone and requires ETH to pay for bridge fees.
+    /// @param votemarket Address of the votemarket to bridge incentives for
+    /// @param epoch Epoch of the incentives to bridge
+    /// @param additionalGasLimit Additional gas to add to the bridge transaction for execution on mainnet
+    function bridgeAll(
+        address votemarket,
+        uint256 epoch,
+        uint256 additionalGasLimit
+    ) external payable {
+        PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
+        uint256 total = incentives.length;
+        
+        if (total == 0) revert NO_INCENTIVES_TO_BRIDGE();
+
+        _bridgeBatch(votemarket, epoch, 0, total, additionalGasLimit);
+    }
+
+    /// @notice Internal function to bridge a batch of incentives
+    /// @param votemarket Address of the votemarket
+    /// @param epoch Epoch of the incentives
+    /// @param from Starting index
+    /// @param to Ending index
+    /// @param additionalGasLimit Additional gas limit
+    function _bridgeBatch(
+        address votemarket,
+        uint256 epoch,
+        uint256 from,
+        uint256 to,
+        uint256 additionalGasLimit
+    ) internal {
+        PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
+
         IVotemarket vm = IVotemarket(votemarket);
         
         // Resolve bridge infrastructure contracts (LaPoste and TokenFactory)
