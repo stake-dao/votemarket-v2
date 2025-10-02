@@ -104,4 +104,6 @@ interface IVotemarket {
     function closeCampaign(uint256 campaignId) external;
 
     function remote() external view returns(address);
+
+    function currentEpoch() external view returns(uint256);
 }
