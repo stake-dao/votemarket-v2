@@ -12,8 +12,8 @@ import "src/interfaces/IRemote.sol";
 ///         where Merkl redistributes them to incentivize gauges.
 /// @dev Intended to be used by Votemarket during `_updateRewardPerVote` when configured.
 ///      The workflow is:
-///      1. Votemarket calls doSomething() to register leftover tokens
-///      2. Anyone can call bridge() to send the pending incentive to Merkl on mainnet
+///      1. Votemarket calls doSomething() to register leftover tokens (stored by epoch)
+///      2. Anyone can call bridge() with epoch and pagination to batch bridge multiple incentives
 /// @custom:contact contact@stakedao.org
 contract IncentiveGaugeHook {
     /// -----------------------------------------------------------------------
@@ -47,18 +47,18 @@ contract IncentiveGaugeHook {
     /// @dev Stores all necessary information to bridge a leftover to mainnet
     struct PendingIncentive {
         address votemarket;   // Votemarket contract that generated the leftover
-        uint256 _campaignId;  // Campaign ID within the votemarket
-        address _rewardToken; // Reward token address on the current L2
-        uint256 _leftover;    // Amount of leftover reward tokens to bridge
+        uint256 campaignId;   // Campaign ID within the votemarket
+        address rewardToken;  // Reward token address on the current L2
+        uint256 leftover;     // Amount of leftover reward tokens to bridge
     }
 
-    /// @notice Queue of pending incentives waiting to be bridged
-    /// @dev Mapping from incentive ID to its details. ID starts at 0 and increments.
-    mapping(uint256 id => PendingIncentive) public pendingIncentives;
+    /// @notice Pending incentives organized by epoch and votemarket
+    /// @dev epoch => votemarket => array of pending incentives
+    mapping(uint256 epoch => mapping(address votemarket => PendingIncentive[])) public pendingIncentivesByEpoch;
 
-    /// @notice Current number of pending incentives (also serves as next ID)
-    /// @dev Incremented each time a new incentive is added via doSomething()
-    uint256 public nbPendingIncentives;
+    /// @notice Count of pending incentives per epoch and votemarket
+    /// @dev epoch => votemarket => count
+    mapping(uint256 epoch => mapping(address votemarket => uint256)) public nbPendingIncentivesByEpoch;
 
     /// @notice Whitelist of authorized votemarkets
     /// @dev Only whitelisted votemarkets can call {doSomething} to register leftovers
@@ -72,13 +72,24 @@ contract IncentiveGaugeHook {
     error ZERO_ADDRESS();           // Thrown when a required address is zero
     error UNAUTHORIZED();           // Thrown when an address is not authorized
     error UNAUTHORIZED_VOTEMARKET();// Thrown when caller is not an authorized votemarket
-    error WRONG_INCENTIVE();        // Thrown when trying to bridge an invalid/non-existent incentive
+    error INVALID_PAGINATION();     // Thrown when pagination parameters are invalid
+    error NO_INCENTIVES_TO_BRIDGE();// Thrown when there are no incentives in the specified range
 
     /// -----------------------------------------------------------------------
     /// Events
     /// -----------------------------------------------------------------------
 
-    /// @notice Emitted when leftover is successfully bridged to Merkl
+    /// @notice Emitted when leftovers are successfully bridged to Merkl
+    /// @param votemarket Address of the votemarket that generated the leftovers
+    /// @param epoch Epoch of the incentives
+    /// @param count Number of incentives bridged in this batch
+    event IncentivesBridged(
+        address indexed votemarket,
+        uint256 indexed epoch,
+        uint256 count
+    );
+
+    /// @notice Emitted for each individual incentive sent
     /// @param votemarket Address of the votemarket that generated the leftover
     /// @param campaignId ID of the campaign within the votemarket
     /// @param gauge Address of the gauge to incentivize on mainnet
@@ -153,6 +164,7 @@ contract IncentiveGaugeHook {
     /// @dev Adds a new pending incentive entry that can later be bridged.
     ///      This function is called automatically by whitelisted Votemarket contracts
     ///      when they detect unspent rewards after a campaign ends.
+    ///      Incentives are stored by epoch for batch processing.
     /// @param _campaignId ID of the campaign generating the leftover
     /// @param _chainId Current chain ID (unused in current implementation, reserved for future use)
     /// @param _rewardToken Address of the reward token on this L2
@@ -170,57 +182,111 @@ contract IncentiveGaugeHook {
         // Only whitelisted votemarkets can register leftovers
         if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
 
+        // Get current epoch from votemarket
+        uint256 currentEpoch = IVotemarket(msg.sender).currentEpoch();
+
         // Register pending incentive with all necessary information
         PendingIncentive memory pendingIncentive = PendingIncentive({
             votemarket: msg.sender,
-            _campaignId: _campaignId,
-            _rewardToken: _rewardToken,
-            _leftover: _leftover
+            campaignId: _campaignId,
+            rewardToken: _rewardToken,
+            leftover: _leftover
         });
 
-        // Store the pending incentive and increment counter
-        pendingIncentives[nbPendingIncentives] = pendingIncentive;
-        nbPendingIncentives++;
+        // Store the pending incentive in the epoch mapping
+        pendingIncentivesByEpoch[currentEpoch][msg.sender].push(pendingIncentive);
+        nbPendingIncentivesByEpoch[currentEpoch][msg.sender]++;
     }
 
-    /// @notice Bridges a specific pending incentive to Merkl on mainnet
-    /// @dev Maps L2 reward token to mainnet equivalent, prepares payload,
+    /// @notice Bridges multiple pending incentives for a specific epoch to Merkl on mainnet
+    /// @dev Maps L2 reward tokens to mainnet equivalents, prepares batched payload,
     ///      and calls LaPoste bridge to transfer funds and data.
     ///      This function can be called by anyone and requires ETH to pay for bridge fees.
-    /// @param pendingIncentiveId ID of the pending incentive to bridge
+    /// @param votemarket Address of the votemarket to bridge incentives for
+    /// @param epoch Epoch of the incentives to bridge
+    /// @param from Starting index for pagination (inclusive)
+    /// @param to Ending index for pagination (exclusive)
     /// @param additionalGasLimit Additional gas to add to the bridge transaction for execution on mainnet
-    function bridge(uint256 pendingIncentiveId, uint256 additionalGasLimit) external payable {
-        // Retrieve the pending incentive
-        PendingIncentive memory pendingIncentive = pendingIncentives[pendingIncentiveId];
-        if (pendingIncentive.votemarket == address(0)) revert WRONG_INCENTIVE();
+    function bridge(
+        address votemarket,
+        uint256 epoch,
+        uint256 from,
+        uint256 to,
+        uint256 additionalGasLimit
+    ) external payable {
+        // Validate pagination parameters
+        if (from >= to) revert INVALID_PAGINATION();
+        
+        PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
+        uint256 totalIncentives = incentives.length;
+        
+        if (to > totalIncentives) revert INVALID_PAGINATION();
+        if (from >= totalIncentives) revert NO_INCENTIVES_TO_BRIDGE();
 
-        IVotemarket votemarket = IVotemarket(pendingIncentive.votemarket);
-
-        // Retrieve gauge address from the campaign
-        uint256 _campaignId = pendingIncentive._campaignId;
-        address gauge = votemarket.getCampaign(_campaignId).gauge;
-
+        IVotemarket vm = IVotemarket(votemarket);
+        
         // Resolve bridge infrastructure contracts (LaPoste and TokenFactory)
-        (address laPoste, address tokenFactory) = _get_addresses(votemarket);
+        (address laPoste, address tokenFactory) = _get_addresses(vm);
 
-        // Map L2 token to its native mainnet equivalent
-        address _rewardToken = pendingIncentive._rewardToken;
-        address nativeToken = ITokenFactory(tokenFactory).nativeTokens(_rewardToken);
+        // Prepare arrays to collect all tokens and cross-chain incentives
+        uint256 batchSize = to - from;
+        ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](batchSize);
+        CrossChainIncentive[] memory crossChainIncentives = new CrossChainIncentive[](batchSize);
 
-        // Get leftover amount to bridge
-        uint256 _leftover = pendingIncentive._leftover;
+        // Process each incentive in the range
+        for (uint256 i = from; i < to; i++) {
+            PendingIncentive memory pendingIncentive = incentives[i];
+            
+            // Retrieve gauge address from the campaign
+            address gauge = vm.getCampaign(pendingIncentive.campaignId).gauge;
+            
+            // Map L2 token to its native mainnet equivalent
+            address nativeToken = ITokenFactory(tokenFactory).nativeTokens(pendingIncentive.rewardToken);
 
-        // Prepare bridge message with tokens and payload
-        ILaPoste.MessageParams memory messageParams = _get_laposte_message(gauge, nativeToken, _rewardToken, _leftover);
+            // Prepare token for bridging
+            laPosteTokens[i - from] = ILaPoste.Token({
+                tokenAddress: pendingIncentive.rewardToken,
+                amount: pendingIncentive.leftover
+            });
+
+            // Prepare cross-chain incentive data
+            crossChainIncentives[i - from] = CrossChainIncentive({
+                gauge: gauge,
+                reward: nativeToken,
+                duration: duration,
+                amount: pendingIncentive.leftover
+            });
+
+            // Emit event for each individual incentive
+            emit IncentiveSent(
+                votemarket,
+                pendingIncentive.campaignId,
+                gauge,
+                pendingIncentive.rewardToken,
+                nativeToken,
+                pendingIncentive.leftover,
+                duration
+            );
+        }
+
+        // Prepare complete bridge message with batched data
+        ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
+            destinationChainId: 1, // Ethereum mainnet
+            to: merkl,             // Merkl contract receives the incentive
+            tokens: laPosteTokens, // Batched tokens to bridge
+            payload: abi.encode(crossChainIncentives) // Encoded array of incentive data
+        });
 
         // Execute bridge call (requires ETH for bridge fees)
         ILaPoste(laPoste).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
 
-        // Emit event for tracking
-        emit IncentiveSent(address(votemarket), _campaignId, gauge, _rewardToken, nativeToken, _leftover, duration);
+        // Emit batch event
+        emit IncentivesBridged(votemarket, epoch, batchSize);
 
-        // Clean up the pending incentive
-        delete pendingIncentives[pendingIncentiveId];
+        // Clean up the bridged incentives
+        for (uint256 i = from; i < to; i++) {
+            delete incentives[i];
+        }
     }
 
     /// @notice Internal helper to retrieve bridge-related contract addresses
@@ -236,34 +302,29 @@ contract IncentiveGaugeHook {
         return (laPoste, tokenFactory);
     }
 
-    /// @notice Internal helper to construct the LaPoste bridge message
-    /// @dev Prepares the message parameters including tokens to bridge and encoded payload
-    /// @param gauge Address of the gauge to incentivize on mainnet
-    /// @param nativeToken Address of the native token on mainnet
-    /// @param _rewardToken Address of the reward token on L2
-    /// @param _leftover Amount of tokens to bridge
-    /// @return messageParams Struct containing all bridge message parameters
-    function _get_laposte_message(address gauge, address nativeToken, address _rewardToken, uint256 _leftover) internal returns (ILaPoste.MessageParams memory) {
+    /// -----------------------------------------------------------------------
+    /// View functions
+    /// -----------------------------------------------------------------------
 
-        // Prepare token array for bridging (only one token per incentive)
-        ILaPoste.Token[] memory laPosteTokens = new ILaPoste.Token[](1);
-        laPosteTokens[0] = ILaPoste.Token({tokenAddress: _rewardToken, amount: _leftover});
+    /// @notice Get the number of pending incentives for a specific epoch and votemarket
+    /// @param epoch The epoch to query
+    /// @param votemarket The votemarket address
+    /// @return Number of pending incentives
+    function getPendingIncentivesCount(uint256 epoch, address votemarket) external view returns (uint256) {
+        return pendingIncentivesByEpoch[epoch][votemarket].length;
+    }
 
-        // Encode cross-chain incentive data for Merkl to parse
-        CrossChainIncentive memory crossChainIncentive = CrossChainIncentive({
-            gauge: gauge,
-            reward: nativeToken,
-            duration: duration,
-            amount: _leftover
-        });
-
-        // Prepare complete bridge message
-        return ILaPoste.MessageParams({
-            destinationChainId: 1, // Ethereum mainnet
-            to: merkl,             // Merkl contract receives the incentive
-            tokens: laPosteTokens, // Tokens to bridge
-            payload: abi.encode(crossChainIncentive) // Encoded incentive data
-        });
+    /// @notice Get a specific pending incentive
+    /// @param epoch The epoch to query
+    /// @param votemarket The votemarket address
+    /// @param index The index of the incentive
+    /// @return The pending incentive details
+    function getPendingIncentive(uint256 epoch, address votemarket, uint256 index) 
+        external 
+        view 
+        returns (PendingIncentive memory) 
+    {
+        return pendingIncentivesByEpoch[epoch][votemarket][index];
     }
 
     /// -----------------------------------------------------------------------
