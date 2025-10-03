@@ -132,8 +132,12 @@ contract IncentiveGaugeHookTest is Test {
         // Should have 1 pending but everything at 0
         nbPendingIncentives = incentiveGaugeHook.getPendingIncentivesCount(currentEpoch, address(votemarket));
         assertEq(1, nbPendingIncentives);
-        amount = incentiveGaugeHook.getPendingIncentive(currentEpoch, address(votemarket), 0).leftover;
-        assertEq(0, amount);
+        uint256 amountAfterBridge = incentiveGaugeHook.getPendingIncentive(currentEpoch, address(votemarket), 0).leftover;
+        assertEq(0, amountAfterBridge);
+
+        // We should have the funds in the merkl contract
+        vm.chainId(1);
+        assertEq(rewardToken.balanceOf(MERKL), amount);
     }
 
     function sendMessage(ILaPoste.MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
