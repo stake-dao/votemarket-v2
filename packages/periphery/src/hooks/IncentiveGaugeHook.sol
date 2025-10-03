@@ -271,7 +271,7 @@ contract IncentiveGaugeHook {
         CrossChainIncentive[] memory crossChainIncentives = new CrossChainIncentive[](batchSize);
 
         // Populate the arrays
-        _populateArrays(incentives, vm, tokenFactory, from, to, laPosteTokens, crossChainIncentives);
+        _populateArrays(incentives, vm, tokenFactory, laPoste, from, to, laPosteTokens, crossChainIncentives);
 
         // Prepare complete bridge message with batched data
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
@@ -305,6 +305,7 @@ contract IncentiveGaugeHook {
         PendingIncentive[] storage incentives,
         IVotemarket vm,
         address tokenFactory,
+        address laPoste,
         uint256 from,
         uint256 to,
         ILaPoste.Token[] memory laPosteTokens,
@@ -334,6 +335,8 @@ contract IncentiveGaugeHook {
                 duration: duration,
                 amount: pendingIncentive.leftover
             });
+
+            SafeTransferLib.safeApprove(pendingIncentive.rewardToken, laPoste, pendingIncentive.leftover);
 
             // Emit event for each individual incentive
             emit IncentiveSent(
