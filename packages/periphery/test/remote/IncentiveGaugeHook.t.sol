@@ -143,7 +143,7 @@ contract IncentiveGaugeHookTest is Test {
         // If it's the hook, burn wrapped token and send to the merkl the funds
         if(msg.sender == address(incentiveGaugeHook)) {
             for (uint256 i = 0; i < params.tokens.length; i++) {
-                wrappedToken.transferFrom(msg.sender, DEAD, params.tokens[i].amount);
+                wrappedToken.burn(msg.sender, params.tokens[i].amount);
 
                 vm.prank(address(0xCAFE));
                 rewardToken.transfer(MERKL, params.tokens[i].amount);

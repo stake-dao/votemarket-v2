@@ -336,8 +336,6 @@ contract IncentiveGaugeHook {
                 amount: pendingIncentive.leftover
             });
 
-            SafeTransferLib.safeApprove(pendingIncentive.rewardToken, laPoste, pendingIncentive.leftover);
-
             // Emit event for each individual incentive
             emit IncentiveSent(
                 address(vm),
