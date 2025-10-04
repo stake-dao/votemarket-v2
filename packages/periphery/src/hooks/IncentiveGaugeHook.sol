@@ -182,6 +182,13 @@ contract IncentiveGaugeHook {
         // Only whitelisted votemarkets can register leftovers
         if (!votemarkets[msg.sender]) revert UNAUTHORIZED_VOTEMARKET();
 
+        // Check if the token reward is from mainnet
+        (, address tokenFactory) = _get_addresses(IVotemarket(msg.sender));
+        address nativeToken = ITokenFactory(tokenFactory).nativeTokens(_rewardToken);
+        if(nativeToken == address(0)) {
+            return;
+        }
+
         // Get current epoch from votemarket
         uint256 currentEpoch = IVotemarket(msg.sender).currentEpoch();
 
