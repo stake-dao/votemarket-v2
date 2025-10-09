@@ -331,7 +331,7 @@ contract IncentiveGaugeHook {
 
             // Prepare token for bridging
             laPosteTokens[arrayIndex] = ILaPoste.Token({
-                tokenAddress: pendingIncentive.rewardToken,
+                tokenAddress: nativeToken,
                 amount: pendingIncentive.leftover
             });
 
