@@ -130,6 +130,7 @@ contract IncentiveGaugeHook {
         address reward;   // Native ERC20 token (mainnet equivalent of the L2 token)
         uint256 duration; // Duration of the incentive in seconds
         uint256 amount;   // Amount of tokens to distribute as incentive
+        address manager;  // Address which will receive unused funds
     }
 
     /// -----------------------------------------------------------------------
@@ -323,6 +324,7 @@ contract IncentiveGaugeHook {
             
             // Retrieve gauge address from the campaign
             address gauge = vm.getCampaign(pendingIncentive.campaignId).gauge;
+            address manager = vm.getCampaign(pendingIncentive.campaignId).manager;
             
             // Map L2 token to its native mainnet equivalent
             address nativeToken = ITokenFactory(tokenFactory).nativeTokens(pendingIncentive.rewardToken);
@@ -340,7 +342,8 @@ contract IncentiveGaugeHook {
                 gauge: gauge,
                 reward: nativeToken,
                 duration: duration,
-                amount: pendingIncentive.leftover
+                amount: pendingIncentive.leftover,
+                manager: manager
             });
 
             // Emit event for each individual incentive
