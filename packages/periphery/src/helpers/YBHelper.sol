@@ -313,15 +313,10 @@ contract DepositHelper {
         emit UpdatedExclusions(_excludeAddresses);
     }
 
-    // --- Receive / Fallback ---
+    // --- Receive ---
 
-    /// @notice Receive plain ETH transfers (no data)
+    /// @notice Receive plain ETH transfers
     receive() external payable {
-        emit EtherReceived(msg.sender, msg.value);
-    }
-
-    /// @notice Fallback to accept ETH transfers with data or unknown function calls
-    fallback() external payable {
         emit EtherReceived(msg.sender, msg.value);
     }
 
