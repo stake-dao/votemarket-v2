@@ -22,6 +22,22 @@ interface CampaignRemoteManager {
         uint256 additionalGasLimit,
         address votemarket
     ) external payable;
+    /// @notice Thrown when the caller is not the router
+    error OnlyRouter();
+    /// @notice Thrown when the caller is not LaPoste
+    error OnlyLaPoste();
+    /// @notice Thrown when the sender is invalid
+    error InvalidSender();
+    /// @notice Thrown when the chain ID is invalid
+    error InvalidChainId();
+    /// @notice Thrown when the message is invalid
+    error InvalidMessage();
+    /// @notice Thrown when the fee is insufficient
+    error NotEnoughFee();
+    /// @notice Thrown when a zero address is provided
+    error ZeroAddress();
+    /// @notice Thrown when the destination chain ID is the same as the source chain ID
+    error SameChain();
 }
 
 contract DepositHelper {
@@ -53,6 +69,7 @@ contract DepositHelper {
     CurrentWeights private currentWeights; // cannot publicly return struct arrays
     mapping(address => bool) public isApprovedGauge; // gauge => isApproved
     uint16 public constant MAX_GAUGE_WEIGHT = 10000;
+    uint16 public constant MAX_BLACKLIST_LENGTH = 50;
 
     address[] public excludeAddresses; // addresses to exclude from eligibility for rewards
 
@@ -70,12 +87,12 @@ contract DepositHelper {
         rewardToken = _rewardToken;
         campaignRemoteManager = _campaignRemoteManager;
         votemarket = _votemarket;
-        maxRewardPerVote = _maxRewardPerVote == 0 ? type(uint256).max : maxRewardPerVote;
+        maxRewardPerVote = _maxRewardPerVote == 0 ? type(uint256).max : _maxRewardPerVote;
 
         // Setting default destination chain gas settings
-        gasSettings.campaignCreationGas = 600_000;
+        gasSettings.campaignCreationGas = 2_000_000;
         gasSettings.blacklistedAddressGas = 50_000;
-        gasSettings.gasPrice = 0.01 gwei;
+        gasSettings.gasPrice = 1 gwei;
         IERC20(rewardToken).approve(campaignRemoteManager, type(uint256).max);
     }
 
@@ -86,6 +103,9 @@ contract DepositHelper {
 
     /// @notice Error thrown when one or many parameters are invalid
     error INVALID_PARAMETER();
+
+    /// @notice Error thrown when the gauge is not approved
+    error NOT_APPROVED_GAUGE();
 
     /// @notice Error thrown if no weight is set for gauges
     error NO_WEIGHTS();
@@ -155,7 +175,7 @@ contract DepositHelper {
             CampaignRemoteManager.CampaignCreationParams memory params = CampaignRemoteManager.CampaignCreationParams({
                 chainId: block.chainid,
                 gauge: currentWeights.gauges[i],
-                manager: manager, // manager or owner ?
+                manager: manager,
                 rewardToken: rewardToken,
                 numberOfPeriods: 2,
                 maxRewardPerVote: maxRewardPerVote,
@@ -197,7 +217,11 @@ contract DepositHelper {
     }
 
     function setCampaignRemoteManager(address _campaignRemoteManager) external onlyOwner {
+        // remove previous approval
+        IERC20(rewardToken).approve(campaignRemoteManager, 0);
         campaignRemoteManager = _campaignRemoteManager;
+        // approve new campaign remote manager
+        IERC20(rewardToken).approve(_campaignRemoteManager, type(uint256).max);
         emit NewCampaignRemoteManager(_campaignRemoteManager);
     }
 
@@ -206,32 +230,9 @@ contract DepositHelper {
         emit NewVotemarket(_votemarket);
     }
 
-    function setMaxRewardPerVote(uint256 _maxRewardPerVote) external onlyOwner {
-        maxRewardPerVote = _maxRewardPerVote;
-        emit NewMaxRewardPerVote(_maxRewardPerVote);
-    }
-
-    function setHook(address _hook) external onlyOwner {
-        hook = _hook;
-        emit NewHook(_hook);
-    }
-
     function addApprovedGauge(address _gauge) external onlyOwner {
         isApprovedGauge[_gauge] = true;
         emit AddedGauge(_gauge);
-    }
-
-    function setGasSettings(uint256 _campaignCreationGas, uint256 _blacklistedAddressGas, uint256 _gasPrice)
-        external
-        onlyOwner
-    {
-        if (_campaignCreationGas == 0 || _blacklistedAddressGas == 0 || _gasPrice == 0) {
-            revert INVALID_PARAMETER();
-        }
-        gasSettings.campaignCreationGas = _campaignCreationGas;
-        gasSettings.blacklistedAddressGas = _blacklistedAddressGas;
-        gasSettings.gasPrice = _gasPrice;
-        emit UpdatedGasSettings(_campaignCreationGas, _blacklistedAddressGas, _gasPrice);
     }
 
     function removeApprovedGauge(address _gauge) external onlyOwner {
@@ -251,6 +252,65 @@ contract DepositHelper {
         (bool sent,) = to.call{value: amount}("");
         if (!sent) revert EXECUTION_FAILED();
         emit EtherWithdrawn(to, amount);
+    }
+
+    // --- Manager functions ---
+
+    function setMaxRewardPerVote(uint256 _maxRewardPerVote) external onlyManager {
+        maxRewardPerVote = _maxRewardPerVote;
+        emit NewMaxRewardPerVote(_maxRewardPerVote);
+    }
+
+    function setHook(address _hook) external onlyManager {
+        hook = _hook;
+        emit NewHook(_hook);
+    }
+
+    function setGasSettings(uint256 _campaignCreationGas, uint256 _blacklistedAddressGas, uint256 _gasPrice)
+        external
+        onlyManager
+    {
+        if (_campaignCreationGas == 0 || _blacklistedAddressGas == 0 || _gasPrice == 0) {
+            revert INVALID_PARAMETER();
+        }
+        gasSettings.campaignCreationGas = _campaignCreationGas;
+        gasSettings.blacklistedAddressGas = _blacklistedAddressGas;
+        gasSettings.gasPrice = _gasPrice;
+        emit UpdatedGasSettings(_campaignCreationGas, _blacklistedAddressGas, _gasPrice);
+    }
+
+     /**
+     * @notice Set the current weights to apply rewards to gauges
+     * @param _gauges The list of gauge addresses
+     * @param _weights The list of weights to apply to each gauge, in same order
+     * @dev Total weights must equal 10000 (100.00%)
+     * @dev All gauges must be pre-approved with addApprovedGauge()
+     */
+    function setWeights(address[] memory _gauges, uint16[] memory _weights) external onlyManager {
+        if(_gauges.length != _weights.length) revert INVALID_PARAMETER();
+        uint16 totalWeight = 0;
+        for(uint256 i = 0; i < _gauges.length; i++) {
+            if(!isApprovedGauge[_gauges[i]]) revert NOT_APPROVED_GAUGE();
+            if(_weights[i] == 0) revert NO_WEIGHTS();
+            totalWeight += _weights[i];
+        }
+        if(totalWeight != MAX_GAUGE_WEIGHT) revert INVALID_PARAMETER();
+        currentWeights = CurrentWeights({
+            gauges: _gauges,
+            weights: _weights
+        });
+        emit UpdatedWeights(_gauges, _weights);
+    }
+
+    /**
+     * @notice Sets the list of blacklisted voters
+     * @param _excludeAddresses The list of addresses to blacklist from rewards
+     * @dev blacklist length is limited 
+     */
+    function setExcludeAddresses(address[] memory _excludeAddresses) external onlyManager {
+        if(_excludeAddresses.length > MAX_BLACKLIST_LENGTH) revert INVALID_PARAMETER();
+        excludeAddresses = _excludeAddresses;
+        emit UpdatedExclusions(_excludeAddresses);
     }
 
     // --- Receive / Fallback ---
