@@ -156,10 +156,21 @@ contract DepositHelperSettersTest is Test {
         vm.stopPrank();
     }
 
-    function testSetExcludeAddresses() public {
+    function testSetExcludeAddressesWrongOrder() public {
         address[] memory excluded = new address[](2) ;
         excluded[0] = makeAddr("a");
         excluded[1] = makeAddr("b");
+
+        vm.startPrank(manager);
+        vm.expectRevert(abi.encodeWithSelector(DepositHelper.NOT_SORTED_ADDRESSES.selector));
+        helper.setExcludeAddresses(excluded);
+        vm.stopPrank();
+    }
+
+    function testSetExcludeAddresses() public {
+        address[] memory excluded = new address[](2) ;
+        excluded[0] = makeAddr("b");
+        excluded[1] = makeAddr("a");
 
         vm.startPrank(manager);
         helper.setExcludeAddresses(excluded);
@@ -169,6 +180,26 @@ contract DepositHelperSettersTest is Test {
 
         vm.expectRevert();
         helper.excludeAddresses(2);
+    }
+
+    function testSetWeightsWrongOrder() public {
+        vm.startPrank(owner);
+        helper.addApprovedGauge(makeAddr("a"));
+        helper.addApprovedGauge(makeAddr("b"));
+        vm.stopPrank();
+
+        address[] memory gauges = new address[](2);
+        uint16[] memory weights = new uint16[](2);
+        gauges[0] = makeAddr("a");
+        gauges[1] = makeAddr("b");
+        weights[0] = 3000;
+        weights[1] = 7000;
+
+        vm.startPrank(manager);
+        vm.expectRevert(abi.encodeWithSelector(DepositHelper.NOT_SORTED_ADDRESSES.selector));
+        helper.setWeights(gauges, weights);
+        vm.stopPrank();
+
     }
 
     function testSetWeights() public {
@@ -237,6 +268,23 @@ contract DepositHelperSettersTest is Test {
         helper.notifyReward(amount);
         vm.stopPrank();
 
+        (address[] memory storedGauges, uint256[] memory amounts, uint256 epoch) = helper.getRewardByIndex(0);
+
+        assertEq(storedGauges[0], gauges[0]);
+        assertEq(storedGauges[1], gauges[1]);
+        assertEq(amounts[0], weights[0] * amount / 10_000);
+        assertEq(amounts[1], weights[1] * amount / 10_000);
+        assertEq(epoch, (block.timestamp / 604800) * 604800);
+
+        skip(1 weeks);
+
+        (storedGauges, amounts, epoch) = helper.getLastReward();
+
+        assertEq(storedGauges[0], gauges[0]);
+        assertEq(storedGauges[1], gauges[1]);
+        assertEq(amounts[0], weights[0] * amount / 10_000);
+        assertEq(amounts[1], weights[1] * amount / 10_000);
+        assertEq(epoch + 1 weeks, (block.timestamp / 1 weeks) * 1 weeks);
     }
 
     function testNotifyRewardWithoutGas() public {

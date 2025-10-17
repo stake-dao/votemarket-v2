@@ -71,11 +71,16 @@ setWeights(address[] gauges, uint16[] weights);
 All gauges in the list must be **approved by the owner**, and the **sum of all weights must equal 10,000** (representing 100.00%).
 The `gauges` and `weights` arrays must have the same length, where each index corresponds directly — meaning the first gauge in the list is associated with the first weight, the second with the second, and so on.
 
+⚠️ All `gauges` addresses **must be added in ascending order** to prevent duplicates.
+
+
 - Define the excluded addresses for the campaign.
 ```
 setExcludeAddresses(address[] memory excluded);
 ```
 All the addresses in the `excluded` list will not receive rewards if they vote for the gauges. Limited to 50 addresses.
+
+⚠️ All `excluded` addresses **must be added in ascending order** to prevent duplicates.
 
 - Adjust campaign parameters 
 ```

@@ -66,7 +66,15 @@ contract DepositHelper {
         uint16[] weights;
     }
 
+    struct LastReward {
+        address[] gauges;
+        uint256[] amounts;
+        uint256 epoch;
+    }
+
     CurrentWeights private currentWeights; // cannot publicly return struct arrays
+    LastReward[] private lastReward;
+
     mapping(address => bool) public isApprovedGauge; // gauge => isApproved
     uint16 public constant MAX_GAUGE_WEIGHT = 10000;
     uint16 public constant MAX_BLACKLIST_LENGTH = 50;
@@ -119,6 +127,9 @@ contract DepositHelper {
     /// @notice Error thrown when the contract doesn't own enough Ether to create the campaigns
     error NOT_ENOUGH_GAS();
 
+    ///@notice Error thrown when an address list isn't sorted, protection against duplicated addresses
+    error NOT_SORTED_ADDRESSES();
+
     // --- Modifiers ---
 
     modifier onlyManager() {
@@ -149,6 +160,18 @@ contract DepositHelper {
         return 0;
     }
 
+    function getLastReward() external view returns (address[] memory gauges, uint256[] memory amounts, uint256 epoch) {
+        if(lastReward[lastReward.length - 1].epoch < (block.timestamp / 604800) * 604800) {
+            return (lastReward[lastReward.length - 1].gauges, lastReward[lastReward.length - 1].amounts, lastReward[lastReward.length - 1].epoch);
+        } else {
+            return (lastReward[lastReward.length - 2].gauges, lastReward[lastReward.length - 2].amounts, lastReward[lastReward.length - 2].epoch);
+        }
+    }
+
+    function getRewardByIndex(uint256 _index) external view returns (address[] memory gauges, uint256[] memory amounts, uint256 epoch) {
+        return (lastReward[_index].gauges, lastReward[_index].amounts, lastReward[_index].epoch);
+    }
+
     // --- Main function ---
 
     function notifyReward(uint256 _amount) external onlyRewardNotifier {
@@ -166,6 +189,8 @@ contract DepositHelper {
 
         // Create campaigns according to weights
         uint256 assignedAmount = 0;
+        uint256[] memory amounts = new uint256[](currentWeights.weights.length);
+
         for (uint256 i = 0; i < currentWeights.weights.length; i++) {
             // Avoid rounding dusts by assigning all the reminding amount to the last gauge
             uint256 amount = (i == currentWeights.weights.length - 1)
@@ -192,7 +217,14 @@ contract DepositHelper {
 
             emit DepositForGauge(currentWeights.gauges[i], amount, currentEpoch);
             assignedAmount += amount;
+            amounts[i] = amount;
         }
+        // Record last reward for efficiency calculations
+        lastReward.push(LastReward({
+            gauges: currentWeights.gauges,
+            amounts: amounts,
+            epoch: (block.timestamp / 604800) * 604800
+        }));
     }
 
     // --- Owner functions ---
@@ -289,9 +321,14 @@ contract DepositHelper {
     function setWeights(address[] memory _gauges, uint16[] memory _weights) external onlyManager {
         if(_gauges.length != _weights.length) revert INVALID_PARAMETER();
         uint16 totalWeight = 0;
+        uint160 addressHeight;
+
         for(uint256 i = 0; i < _gauges.length; i++) {
             if(!isApprovedGauge[_gauges[i]]) revert NOT_APPROVED_GAUGE();
+            uint160 height = uint160(_gauges[i]);
+            if(height <= addressHeight) revert NOT_SORTED_ADDRESSES();
             if(_weights[i] == 0) revert NO_WEIGHTS();
+            addressHeight = height;
             totalWeight += _weights[i];
         }
         if(totalWeight != MAX_GAUGE_WEIGHT) revert INVALID_PARAMETER();
@@ -309,6 +346,9 @@ contract DepositHelper {
      */
     function setExcludeAddresses(address[] memory _excludeAddresses) external onlyManager {
         if(_excludeAddresses.length > MAX_BLACKLIST_LENGTH) revert INVALID_PARAMETER();
+        for(uint256 i = 1; i < _excludeAddresses.length; i++) {
+            if(_excludeAddresses[i] <= _excludeAddresses[i-1]) revert NOT_SORTED_ADDRESSES();
+        }
         excludeAddresses = _excludeAddresses;
         emit UpdatedExclusions(_excludeAddresses);
     }
