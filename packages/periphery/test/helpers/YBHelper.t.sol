@@ -276,6 +276,8 @@ contract DepositHelperSettersTest is Test {
         assertEq(amounts[1], weights[1] * amount / 10_000);
         assertEq(epoch, (block.timestamp / 604800) * 604800);
 
+        assertEq(helper.rewardHistoryLength(), 1);
+
         skip(1 weeks);
 
         (storedGauges, amounts, epoch) = helper.getLastReward();

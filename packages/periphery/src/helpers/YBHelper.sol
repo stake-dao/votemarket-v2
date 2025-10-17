@@ -172,6 +172,10 @@ contract DepositHelper {
         return (lastReward[_index].gauges, lastReward[_index].amounts, lastReward[_index].epoch);
     }
 
+    function rewardHistoryLength() external view returns (uint256) {
+        return lastReward.length;
+    }
+
     // --- Main function ---
 
     function notifyReward(uint256 _amount) external onlyRewardNotifier {
