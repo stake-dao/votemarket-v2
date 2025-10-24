@@ -6,6 +6,8 @@ import "src/verifiers/Verifier.sol";
 import "src/verifiers/VerifierV2.sol";
 import "src/verifiers/VerifierPendle.sol";
 
+import "src/verifiers/VerifierYB.sol";
+
 abstract contract VerifierFactory {
     function createVerifier(
         address oracle,
@@ -43,6 +45,22 @@ abstract contract VerifierFactory {
         return IVerifierBase(
                 address(
                     new VerifierPendle(
+                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
+                    )
+                )
+            );
+    }
+
+    function createVerifierYB(
+        address oracle,
+        address gaugeController,
+        uint256 lastVoteMappingSlot,
+        uint256 userSlopeMappingSlot,
+        uint256 weightMappingSlot
+    ) internal returns (IVerifierBase) {
+        return IVerifierBase(
+                address(
+                    new VerifierYB(
                         oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
                     )
                 )

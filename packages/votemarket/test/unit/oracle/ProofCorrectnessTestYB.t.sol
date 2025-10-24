@@ -7,9 +7,9 @@ import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IGaugeController.sol";
+import "src/interfaces/IYBGaugeController.sol";
 
-abstract contract ProofCorrectnessTest is Test, VerifierFactory {
+abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
     Oracle oracle;
     IVerifierBase public verifier;
     address public immutable GAUGE_CONTROLLER;
@@ -49,7 +49,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
         oracle = new Oracle(address(this));
 
-        verifier = createVerifier(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot, isV2);
+        verifier = createVerifierYB(address(oracle), GAUGE_CONTROLLER, lastUserVoteSlot, userSlopeSlot, weightSlot);
 
         oracle.setAuthorizedDataProvider(address(verifier));
         oracle.setAuthorizedBlockNumberProvider(address(this));
@@ -105,9 +105,9 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     function testGetProofParams() public {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
-        uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
-        (uint256 bias_,) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
+        uint256 lastUserVote = IYBGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
+        (uint256 slope,,,uint256 end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 bias_,) = IYBGaugeController(GAUGE_CONTROLLER).point_weight(gauge);
 
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
@@ -218,7 +218,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
         uint256 pointWeightsPosition;
         if (isV2) {
-            pointWeightsPosition = uint256(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)));
+            pointWeightsPosition = uint256(keccak256(abi.encode(weightSlot, gauge)));
         } else {
             pointWeightsPosition =
                 uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
@@ -240,7 +240,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
             );
         }
         positions[1] = voteUserSlopePosition;
-        positions[2] = voteUserSlopePosition + 2;
+        positions[2] = voteUserSlopePosition + 3;
 
         return positions;
     }
