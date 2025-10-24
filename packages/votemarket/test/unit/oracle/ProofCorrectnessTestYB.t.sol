@@ -216,14 +216,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
     function generateGaugeProof(address gauge, uint256 epoch) internal view returns (uint256[] memory) {
         uint256[] memory positions = new uint256[](1);
 
-        uint256 pointWeightsPosition;
-        if (isV2) {
-            pointWeightsPosition = uint256(keccak256(abi.encode(weightSlot, gauge)));
-        } else {
-            pointWeightsPosition =
-                uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(weightSlot, gauge)), epoch)))));
-        }
-        positions[0] = pointWeightsPosition;
+        positions[0] = uint256(keccak256(abi.encode(weightSlot, gauge)));
         return positions;
     }
 
@@ -231,14 +224,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         uint256[] memory positions = new uint256[](3);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
 
-        uint256 voteUserSlopePosition;
-        if (isV2) {
-            voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
-        } else {
-            voteUserSlopePosition = uint256(
-                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
-            );
-        }
+        uint256 voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
         positions[1] = voteUserSlopePosition;
         positions[2] = voteUserSlopePosition + 3;
 
