@@ -141,7 +141,6 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
-        //console.logBytes(storageProofRlp);
 
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
