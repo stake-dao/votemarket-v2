@@ -21,10 +21,12 @@ abstract contract BaseYB is Script {
     address public governance = 0x428419Ad92317B09FE00675F181ac09c87D16450;
     address public allMight = 0x0000000a3Fc396B89e4c11841B39D9dff85a5D05;
     address public executor = 0x90569D8A1cF801709577B24dA526118f0C83Fc75;
+    address public remote = 0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2;
+    address public blockNumberProvider = 0xaE74643A86ca9544a41c266BC5BF2d26479f64E7;
 
     Oracle public oracle;
     VerifierYB public verifier;
-    PendleOracleLens public oracleLens;
+    OracleLens public oracleLens;
 
     Votemarket public votemarket;
 
@@ -44,7 +46,7 @@ abstract contract BaseYB is Script {
             vm.createSelectFork(vm.rpcUrl(chains[i]));
             vm.startBroadcast(deployer);
 
-            bytes32 salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
+            bytes32 salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
 
             bytes memory initCode = abi.encodePacked(type(Oracle).creationCode, abi.encode(deployer));
 
@@ -52,14 +54,15 @@ abstract contract BaseYB is Script {
             oracle = Oracle(payable(oracleAddress));
 
             // Remove before real deployement
-            oracle.setAuthorizedBlockNumberProvider(deployer);
+            /*oracle.setAuthorizedBlockNumberProvider(deployer);
             oracle.setAuthorizedDataProvider(deployer);
             oracle.setAuthorizedBlockNumberProvider(allMight);
             oracle.setAuthorizedDataProvider(allMight);
             oracle.setAuthorizedBlockNumberProvider(executor);
             oracle.setAuthorizedDataProvider(executor);
+            */
 
-            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
+            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
 
             initCode = abi.encodePacked(
                 type(VerifierYB).creationCode,
@@ -69,13 +72,13 @@ abstract contract BaseYB is Script {
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = VerifierYB(payable(verifierAddress));
 
-            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
+            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 
             initCode = abi.encodePacked(type(OracleLens).creationCode, abi.encode(address(oracle)));
             address oracleLensAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracleLens = OracleLens(payable(oracleLensAddress));
 
-            salt = bytes32(0x6898502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
+            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
 
             initCode = abi.encodePacked(
                 type(Votemarket).creationCode,
@@ -87,6 +90,10 @@ abstract contract BaseYB is Script {
 
             oracle.setAuthorizedDataProvider(address(verifier));
             oracle.transferGovernance(governance);
+            oracle.setAuthorizedBlockNumberProvider(address(verifier));
+            oracle.setAuthorizedBlockNumberProvider(blockNumberProvider);
+
+            votemarket.setRemote(remote);
 
             vm.stopBroadcast();
         }
