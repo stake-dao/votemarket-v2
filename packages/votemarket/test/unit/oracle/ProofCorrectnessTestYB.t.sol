@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import "@forge-std/src/Test.sol";
 
 import "src/oracle/Oracle.sol";
-import "src/oracle/OracleLens.sol";
+import "src/oracle/YbOracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
 import "src/interfaces/IYBGaugeController.sol";
@@ -106,7 +106,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
         uint256 lastUserVote = IYBGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope,,,uint256 end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 slope,uint256 bias_slope,,uint256 end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_,) = IYBGaugeController(GAUGE_CONTROLLER).point_weight(gauge);
 
         // Generate proofs for both gauge and account
@@ -144,14 +144,19 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
-        assertEq(userSlope.slope, slope);
+        if(end == type(uint256).max) {
+            assertEq(userSlope.slope, bias_slope);
+        } else {
+            assertEq(userSlope.slope, slope);
+        }
+        
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
         assertEq(weight.bias, bias_);
     }
 
     function testLens() public {
-        OracleLens oracleLens = new OracleLens(address(oracle));
+        YbOracleLens oracleLens = new YbOracleLens(address(oracle));
         assertEq(oracleLens.oracle(), address(oracle));
 
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
@@ -170,13 +175,13 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
                 timestamp: block.timestamp
             })
         );
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(YbOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getAccountVotes(account, gauge, epoch);
 
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(YbOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.getTotalVotes(gauge, epoch);
 
-        vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
+        vm.expectRevert(YbOracleLens.STATE_NOT_UPDATED.selector);
         oracleLens.isVoteValid(account, gauge, epoch);
 
         verifier.setBlockData(blockHeaderRlp, controllerProof);
@@ -191,7 +196,9 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
             assertEq(totalVotes, 0);
-        } else {
+        } else if(userSlope.end == type(uint256).max) {
+            assertEq(accountVotes, userSlope.slope);
+        }  else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }
 
@@ -220,12 +227,13 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
     }
 
     function generateAccountProof(address account, address gauge) internal view returns (uint256[] memory) {
-        uint256[] memory positions = new uint256[](3);
+        uint256[] memory positions = new uint256[](4);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
 
         uint256 voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
         positions[1] = voteUserSlopePosition;
-        positions[2] = voteUserSlopePosition + 3;
+        positions[2] = voteUserSlopePosition + 1;
+        positions[3] = voteUserSlopePosition + 3;
 
         return positions;
     }

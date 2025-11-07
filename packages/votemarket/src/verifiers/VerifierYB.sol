@@ -122,7 +122,7 @@ contract VerifierYB is RLPDecoderV2 {
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
-        if (proofs.length != 3) revert INVALID_PROOF_LENGTH();
+        if (proofs.length != 4) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the last vote data
         uint256 lastVote =
@@ -134,7 +134,8 @@ contract VerifierYB is RLPDecoderV2 {
             gauge: gauge,
             stateRootHash: stateRootHash,
             proofSlope: proofs[1].toList(),
-            proofEnd: proofs[2].toList()
+            proofBias: proofs[2].toList(),
+            proofEnd: proofs[3].toList()
         });
 
         userSlope.lastVote = lastVote;
@@ -233,13 +234,20 @@ contract VerifierYB is RLPDecoderV2 {
         address gauge,
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proofSlope,
+        RLPReader.RLPItem[] memory proofBias,
         RLPReader.RLPItem[] memory proofEnd
     ) internal view returns (IOracle.VotedSlope memory userSlope) {
-        // 1. Extract the slope value from the nested mapping
-        userSlope.slope =
-            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope);
-        // 2. Extract the end value from the nested mapping
-        userSlope.end =
-            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 3, stateRootHash, proofEnd);
+
+        uint256 slope = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope);
+        uint256 bias = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 1, stateRootHash, proofBias);
+        uint256 end = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 3, stateRootHash, proofEnd);
+
+        if(end == type(uint256).max) {
+            userSlope.slope = bias;
+        } else {
+            userSlope.slope = slope;
+        }
+            
+        userSlope.end = end;
     }
 }

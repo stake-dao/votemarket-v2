@@ -5,7 +5,7 @@ import "@forge-std/src/Script.sol";
 
 import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
 import {VerifierYB} from "@votemarket/src/verifiers/VerifierYB.sol";
-import {OracleLens} from "@votemarket/src/oracle/OracleLens.sol";
+import {YbOracleLens} from "@votemarket/src/oracle/YbOracleLens.sol";
 
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
 
@@ -26,7 +26,7 @@ abstract contract BaseYB is Script {
 
     Oracle public oracle;
     VerifierYB public verifier;
-    OracleLens public oracleLens;
+    YbOracleLens public oracleLens;
 
     Votemarket public votemarket;
 
@@ -74,9 +74,9 @@ abstract contract BaseYB is Script {
 
             salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 
-            initCode = abi.encodePacked(type(OracleLens).creationCode, abi.encode(address(oracle)));
+            initCode = abi.encodePacked(type(YbOracleLens).creationCode, abi.encode(address(oracle)));
             address oracleLensAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
-            oracleLens = OracleLens(payable(oracleLensAddress));
+            oracleLens = YbOracleLens(payable(oracleLensAddress));
 
             salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
 
