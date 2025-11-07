@@ -125,7 +125,7 @@ contract PENDLE_Platform is
 address constant YB_GAUGE_CONTROLLER = address(0x1Be14811A3a06F6aF4fA64310a636e1Df04c1c21);
 // Infinite lock : 0xdB2B9D473014d8c6A5E55dA92205199457Ba6624
 // Normal lock : 0xdab6F20e51A770E776E62C3DBe695683d45Cf859
-// Inifite lock but normal vote (ie: with normal end) : 0x29B6a3512FafeAce91433D278503ABC3D5aB5d12
+// Infinite lock but normal vote (ie: with normal end) : 0x29B6a3512FafeAce91433D278503ABC3D5aB5d12
 address constant YB_ACCOUNT = 0x29B6a3512FafeAce91433D278503ABC3D5aB5d12;//0x29B6a3512FafeAce91433D278503ABC3D5aB5d12;
 address constant YB_GAUGE = 0x37f45E64935e7B8383D2f034048B32770B04E8bd;
 address constant YB_VE = 0x8235c179E9e84688FBd8B12295EfC26834dAC211;
