@@ -156,6 +156,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
     }
 
     function testLens() public {
+        (uint256 user_slope,uint256 user_bias_slope,uint256 user_power,uint256 user_end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         YbOracleLens oracleLens = new YbOracleLens(address(oracle));
         assertEq(oracleLens.oracle(), address(oracle));
 
@@ -198,8 +199,12 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
             assertEq(totalVotes, 0);
         } else if(userSlope.end == type(uint256).max) {
             assertEq(accountVotes, userSlope.slope);
+            assertEq(accountVotes, user_bias_slope);
         }  else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
+            
+            uint256 accountVotesComputed = user_slope * (user_end - epoch);
+            assertEq(accountVotes, accountVotesComputed);
         }
 
         if (userSlope.slope > 0 && epoch <= userSlope.end && epoch > userSlope.lastVote) {
