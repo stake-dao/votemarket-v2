@@ -30,7 +30,7 @@ abstract contract BaseYB is Script {
 
     Votemarket public votemarket;
 
-    string[] public chains = ["arbitrum"];
+    string[] public chains = ["arbitrum", "optimism", "base", "polygon"];
 
     address public constant CREATE3_FACTORY = address(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
@@ -41,12 +41,12 @@ abstract contract BaseYB is Script {
         uint256 lastUserVoteSlot,
         uint256 userSlopeSlot,
         uint256 weightSlot
-    ) public {
+    ) internal {
         for (uint256 i = 0; i < chains.length; i++) {
             vm.createSelectFork(vm.rpcUrl(chains[i]));
             vm.startBroadcast(deployer);
 
-            bytes32 salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
+            bytes32 salt = bytes32(0x9798502ba35ab64b3562abc509befb7eb178d4df0033a58e93d4505101a4684b);
 
             bytes memory initCode = abi.encodePacked(type(Oracle).creationCode, abi.encode(deployer));
 
@@ -62,7 +62,7 @@ abstract contract BaseYB is Script {
             oracle.setAuthorizedDataProvider(executor);
             */
 
-            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
+            salt = bytes32(0x9798502ba35ab64b3562abc509befb7eb178d4df008b5b333b79b3050215ac73);
 
             initCode = abi.encodePacked(
                 type(VerifierYB).creationCode,
@@ -72,13 +72,13 @@ abstract contract BaseYB is Script {
             address verifierAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             verifier = VerifierYB(payable(verifierAddress));
 
-            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
+            salt = bytes32(0x9798502ba35ab64b3562abc509befb7eb178d4df00c2186d2e59f6ab0143f49a);
 
             initCode = abi.encodePacked(type(YbOracleLens).creationCode, abi.encode(address(oracle)));
             address oracleLensAddress = ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
             oracleLens = YbOracleLens(payable(oracleLensAddress));
 
-            salt = bytes32(0x7798502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
+            salt = bytes32(0x9798502ba35ab64b3562abc509befb7eb178d4df0022fa0a210d8ba4034ba371);
 
             initCode = abi.encodePacked(
                 type(Votemarket).creationCode,
