@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import "test/unit/oracle/Proof.t.sol";
 import "test/unit/oracle/ProofPendle.t.sol";
+import "test/unit/oracle/ProofCorrectnessTestYB.t.sol";
 
 // Slots are different for each platform whever they've been compiled with different compiler versions,
 // and if vyper or solidity.
@@ -96,7 +97,7 @@ contract FXS_Platform is
     )
 {}
 */
-
+/*
 address constant PENDLE_GAUGE_CONTROLLER = address(0x44087E105137a5095c008AaB6a6530182821F2F0);
 address constant PENDLE_ACCOUNT = 0xD8fa8dC5aDeC503AcC5e026a98F32Ca5C1Fa289A;
 address constant PENDLE_GAUGE = 0x2f8159644f045A388c1FC954e795202Dc1d34308;
@@ -117,5 +118,32 @@ contract PENDLE_Platform is
         PENDLE_USER_SLOPE_SLOT,
         PENDLE_WEIGHT_SLOT,
         PENDLE_VE
+    )
+{}*/
+
+
+address constant YB_GAUGE_CONTROLLER = address(0x1Be14811A3a06F6aF4fA64310a636e1Df04c1c21);
+// Infinite lock : 0xdB2B9D473014d8c6A5E55dA92205199457Ba6624
+// Normal lock : 0xdab6F20e51A770E776E62C3DBe695683d45Cf859 / 0xf748879EdBe8CcA140940788163d7bE4d2A2E46A (not working) / 0x01695A44F7628F62AD020AcF4DF26cd0552aFA99
+// Infinite lock but normal vote (ie: with normal end) : 0x29B6a3512FafeAce91433D278503ABC3D5aB5d12
+address constant YB_ACCOUNT = 0xf748879EdBe8CcA140940788163d7bE4d2A2E46A;//0x29B6a3512FafeAce91433D278503ABC3D5aB5d12;
+address constant YB_GAUGE = 0x37f45E64935e7B8383D2f034048B32770B04E8bd;
+address constant YB_VE = 0x8235c179E9e84688FBd8B12295EfC26834dAC211;
+uint256 constant YB_BLOCK_NUMBER = 23788951;
+
+uint256 constant YB_LAST_USER_VOTE_SLOT = 1000000005;
+uint256 constant YB_USER_SLOPE_SLOT = 1000000003;
+uint256 constant YB_WEIGHT_SLOT = 1000000006;
+
+contract YB_Platform is
+    ProofCorrectnessTestYB(
+        YB_GAUGE_CONTROLLER,
+        YB_ACCOUNT,
+        YB_GAUGE,
+        YB_BLOCK_NUMBER,
+        YB_LAST_USER_VOTE_SLOT,
+        YB_USER_SLOPE_SLOT,
+        YB_WEIGHT_SLOT,
+        true
     )
 {}
