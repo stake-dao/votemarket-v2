@@ -99,6 +99,10 @@ contract VerifierYB is RLPDecoderV2 {
         if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
 
         weight = _extractPointData(gauge, epoch, proof);
+        if(weight == 0) {
+            // We add manually 1 wei, to prevent the rollover
+            weight = 1;
+        }
         ORACLE.insertPoint(gauge, epoch, weight);
     }
 
