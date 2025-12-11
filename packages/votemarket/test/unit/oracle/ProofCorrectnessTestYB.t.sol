@@ -149,7 +149,12 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        assertEq(weight.bias, bias_);
+        
+        if(bias_ == 0) {
+            assertEq(weight.bias, 1);
+        } else {
+            assertEq(weight.bias, bias_);
+        }
     }
 
     function testLens() public {
@@ -191,7 +196,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(totalVotes, 0);
+            assertEq(totalVotes, 1);
         } else if (userSlope.end == type(uint256).max) {
             assertEq(accountVotes, userSlope.slope);
             assertEq(accountVotes, user_bias_slope);

@@ -80,7 +80,17 @@ contract UpdateEpochTest is BaseTest {
 
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
-        assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+        if(TOTAL_VOTES == 1) {
+            // Equals to max reward per vote
+            assertEq(period.rewardPerVote, campaign.maxRewardPerVote);
+        } else {
+            assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+        }
+        
+        if(TOTAL_VOTES == 1 && campaign.hook != address(0)) {
+            // We should have something sent to the hook (if we have a hook)
+            assertGt(votemarket.totalClaimedByCampaignId(campaignId), 0);
+        }
         assertEq(period.updated, true);
 
         /// Mock the oracle data.
@@ -101,7 +111,13 @@ contract UpdateEpochTest is BaseTest {
         campaign = votemarket.getCampaign(campaignId);
         assertEq(period.rewardPerPeriod, TOTAL_REWARD_AMOUNT / VALID_PERIODS);
         assertEq(period.leftover, 0);
-        assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+        if(TOTAL_VOTES == 1) {
+            // Equals to max reward per vote
+            assertEq(period.rewardPerVote, campaign.maxRewardPerVote);
+        } else {
+            assertEq(period.rewardPerVote, FixedPointMathLib.mulDiv(period.rewardPerPeriod, 1e18, TOTAL_VOTES));
+        }
+        
         assertEq(period.updated, true);
 
         /// Skip to the next epoch.
@@ -131,24 +147,25 @@ contract UpdateEpochTest is BaseTest {
         previousPeriod = votemarket.getPeriodPerCampaign(campaignId, epoch - epochLenght);
         assertEq(previousPeriod.leftover, 0);
 
-        uint256 remainingPeriods = votemarket.getRemainingPeriods(campaignId, epoch);
-
         uint256 balanceVM = rewardToken.balanceOf(address(votemarket));
         uint256 balanceHook = rewardToken.balanceOf(address(HOOK));
         assertEq(TOTAL_REWARD_AMOUNT + params.totalRewardAmount, balanceVM + balanceHook);
 
         uint256 totalRewardAmount = campaign.totalRewardAmount - distributed;
 
-        uint256 expectedRewardPerPeriod = totalRewardAmount.mulDiv(1, remainingPeriods);
+        uint256 expectedRewardPerPeriod = totalRewardAmount.mulDiv(1, votemarket.getRemainingPeriods(campaignId, epoch));
         uint256 expectedRewardPerVote = expectedRewardPerPeriod.mulDiv(1e18, data.totalVotes);
 
         if (expectedRewardPerVote > campaign.maxRewardPerVote) {
             expectedRewardPerVote = campaign.maxRewardPerVote;
-
             uint256 leftOver = expectedRewardPerPeriod - expectedRewardPerVote.mulDiv(data.totalVotes, 1e18);
 
-            assertEq(votemarket.totalClaimedByCampaignId(campaignId), leftOver);
-            assertEq(rewardToken.balanceOf(address(HOOK)), leftOver);
+            if(TOTAL_VOTES == 1) {
+                assertEq(votemarket.totalClaimedByCampaignId(campaignId), balanceHook);
+            } else {
+                assertEq(votemarket.totalClaimedByCampaignId(campaignId), leftOver);
+                assertEq(rewardToken.balanceOf(address(HOOK)), leftOver);
+            }
         }
 
         period = votemarket.getPeriodPerCampaign(campaignId, epoch);

@@ -6,7 +6,7 @@
  */
 pragma solidity 0.8.19;
 
-import "src/RLPReader.sol";
+import "./RLPReader.sol";
 
 library MerklePatriciaProofVerifier {
     using RLPReader for RLPReader.RLPItem;

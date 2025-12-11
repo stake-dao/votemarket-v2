@@ -5,13 +5,14 @@ import "test/unit/oracle/Proof.t.sol";
 import "test/unit/oracle/ProofPendle.t.sol";
 import "test/unit/oracle/ProofCorrectnessTestYB.t.sol";
 
+
 // Slots are different for each platform whever they've been compiled with different compiler versions,
 // and if vyper or solidity.
 
 address constant CRV_GAUGE_CONTROLLER = address(0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB);
 address constant CRV_ACCOUNT = 0x52f541764E6e90eeBc5c21Ff570De0e2D63766B6;
-address constant CRV_GAUGE = 0x16A3a047fC1D388d5846a73ACDb475b11228c299;
-uint256 constant CRV_BLOCK_NUMBER = 20_449_552;
+address constant CRV_GAUGE = 0xAEA6c312f4b3E04D752946d329693F7293bC2e6D;
+uint256 constant CRV_BLOCK_NUMBER = 23_988_852;
 
 uint256 constant CRV_LAST_USER_VOTE_SLOT = 11;
 uint256 constant CRV_USER_SLOPE_SLOT = 9;
