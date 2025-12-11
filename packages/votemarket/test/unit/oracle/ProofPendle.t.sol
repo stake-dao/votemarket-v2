@@ -182,7 +182,8 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(accountVotes, 1);
+            assertEq(accountVotes, 0);
+            assertEq(totalVotes, 1);
         } else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }

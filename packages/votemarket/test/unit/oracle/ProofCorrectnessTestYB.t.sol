@@ -197,6 +197,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
             assertEq(totalVotes, 1);
+            assertEq(accountVotes, 0);
         } else if (userSlope.end == type(uint256).max) {
             assertEq(accountVotes, userSlope.slope);
             assertEq(accountVotes, user_bias_slope);
