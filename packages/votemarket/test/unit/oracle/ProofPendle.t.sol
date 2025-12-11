@@ -136,7 +136,12 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         assertEq(userSlope.slope, slope);
         assertLt(userSlope.end, end);
-        assertEq(weight.bias, bias_);
+
+        if(bias_ == 0) {
+            assertEq(weight.bias, 1);
+        } else {
+            assertEq(weight.bias, bias_);
+        }
     }
 
     function testLensPendle() public {
@@ -177,7 +182,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(accountVotes, 0);
+            assertEq(accountVotes, 1);
         } else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }

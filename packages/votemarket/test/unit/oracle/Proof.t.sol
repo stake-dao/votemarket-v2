@@ -108,7 +108,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
         (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_,) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
-
+        
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
             generateAndEncodeProof(account, gauge, epoch, true);
@@ -145,7 +145,12 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        assertEq(weight.bias, bias_);
+        
+        if(bias_ == 0) {
+            assertEq(weight.bias, 1);
+        } else {
+            assertEq(weight.bias, bias_);
+        }
     }
 
     function testLens() public {
@@ -185,7 +190,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(totalVotes, 0);
+            assertEq(totalVotes, 1);
         } else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
         }

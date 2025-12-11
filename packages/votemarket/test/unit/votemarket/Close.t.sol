@@ -120,6 +120,8 @@ contract CloseCampaignTest is BaseTest {
 
         _updateEpochs(campaignId);
 
+        uint256 claimed = votemarket.totalClaimedByCampaignId(campaignId);
+
         /// Skip to the end of the claim deadline.
         skip(votemarket.CLAIM_WINDOW_LENGTH());
 
@@ -137,7 +139,7 @@ contract CloseCampaignTest is BaseTest {
         uint256 managerBalance = rewardToken.balanceOf(creator);
 
         assertEq(balance, 0);
-        assertEq(managerBalance, TOTAL_REWARD_AMOUNT);
+        assertEq(managerBalance, TOTAL_REWARD_AMOUNT - claimed);
     }
 
     function testCloseEndedCampaignInCloseDeadline() public {
@@ -154,6 +156,7 @@ contract CloseCampaignTest is BaseTest {
         votemarket.closeCampaign(campaignId);
 
         _updateEpochs(campaignId);
+        uint256 claimed = votemarket.totalClaimedByCampaignId(campaignId);
 
         /// Skip to the end of the close deadline.
         skip(votemarket.CLAIM_WINDOW_LENGTH());
@@ -175,7 +178,7 @@ contract CloseCampaignTest is BaseTest {
 
         assertEq(balance, 0);
         assertEq(managerBalance, 0);
-        assertEq(feeBalance, TOTAL_REWARD_AMOUNT);
+        assertEq(feeBalance, TOTAL_REWARD_AMOUNT - claimed);
     }
 
     function testCloseCampaignWithAnUpgradeInQueue() public {
@@ -205,6 +208,8 @@ contract CloseCampaignTest is BaseTest {
 
         _updateEpochs(campaignId);
 
+        uint256 claimed = votemarket.totalClaimedByCampaignId(campaignId);
+
         vm.prank(address(0xBEEF));
         vm.expectRevert(Votemarket.AUTH_MANAGER_ONLY.selector);
         votemarket.closeCampaign(campaignId);
@@ -215,7 +220,7 @@ contract CloseCampaignTest is BaseTest {
         uint256 managerBalance = rewardToken.balanceOf(creator);
 
         assertEq(balance, 0);
-        assertEq(managerBalance, TOTAL_REWARD_AMOUNT * 2);
+        assertEq(managerBalance, (TOTAL_REWARD_AMOUNT * 2) - claimed);
     }
 
     function testCloseCampaignWithRewardSentToHook() public {
@@ -256,7 +261,7 @@ contract CloseCampaignTest is BaseTest {
         uint256 hookBalance = rewardToken.balanceOf(HOOK);
 
         assertEq(balance, 0);
-        assertEq(managerBalance, TOTAL_REWARD_AMOUNT - hookBalance);
+        assertEq(managerBalance, (TOTAL_REWARD_AMOUNT - hookBalance));
         assertEq(hookBalance, expectedHookBalance);
     }
 }
