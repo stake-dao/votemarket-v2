@@ -39,7 +39,6 @@ contract VerifierPendle is RLPDecoderV2 {
         uint256 _userSlopeMappingSlot,
         uint256 _weightMappingSlot
     ) {
-
         ORACLE = IOracle(_oracle);
         SOURCE_GAUGE_CONTROLLER_HASH = keccak256(abi.encodePacked(_gaugeController));
 
@@ -52,10 +51,7 @@ contract VerifierPendle is RLPDecoderV2 {
     /// @param blockHeader The block header data
     /// @param proof The proof for block header verification
     /// @return stateRootHash The state root hash of the registered block
-    function setBlockData(bytes calldata blockHeader, bytes calldata proof) 
-        external 
-        returns (bytes32 stateRootHash) 
-    {
+    function setBlockData(bytes calldata blockHeader, bytes calldata proof) external returns (bytes32 stateRootHash) {
         StateProofVerifier.BlockHeader memory blockHeader_ = StateProofVerifier.parseBlockHeader(blockHeader);
         if (blockHeader_.number == 0) revert NO_BLOCK_NUMBER();
 
@@ -104,9 +100,9 @@ contract VerifierPendle is RLPDecoderV2 {
         if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
 
         weight = _extractPointData(gauge, epoch, proof);
-        if(weight == 0) {
+        if (weight.bias == 0) {
             // We add manually 1 wei, to prevent the rollover
-            weight = 1;
+            weight.bias = 1;
         }
         ORACLE.insertPoint(gauge, epoch, weight);
     }
@@ -119,7 +115,6 @@ contract VerifierPendle is RLPDecoderV2 {
     /// @return userSlope The extracted user slope data
     function _extractAccountData(address account, address gauge, uint256 epoch, bytes calldata proof)
         internal
-        
         returns (IOracle.VotedSlope memory userSlope)
     {
         // 1. Retrieve the registered block header for the given epoch
@@ -134,10 +129,7 @@ contract VerifierPendle is RLPDecoderV2 {
         if (proofs.length != 2) revert INVALID_PROOF_LENGTH();
 
         userSlope = _extractUserSlope({
-            account: account,
-            gauge: gauge,
-            stateRootHash: stateRootHash,
-            proofSlope: proofs[1].toList()
+            account: account, gauge: gauge, stateRootHash: stateRootHash, proofSlope: proofs[1].toList()
         });
 
         userSlope.lastUpdate = block.timestamp;
@@ -158,14 +150,14 @@ contract VerifierPendle is RLPDecoderV2 {
         // 2. Get the state root hash from the block header
         bytes32 stateRootHash = registered_block_header.stateRootHash;
         if (stateRootHash == bytes32(0)) revert INVALID_HASH();
-        
+
         // 3. Convert the proof to RLP items
         RLPReader.RLPItem[] memory proofs = proof.toRlpItem().toList();
 
         if (proofs.length != 1) revert INVALID_PROOF_LENGTH();
 
         // 4. Extract the weight data
-        weight = 
+        weight =
             _extractWeight({gauge: gauge, epoch: epoch, stateRootHash: stateRootHash, proofBias: proofs[0].toList()});
 
         weight.lastUpdate = block.timestamp;
@@ -204,9 +196,9 @@ contract VerifierPendle is RLPDecoderV2 {
         view
         returns (IOracle.Point memory weight)
     {
-        uint256 structSlot = uint256(keccak256(abi.encode( epoch, WEIGHT_MAPPING_SLOT)));
+        uint256 structSlot = uint256(keccak256(abi.encode(epoch, WEIGHT_MAPPING_SLOT)));
         uint256 poolVotesSlot = structSlot + 1;
-        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot)))));
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(gauge, poolVotesSlot)))));
 
         weight.bias = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proofBias).value;
     }
@@ -225,12 +217,12 @@ contract VerifierPendle is RLPDecoderV2 {
     ) internal returns (IOracle.VotedSlope memory userSlope) {
         (uint128 slope, uint128 bias) = _extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofSlope);
         userSlope.slope = slope;
-        
-        if(bias > 0) {
+
+        if (bias > 0) {
             userSlope.end = bias / slope;
         } else {
             userSlope.end = 0;
-        }   
+        }
     }
 
     function _extractUserPoolVoteBiasAndSlope(

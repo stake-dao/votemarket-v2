@@ -193,10 +193,7 @@ contract UpdateEpochTest is BaseTest {
         }
 
         campaignId = _createCampaign({
-            hook: address(0),
-            maxRewardPerVote: MAX_REWARD_PER_VOTE,
-            addresses: addresses,
-            whitelist: true
+            hook: address(0), maxRewardPerVote: MAX_REWARD_PER_VOTE, addresses: addresses, whitelist: true
         });
 
         /// Skip to the start of the campaign.
@@ -243,10 +240,7 @@ contract UpdateEpochTest is BaseTest {
         oracleLens.setTotalVotes(GAUGE, epoch, totalVotes);
 
         campaignId = _createCampaign({
-            hook: address(0),
-            maxRewardPerVote: MAX_REWARD_PER_VOTE,
-            addresses: addresses,
-            whitelist: true
+            hook: address(0), maxRewardPerVote: MAX_REWARD_PER_VOTE, addresses: addresses, whitelist: true
         });
 
         /// Skip to the start of the campaign.

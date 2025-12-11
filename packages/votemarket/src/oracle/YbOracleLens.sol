@@ -52,7 +52,7 @@ contract YbOracleLens {
         if (epoch >= account_.end) return 0;
         if (epoch <= account_.lastVote) return 0;
 
-        if(account_.end == type(uint256).max) {
+        if (account_.end == type(uint256).max) {
             return account_.slope;
         } else {
             return account_.slope * (account_.end - epoch);

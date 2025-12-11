@@ -27,7 +27,7 @@ contract InspectSlot is Test {
             console.logAddress(decoded);
             if (decoded == expectedOwner) {
                 console.log(i);
-                
+
                 break;
             }
         }

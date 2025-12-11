@@ -108,8 +108,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         assertEq(newVerifier.LAST_VOTE_MAPPING_SLOT(), lastUserVoteSlot);
         assertEq(newVerifier.USER_SLOPE_MAPPING_SLOT(), userSlopeSlot);
 
-        Verifier newVerifierVe =
-            new Verifier(address(oracle), ve, lastUserVoteSlot, userSlopeSlot, weightSlot);
+        Verifier newVerifierVe = new Verifier(address(oracle), ve, lastUserVoteSlot, userSlopeSlot, weightSlot);
         assertEq(address(newVerifierVe.ORACLE()), address(oracle));
         assertEq(newVerifierVe.SOURCE_GAUGE_CONTROLLER_HASH(), keccak256(abi.encodePacked(ve)));
         assertEq(newVerifierVe.WEIGHT_MAPPING_SLOT(), weightSlot);
@@ -138,7 +137,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         assertEq(oracle.futureGovernance(), address(0));
     }
 
-    function isPendle() public returns(bool) {
+    function isPendle() public returns (bool) {
         return GAUGE_CONTROLLER == address(0x44087E105137a5095c008AaB6a6530182821F2F0);
     }
 
@@ -154,24 +153,21 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
         verifier_ve.setBlockData(blockHeaderRlp, accountProof);
-        
+
         bytes32 stateRootHash = verifier_ve.ORACLE().epochBlockNumber(epoch).stateRootHash;
-        
+
         if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
 
         RLPReader.RLPItem[] memory proofItems = storageProofRlp.toRlpItem().toList();
         if (proofItems.length != 1) revert VerifierV2.INVALID_PROOF_LENGTH();
 
         uint128 endDecoded = extractPendleEndLock(stateRootHash, account, proofItems[0].toList());
-        
+
         assertEq(end, endDecoded);
     }
 
@@ -187,11 +183,11 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         return getRLPEncodedProofs("mainnet", ve, positions, block.number);
     }
 
-    function extractPendleEndLock(
-        bytes32 stateRootHash,
-        address user,
-        RLPReader.RLPItem[] memory proof
-    ) internal pure returns (uint128) {
+    function extractPendleEndLock(bytes32 stateRootHash, address user, RLPReader.RLPItem[] memory proof)
+        internal
+        pure
+        returns (uint128)
+    {
         uint256 baseSlot = 1;
         bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(user, baseSlot)))));
 
@@ -213,10 +209,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -229,8 +222,9 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         if (proofItems.length != 2) revert VerifierV2.INVALID_PROOF_LENGTH();
 
         uint128 weight = extractUserPoolVote(stateRootHash, account, gauge, proofItems[0].toList());
-        (uint128 slope, uint128 bias) = extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofItems[1].toList());
-        
+        (uint128 slope, uint128 bias) =
+            extractUserPoolVoteBiasAndSlope(stateRootHash, account, gauge, proofItems[1].toList());
+
         assertEq(userPoolData.weight, weight);
         assertEq(userPoolData.vote.bias, bias);
         assertEq(userPoolData.vote.slope, slope);
@@ -240,7 +234,6 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         internal
         returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
-        
         uint256 slot = 162;
         uint256 structSlot = uint256(keccak256(abi.encode(user, slot)));
         uint256 poolVotesSlot = structSlot + 1;
@@ -252,20 +245,19 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
     }
 
-    function extractUserPoolVote(
-        bytes32 stateRootHash,
-        address user,
-        address gauge,
-        RLPReader.RLPItem[] memory proof
-    ) internal pure returns (uint128) {
-        
+    function extractUserPoolVote(bytes32 stateRootHash, address user, address gauge, RLPReader.RLPItem[] memory proof)
+        internal
+        pure
+        returns (uint128)
+    {
         uint256 weekDataSlot = 162;
 
-        uint256 structSlot = uint256(keccak256(abi.encode( user, weekDataSlot)));
+        uint256 structSlot = uint256(keccak256(abi.encode(user, weekDataSlot)));
         uint256 poolVotesSlot = structSlot + 1;
         bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(gauge, poolVotesSlot)))));
 
-        StateProofVerifier.SlotValue memory value = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+        StateProofVerifier.SlotValue memory value =
+            StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
         return uint128(value.value);
     }
 
@@ -302,10 +294,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -325,7 +314,6 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         internal
         returns (bytes32, bytes memory, bytes memory, bytes memory)
     {
-        
         // Step 1: mapping(uint128 => WeekData) => keccak(epoch . slot)
         uint256 weekDataSlot = 161;
         uint256 structSlot = uint256(keccak256(abi.encode(epoch, weekDataSlot)));
@@ -335,7 +323,6 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         // Step 3: Final slot is keccak(gauge . poolVotesSlot)
         uint256 finalSlot = uint256(keccak256(abi.encode(gauge, poolVotesSlot)));
-
 
         uint256[] memory positions = new uint256[](1);
         positions[0] = finalSlot;
@@ -348,15 +335,15 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         uint128 epoch,
         RLPReader.RLPItem[] memory proof
     ) internal pure returns (uint128) {
-        
         uint256 weekDataSlot = 161;
 
-        uint256 structSlot = uint256(keccak256(abi.encode( epoch, weekDataSlot)));
+        uint256 structSlot = uint256(keccak256(abi.encode(epoch, weekDataSlot)));
         uint256 poolVotesSlot = structSlot + 1;
-        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode( gauge, poolVotesSlot))))); // => OK
+        bytes32 slot = keccak256(abi.encode(uint256(keccak256(abi.encode(gauge, poolVotesSlot))))); // => OK
         //bytes32 slot = keccak256(abi.encode( gauge, poolVotesSlot)); // => KO
 
-        StateProofVerifier.SlotValue memory value = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+        StateProofVerifier.SlotValue memory value =
+            StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
         return uint128(value.value);
     }
 
@@ -368,7 +355,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         uint256 end = 0;
         address owner;
 
-        if(isPendle()) {
+        if (isPendle()) {
             owner = IPendleGaugeController(GAUGE_CONTROLLER).owner();
             UserPoolData memory userPoolData = IPendleGaugeController(GAUGE_CONTROLLER).getUserPoolVote(account, gauge);
             slope = userPoolData.vote.slope;
@@ -388,10 +375,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -401,9 +385,9 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         bytes32 stateRootHash = verifier.ORACLE().epochBlockNumber(epoch).stateRootHash;
         if (stateRootHash == bytes32(0)) revert VerifierV2.INVALID_HASH();
 
-        RLPReader.RLPItem[] memory _proofs = storageProofRlp.toRlpItem().toList();  
+        RLPReader.RLPItem[] memory _proofs = storageProofRlp.toRlpItem().toList();
         if (_proofs.length != 1) revert VerifierV2.INVALID_PROOF_LENGTH();
-        
+
         address newOwner = extractOwner(stateRootHash, _proofs[0].toList());
 
         assertEq(newOwner, owner);
@@ -434,10 +418,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
         vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
@@ -474,8 +455,9 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
     function extractOwner(bytes32 stateRootHash, RLPReader.RLPItem[] memory proof) internal pure returns (address) {
         bytes32 slot = keccak256(abi.encodePacked(uint256(0)));
-        StateProofVerifier.SlotValue memory slotValue = StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
-        return address(uint160(slotValue.value));    
+        StateProofVerifier.SlotValue memory slotValue =
+            StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof);
+        return address(uint160(slotValue.value));
     }
 
     function generateAndEncodeProofPendleOwner(address account, address gauge, uint256 epoch, bool isGaugeProof)
@@ -493,10 +475,12 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
     {
         uint256[] memory positions;
 
-        if(isPendle()) {
-            positions = isGaugeProof ? generateGaugeProofPendle(gauge, uint128(epoch)) : generateAccountProofPendle(account, gauge);
+        if (isPendle()) {
+            positions = isGaugeProof
+                ? generateGaugeProofPendle(gauge, uint128(epoch))
+                : generateAccountProofPendle(account, gauge);
         } else {
-           // positions = isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
+            // positions = isGaugeProof ? generateGaugeProof(gauge, epoch) : generateAccountProof(account, gauge);
         }
 
         return getRLPEncodedProofs("mainnet", GAUGE_CONTROLLER, positions, block.number);
@@ -533,11 +517,14 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         uint128 voteUserSlopePosition;
         if (isV2) {
-            voteUserSlopePosition = uint128(uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))));
+            voteUserSlopePosition =
+                uint128(uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))));
         } else {
-            voteUserSlopePosition = uint128(uint256(
-                keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
-            ));
+            voteUserSlopePosition = uint128(
+                uint256(
+                    keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge))))
+                )
+            );
         }
         positions[1] = voteUserSlopePosition;
         positions[2] = voteUserSlopePosition + 2;

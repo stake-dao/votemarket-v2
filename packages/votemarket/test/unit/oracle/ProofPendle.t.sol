@@ -106,11 +106,11 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
     function testGetProofPendleParams() public {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
-        
+
         UserPoolData memory userPoolData = IPendleGaugeController(GAUGE_CONTROLLER).getUserPoolVote(account, gauge);
         uint128 slope = userPoolData.vote.slope;
         (uint256 bias_) = IPendleGaugeController(GAUGE_CONTROLLER).getPoolTotalVoteAt(gauge, uint128(epoch));
-        (,uint128 end) = IVePendle(ve).positionData(account);
+        (, uint128 end) = IVePendle(ve).positionData(account);
 
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
@@ -120,10 +120,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -156,10 +153,7 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -215,7 +209,6 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
     }
 
     function generateAccountProof(address account, address gauge) internal view returns (uint256[] memory) {
-
         uint256 structSlot = uint256(keccak256(abi.encode(account, userSlopeSlot)));
         uint256 finalSlot = uint256(keccak256(abi.encode(gauge, structSlot + 1)));
 

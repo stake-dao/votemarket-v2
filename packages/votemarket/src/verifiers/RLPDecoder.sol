@@ -16,8 +16,9 @@ abstract contract RLPDecoder {
         bytes32 stateRootHash,
         RLPReader.RLPItem[] memory proof
     ) internal pure returns (uint256) {
-        bytes32 slot =
-            keccak256(abi.encode(uint256(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2)))));
+        bytes32 slot = keccak256(
+            abi.encode(uint256(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2))))
+        );
         return StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof).value;
     }
 
@@ -32,7 +33,7 @@ abstract contract RLPDecoder {
         bytes32 slot = keccak256(
             abi.encode(
                 uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2)))))
-                    + offset
+                + offset
             )
         );
         return StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof).value;
@@ -49,7 +50,7 @@ abstract contract RLPDecoder {
         bytes32 slot = keccak256(
             abi.encode(
                 uint256(keccak256(abi.encode(keccak256(abi.encode(keccak256(abi.encode(slotNumber, param1)), param2)))))
-                    + offset
+                + offset
             )
         );
         return StateProofVerifier.extractSlotValueFromProof(slot, stateRootHash, proof).value;

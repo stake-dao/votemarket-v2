@@ -17,7 +17,6 @@ abstract contract VerifierFactory {
         uint256 weightMappingSlot,
         bool isV2
     ) internal returns (IVerifierBase) {
-
         if (isV2) {
             return IVerifierBase(
                 address(
@@ -29,9 +28,7 @@ abstract contract VerifierFactory {
         }
 
         return IVerifierBase(
-            address(
-                new Verifier(oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot)
-            )
+            address(new Verifier(oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot))
         );
     }
 
@@ -43,12 +40,12 @@ abstract contract VerifierFactory {
         uint256 weightMappingSlot
     ) internal returns (IVerifierBase) {
         return IVerifierBase(
-                address(
-                    new VerifierPendle(
-                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
-                    )
+            address(
+                new VerifierPendle(
+                    oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
                 )
-            );
+            )
+        );
     }
 
     function createVerifierYB(
@@ -59,11 +56,9 @@ abstract contract VerifierFactory {
         uint256 weightMappingSlot
     ) internal returns (IVerifierBase) {
         return IVerifierBase(
-                address(
-                    new VerifierYB(
-                        oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot
-                    )
-                )
-            );
+            address(
+                new VerifierYB(oracle, gaugeController, lastVoteMappingSlot, userSlopeMappingSlot, weightMappingSlot)
+            )
+        );
     }
 }

@@ -117,7 +117,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         console.logBytes32(blockHash);
         console.log("\n");
         console.logBytes(blockHeaderRlp);
-        
+
         console.log("\n");
         console.logBytes(controllerProof);
         console.log("\n");
@@ -128,10 +128,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -165,10 +162,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
         vm.expectRevert(OracleLens.STATE_NOT_UPDATED.selector);
