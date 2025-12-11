@@ -134,10 +134,7 @@ contract ClaimTest is BaseTest {
         blacklist[0] = address(this);
 
         campaignId = _createCampaign({
-            hook: address(0),
-            maxRewardPerVote: MAX_REWARD_PER_VOTE,
-            addresses: blacklist,
-            whitelist: true
+            hook: address(0), maxRewardPerVote: MAX_REWARD_PER_VOTE, addresses: blacklist, whitelist: true
         });
 
         skip(1 weeks);
@@ -173,10 +170,7 @@ contract ClaimTest is BaseTest {
         oracleLens.setAccountVotes(random, GAUGE, votemarket.currentEpoch(), ACCOUNT_VOTES);
 
         campaignId = _createCampaign({
-            hook: address(0),
-            maxRewardPerVote: MAX_REWARD_PER_VOTE,
-            addresses: new address[](0),
-            whitelist: false
+            hook: address(0), maxRewardPerVote: MAX_REWARD_PER_VOTE, addresses: new address[](0), whitelist: false
         });
 
         oracleLens.setTotalVotes(GAUGE, votemarket.currentEpoch(), TOTAL_REWARD_AMOUNT);
@@ -222,10 +216,7 @@ contract ClaimTest is BaseTest {
         blacklist[0] = address(this);
 
         campaignId = _createCampaign({
-            hook: address(0),
-            maxRewardPerVote: MAX_REWARD_PER_VOTE,
-            addresses: blacklist,
-            whitelist: false
+            hook: address(0), maxRewardPerVote: MAX_REWARD_PER_VOTE, addresses: blacklist, whitelist: false
         });
 
         skip(1 weeks);
@@ -240,10 +231,7 @@ contract ClaimTest is BaseTest {
     function testReentrancyWithHook() public {
         ReentrancyAttacker reentrancyAttacker = new ReentrancyAttacker(address(votemarket));
         campaignId = _createCampaign({
-            hook: address(reentrancyAttacker),
-            maxRewardPerVote: 1e16,
-            addresses: blacklist,
-            whitelist: false
+            hook: address(reentrancyAttacker), maxRewardPerVote: 1e16, addresses: blacklist, whitelist: false
         });
 
         skip(1 weeks);
