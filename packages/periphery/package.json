@@ -2,9 +2,12 @@
   "name": "@stake-dao/periphery",
   "version": "1.0.0",
   "devDependencies": {
-    "solady": "github:vectorized/solady",
-    "forge-std": "github:foundry-rs/forge-std",
+    "@stake-dao/vm-utils": "workspace:*",
     "@stake-dao/votemarket": "workspace:*",
-    "@stake-dao/vm-utils": "workspace:*"
+    "forge-std": "github:foundry-rs/forge-std",
+    "solady": "github:vectorized/solady"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0"
   }
 }
