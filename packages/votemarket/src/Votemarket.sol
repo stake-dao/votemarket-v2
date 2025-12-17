@@ -562,8 +562,8 @@ contract Votemarket is ReentrancyGuard {
         // 3. Calculate the sum of blacklisted votes.
         uint256 addressesVotes;
         for (uint256 i = 0; i < addressesSet_.length(); i++) {
-            addressesVotes +=
-                IOracleLens(ORACLE).getAccountVotes(addressesSet_.at(i), campaignById[campaignId].gauge, epoch);
+            addressesVotes += IOracleLens(ORACLE)
+                .getAccountVotes(addressesSet_.at(i), campaignById[campaignId].gauge, epoch);
         }
 
         if (whitelistOnly[campaignId]) {
@@ -613,10 +613,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 3. Transfer reward token to this contract
         SafeTransferLib.safeTransferFrom({
-            token: rewardToken,
-            from: msg.sender,
-            to: address(this),
-            amount: totalRewardAmount
+            token: rewardToken, from: msg.sender, to: address(this), amount: totalRewardAmount
         });
 
         // 4. Generate campaign Id and get current epoch
@@ -691,10 +688,7 @@ contract Votemarket is ReentrancyGuard {
         // 5. Transfer additional reward tokens if needed.
         if (totalRewardAmount != 0) {
             SafeTransferLib.safeTransferFrom({
-                token: campaign.rewardToken,
-                from: msg.sender,
-                to: address(this),
-                amount: totalRewardAmount
+                token: campaign.rewardToken, from: msg.sender, to: address(this), amount: totalRewardAmount
             });
         }
 
@@ -763,10 +757,7 @@ contract Votemarket is ReentrancyGuard {
 
         // 6. Transfer additional reward tokens
         SafeTransferLib.safeTransferFrom({
-            token: campaign.rewardToken,
-            from: msg.sender,
-            to: address(this),
-            amount: totalRewardAmount
+            token: campaign.rewardToken, from: msg.sender, to: address(this), amount: totalRewardAmount
         });
 
         // 7. Update campaign upgrade

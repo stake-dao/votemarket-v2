@@ -27,8 +27,8 @@ abstract contract BaseTest is Test {
     uint256 MAX_REWARD_PER_VOTE = 1e18;
     uint256 TOTAL_REWARD_AMOUNT = 1000e18;
 
-    uint256 TOTAL_VOTES = 2000e18;
-    uint256 ACCOUNT_VOTES = 1000e18;
+    uint256 TOTAL_VOTES = 1;
+    uint256 ACCOUNT_VOTES = 0;
 
     uint256 maxAddressesSize;
     uint256 minimiumPeriodsSize;

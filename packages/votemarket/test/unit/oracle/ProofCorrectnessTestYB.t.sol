@@ -106,7 +106,8 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         uint256 epoch = block.timestamp / 1 weeks * 1 weeks;
 
         uint256 lastUserVote = IYBGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
-        (uint256 slope,uint256 bias_slope,,uint256 end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 slope, uint256 bias_slope,, uint256 end) =
+            IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_,) = IYBGaugeController(GAUGE_CONTROLLER).point_weight(gauge);
 
         // Generate proofs for both gauge and account
@@ -117,7 +118,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         console.logBytes32(blockHash);
         console.log("\n");
         console.logBytes(blockHeaderRlp);
-        
+
         console.log("\n");
         console.logBytes(controllerProof);
         console.log("\n");
@@ -128,10 +129,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
 
@@ -141,22 +139,27 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
-
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
-        if(end == type(uint256).max) {
+        if (end == type(uint256).max) {
             assertEq(userSlope.slope, bias_slope);
         } else {
             assertEq(userSlope.slope, slope);
         }
-        
+
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        assertEq(weight.bias, bias_);
+        
+        if(bias_ == 0) {
+            assertEq(weight.bias, 1);
+        } else {
+            assertEq(weight.bias, bias_);
+        }
     }
 
     function testLens() public {
-        (uint256 user_slope,uint256 user_bias_slope,uint256 user_power,uint256 user_end) = IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
+        (uint256 user_slope, uint256 user_bias_slope, uint256 user_power, uint256 user_end) =
+            IYBGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         YbOracleLens oracleLens = new YbOracleLens(address(oracle));
         assertEq(oracleLens.oracle(), address(oracle));
 
@@ -170,10 +173,7 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         oracle.insertBlockNumber(
             epoch,
             StateProofVerifier.BlockHeader({
-                hash: blockHash,
-                stateRootHash: bytes32(0),
-                number: block.number,
-                timestamp: block.timestamp
+                hash: blockHash, stateRootHash: bytes32(0), number: block.number, timestamp: block.timestamp
             })
         );
         vm.expectRevert(YbOracleLens.STATE_NOT_UPDATED.selector);
@@ -196,13 +196,14 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         assertEq(totalVotes, weight.bias);
         if (epoch >= userSlope.end) {
-            assertEq(totalVotes, 0);
-        } else if(userSlope.end == type(uint256).max) {
+            assertEq(totalVotes, 1);
+            assertEq(accountVotes, 0);
+        } else if (userSlope.end == type(uint256).max) {
             assertEq(accountVotes, userSlope.slope);
             assertEq(accountVotes, user_bias_slope);
-        }  else {
+        } else {
             assertEq(accountVotes, userSlope.slope * (userSlope.end - epoch));
-            
+
             uint256 accountVotesComputed = user_slope * (user_end - epoch);
             assertEq(accountVotes, accountVotesComputed);
         }
@@ -235,7 +236,8 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
         uint256[] memory positions = new uint256[](4);
         positions[0] = uint256(keccak256(abi.encode(keccak256(abi.encode(lastUserVoteSlot, account)), gauge)));
 
-        uint256 voteUserSlopePosition = uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
+        uint256 voteUserSlopePosition =
+            uint256(keccak256(abi.encode(keccak256(abi.encode(userSlopeSlot, account)), gauge)));
         positions[1] = voteUserSlopePosition;
         positions[2] = voteUserSlopePosition + 1;
         positions[3] = voteUserSlopePosition + 3;

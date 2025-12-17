@@ -99,6 +99,10 @@ contract VerifierYB is RLPDecoderV2 {
         if (weight.lastUpdate != 0) revert ALREADY_REGISTERED();
 
         weight = _extractPointData(gauge, epoch, proof);
+        if (weight.bias == 0) {
+            // We add manually 1 wei, to prevent the rollover
+            weight.bias = 1;
+        }
         ORACLE.insertPoint(gauge, epoch, weight);
     }
 
@@ -218,8 +222,7 @@ contract VerifierYB is RLPDecoderV2 {
         returns (IOracle.Point memory weight)
     {
         // 1. Extract the bias value from the nested mapping
-        weight.bias =
-            extractSimpleNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, 0, stateRootHash, proofBias);
+        weight.bias = extractSimpleNestedMappingStructValue(WEIGHT_MAPPING_SLOT, gauge, 0, stateRootHash, proofBias);
     }
 
     /// @notice Extracts user slope data from the proof
@@ -237,17 +240,20 @@ contract VerifierYB is RLPDecoderV2 {
         RLPReader.RLPItem[] memory proofBias,
         RLPReader.RLPItem[] memory proofEnd
     ) internal view returns (IOracle.VotedSlope memory userSlope) {
+        uint256 slope = extractNestedMappingStructValue(
+            USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope
+        );
+        uint256 bias =
+            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 1, stateRootHash, proofBias);
+        uint256 end =
+            extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 3, stateRootHash, proofEnd);
 
-        uint256 slope = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 0, stateRootHash, proofSlope);
-        uint256 bias = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 1, stateRootHash, proofBias);
-        uint256 end = extractNestedMappingStructValue(USER_SLOPE_MAPPING_SLOT, account, gauge, 3, stateRootHash, proofEnd);
-
-        if(end == type(uint256).max) {
+        if (end == type(uint256).max) {
             userSlope.slope = bias;
         } else {
             userSlope.slope = slope;
         }
-            
+
         userSlope.end = end;
     }
 }

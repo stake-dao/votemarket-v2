@@ -18,10 +18,7 @@ interface IOracle {
 
     function pointByEpoch(address gauge, uint256 epoch) external view returns (Point memory);
     function epochBlockNumber(uint256 epoch) external view returns (StateProofVerifier.BlockHeader memory);
-    function votedSlopeByEpoch(address account, address gauge, uint256 epoch)
-        external
-        view
-        returns (VotedSlope memory);
+    function votedSlopeByEpoch(address account, address gauge, uint256 epoch) external view returns (VotedSlope memory);
 
     function insertBlockNumber(uint256 epoch, StateProofVerifier.BlockHeader memory blockData) external;
 
