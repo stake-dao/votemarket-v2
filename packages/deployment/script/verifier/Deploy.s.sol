@@ -21,15 +21,16 @@ contract Deploy is Base {
     address constant FXN_GAUGE_CONTROLLER = address(0xe60eB8098B34eD775ac44B1ddE864e098C6d7f37);
     address constant FXN_ORACLE = address(0x000000009271842F0D4Db92a7Ef5544D1F70bC1A);
     address constant FXN_VERIFIER = address(0x00000000c6906194269c9955A9E5DEF4e018CDd5);
-    uint256 constant FXN_LAST_USER_VOTE_SLOT = 1000000007;
-    uint256 constant FXN_USER_SLOPE_SLOT = 1000000005;
-    uint256 constant FXN_WEIGHT_SLOT = 1000000008;
+    uint256 constant FXN_LAST_USER_VOTE_SLOT = 1000000010;
+    uint256 constant FXN_USER_SLOPE_SLOT = 1000000008;
+    uint256 constant FXN_WEIGHT_SLOT = 1000000011;
 
     function run() public {
         /// Curve
         bytes32 salt = bytes32("CurveVerifierV3");
-        bytes memory initCode =
-            getInitCode(CRV_ORACLE, CRV_GAUGE_CONTROLLER, CRV_LAST_USER_VOTE_SLOT, CRV_USER_SLOPE_SLOT, CRV_WEIGHT_SLOT);
+        bytes memory initCode = getInitCode(
+            CRV_ORACLE, CRV_GAUGE_CONTROLLER, CRV_LAST_USER_VOTE_SLOT, CRV_USER_SLOPE_SLOT, CRV_WEIGHT_SLOT
+        );
         super.run({
             oracle: CRV_ORACLE,
             oldVerifier: CRV_VERIFIER,
