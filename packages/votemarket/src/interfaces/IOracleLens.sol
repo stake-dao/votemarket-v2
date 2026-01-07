@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 interface IOracleLens {
     function isVoteValid(address account, address gauge, uint256 epoch) external view returns (bool);

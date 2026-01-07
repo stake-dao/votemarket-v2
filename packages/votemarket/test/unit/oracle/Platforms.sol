@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import "test/unit/oracle/Proof.t.sol";
 import "test/unit/oracle/ProofCorrectnessTestYB.t.sol";
@@ -123,6 +123,7 @@ contract PENDLEPlatform is
 
 address constant YB_GAUGE_CONTROLLER = address(0x1Be14811A3a06F6aF4fA64310a636e1Df04c1c21);
 // Infinite lock : 0xdB2B9D473014d8c6A5E55dA92205199457Ba6624
+// solhint-disable-next-line max-line-length
 // Normal lock : 0xdab6F20e51A770E776E62C3DBe695683d45Cf859 / 0xf748879EdBe8CcA140940788163d7bE4d2A2E46A (not working) / 0x01695A44F7628F62AD020AcF4DF26cd0552aFA99
 // Infinite lock but normal vote (ie: with normal end) : 0x29B6a3512FafeAce91433D278503ABC3D5aB5d12
 address constant YB_ACCOUNT = 0xf748879EdBe8CcA140940788163d7bE4d2A2E46A; //0x29B6a3512FafeAce91433D278503ABC3D5aB5d12;

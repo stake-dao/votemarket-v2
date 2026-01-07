@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 contract MockOracleLens {
     mapping(address => uint256) private totalVotes;

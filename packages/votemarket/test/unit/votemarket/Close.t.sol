@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 /// Testing contracts & libraries
+import {Votemarket} from "src/Votemarket.sol";
 import {BaseTest} from "test/unit/votemarket/Base.t.sol";
 
 contract CloseCampaignTest is BaseTest {
