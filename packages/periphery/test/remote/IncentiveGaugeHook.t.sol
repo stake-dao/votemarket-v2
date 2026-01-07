@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Test.sol";
-import "@solady/src/auth/Ownable.sol";
-
-import {FakeToken} from "test/mocks/FakeToken.sol";
-import {ILaPoste} from "src/interfaces/ILaPoste.sol";
-import {IncentiveGaugeHook} from "src/hooks/IncentiveGaugeHook.sol";
-import {MockOracleLens} from "@votemarket/test/mocks/OracleLens.sol";
+import {Test} from "@forge-std/src/Test.sol";
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
-import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
+import {MockOracleLens} from "@votemarket/test/mocks/OracleLens.sol";
+import {IncentiveGaugeHook} from "src/hooks/IncentiveGaugeHook.sol";
+import {ILaPoste} from "src/interfaces/ILaPoste.sol";
 import {CampaignRemoteManager} from "src/remote/CampaignRemoteManager.sol";
+import {FakeToken} from "test/mocks/FakeToken.sol";
 
 contract IncentiveGaugeHookTest is Test {
     CampaignRemoteManager public campaignRemoteManager;

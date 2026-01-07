@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {Script} from "@forge-std/src/Script.sol";
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
-import {Bundler} from "src/bundler/Bundler.sol";
 import {CampaignRemoteManager} from "src/remote/CampaignRemoteManager.sol";
 
 interface ICreate3Factory {

@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Test.sol";
-import "@solady/src/auth/Ownable.sol";
-
-import {FakeToken} from "test/mocks/FakeToken.sol";
-import {ILaPoste} from "src/interfaces/ILaPoste.sol";
-import {MockOracleLens} from "@votemarket/test/mocks/OracleLens.sol";
+import {Test} from "@forge-std/src/Test.sol";
+import {Ownable} from "@solady/src/auth/Ownable.sol";
 import {Votemarket} from "@votemarket/src/Votemarket.sol";
-import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
+import {MockOracleLens} from "@votemarket/test/mocks/OracleLens.sol";
+import {ILaPoste} from "src/interfaces/ILaPoste.sol";
 import {CampaignRemoteManager} from "src/remote/CampaignRemoteManager.sol";
+import {FakeToken} from "test/mocks/FakeToken.sol";
 
 contract CampaignRemoteManagerTest is Test {
     CampaignRemoteManager public campaignRemoteManager;
@@ -53,7 +51,6 @@ contract CampaignRemoteManagerTest is Test {
             0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765
         );
         bytes memory bytecode = abi.encodePacked(type(CampaignRemoteManager).creationCode, args);
-        console.logBytes32(keccak256(bytecode));
     }
 
     function test_CampaignManagement() public {

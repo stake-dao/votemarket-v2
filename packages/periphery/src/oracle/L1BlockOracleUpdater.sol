@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.28;
 
+import "@votemarket/src/interfaces/IOracle.sol";
 import "src/interfaces/IL1Block.sol";
 import "src/interfaces/ILaPoste.sol";
-import "@votemarket/src/interfaces/IOracle.sol";
 
 /// @notice A module for updating the L1 block number in multiple oracles and dispatching the block hash on L2.
 /// It uses the L1_BLOCK_ORACLE as a source of truth. During the window defined by the daily epoch + 1h (UTC),

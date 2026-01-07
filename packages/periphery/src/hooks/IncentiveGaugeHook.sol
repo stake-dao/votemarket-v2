@@ -4,8 +4,8 @@ pragma solidity 0.8.28;
 import "@solady/src/utils/SafeTransferLib.sol";
 import "@votemarket/src/interfaces/IVotemarket.sol";
 import "src/interfaces/ILaPoste.sol";
-import "src/interfaces/ITokenFactory.sol";
 import "src/interfaces/IRemote.sol";
+import "src/interfaces/ITokenFactory.sol";
 
 /// @title IncentiveGaugeHook - Hook to redistribute unspent campaign rewards (leftovers) to Merkl
 /// @notice This hook collects campaign leftovers on L2 and bridges them to Ethereum mainnet

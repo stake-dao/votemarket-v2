@@ -24,7 +24,6 @@ contract DeployRemoteManager is Script {
         ImmutableCreate2Factory factory = ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
 
         bytes32 initalizeCode = keccak256(abi.encodePacked(type(CampaignRemoteManager).creationCode, args));
-        console.logBytes32(initalizeCode);
 
         address expectedAddress = 0x000000009dF57105d76B059178989E01356e4b45;
         bytes32 salt = bytes32(0x8898502ba35ab64b3562abc509befb7eb178d4df75e47f6342d5279f66004005);

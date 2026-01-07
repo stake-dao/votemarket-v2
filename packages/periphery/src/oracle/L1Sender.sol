@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.28;
 
-import "src/interfaces/ILaPoste.sol";
 import "@solady/src/auth/Ownable.sol";
+import "src/interfaces/ILaPoste.sol";
 
 /// @notice A module for broadcasting the L1 block data to the L1 block oracle updater on L2.
 /// @dev Enforces a claim protection delay: broadcasts can only occur at least 1 hour after the start

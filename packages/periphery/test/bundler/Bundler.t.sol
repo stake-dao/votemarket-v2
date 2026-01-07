@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Test.sol";
 import "@forge-std/src/mocks/MockERC20.sol";
-
-import "src/bundler/Bundler.sol";
-
-import {Votemarket} from "@votemarket/src/Votemarket.sol";
-import {Verifier} from "@votemarket/src/verifiers/Verifier.sol";
-
+import "@forge-std/src/Test.sol";
 import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
 import {OracleLens} from "@votemarket/src/oracle/OracleLens.sol";
+import {Verifier} from "@votemarket/src/verifiers/Verifier.sol";
+import {Votemarket} from "@votemarket/src/Votemarket.sol";
+import "src/bundler/Bundler.sol";
 
 contract BundlerTest is Test {
     address constant deployer = 0x000755Fbe4A24d7478bfcFC1E561AfCE82d1ff62;

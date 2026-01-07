@@ -3,9 +3,8 @@ pragma solidity 0.8.28;
 
 import {Script} from "@forge-std/src/Script.sol";
 import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
-import {Bundler} from "src/bundler/Bundler.sol";
-import {L1Sender} from "src/oracle/L1Sender.sol";
 import {L1BlockOracleUpdater} from "src/oracle/L1BlockOracleUpdater.sol";
+import {L1Sender} from "src/oracle/L1Sender.sol";
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);

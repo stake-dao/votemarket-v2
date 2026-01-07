@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import "@forge-std/src/Test.sol";
 import {IVotemarket, Campaign} from "@votemarket/src/interfaces/IVotemarket.sol";
-import {FakeToken} from "../mocks/FakeToken.sol";
-import {LeftoverDistributorHook} from "../../src/hooks/LeftoverDistributorHook.sol";
+import {LeftoverDistributorHook} from "./../../src/hooks/LeftoverDistributorHook.sol";
+import {FakeToken} from "./../mocks/FakeToken.sol";
 
 contract LeftoverDistributorTest is Test {
     FakeToken rewardToken;

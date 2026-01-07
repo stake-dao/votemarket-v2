@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import {Ownable} from "@solady/src/auth/Ownable.sol";
 import {SafeTransferLib} from "@solady/src/utils/SafeTransferLib.sol";
-import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
 import {IOracle} from "@votemarket/src/interfaces/IOracle.sol";
+import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
 import {Remote} from "src/remote/Remote.sol";
 
 /// @notice A module for creating and managing campaigns from L1.
