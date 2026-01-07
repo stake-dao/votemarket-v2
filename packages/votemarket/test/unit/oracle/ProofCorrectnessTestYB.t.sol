@@ -2,12 +2,11 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
+import "src/interfaces/IYBGaugeController.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/YbOracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IYBGaugeController.sol";
 
 abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
     Oracle oracle;
@@ -149,8 +148,8 @@ abstract contract ProofCorrectnessTestYB is Test, VerifierFactory {
 
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        
-        if(bias_ == 0) {
+
+        if (bias_ == 0) {
             assertEq(weight.bias, 1);
         } else {
             assertEq(weight.bias, bias_);

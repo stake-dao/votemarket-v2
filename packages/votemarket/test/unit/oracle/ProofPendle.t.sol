@@ -2,14 +2,13 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
+import "src/interfaces/IGaugeController.sol";
+import "src/interfaces/IPendleGaugeController.sol";
+import "src/interfaces/IVePendle.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/PendleOracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IGaugeController.sol";
-import "src/interfaces/IPendleGaugeController.sol";
-import "src/interfaces/IVePendle.sol";
 
 abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
     Oracle oracle;
@@ -130,14 +129,12 @@ abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
 
         (,,, storageProofRlp) = generateAndEncodeProof(account, gauge, epoch, false);
 
-        console.logBytes(storageProofRlp);
-
         IOracle.VotedSlope memory userSlope = verifier.setAccountData(account, gauge, epoch, storageProofRlp);
 
         assertEq(userSlope.slope, slope);
         assertLt(userSlope.end, end);
 
-        if(bias_ == 0) {
+        if (bias_ == 0) {
             assertEq(weight.bias, 1);
         } else {
             assertEq(weight.bias, bias_);

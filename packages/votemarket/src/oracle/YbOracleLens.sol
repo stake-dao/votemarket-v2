@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 ///  Project Interfaces
-import "src/interfaces/IOracle.sol";
+import {IOracle} from "src/interfaces/IOracle.sol";
 
 /// @notice Oracle Lens contract to read from the Oracle contract and expose data to the Votemarket contract.
 /// @dev It should always revert if the epoch data is not updated.

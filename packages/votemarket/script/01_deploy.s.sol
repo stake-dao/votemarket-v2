@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.19;
 
-import {Script, console, VmSafe} from "@forge-std/src/Script.sol";
-import {Oracle} from "src/oracle/Oracle.sol";
-import {VerifierV2} from "src/verifiers/VerifierV2.sol";
-import {OracleLens} from "src/oracle/OracleLens.sol";
-import {Votemarket} from "src/Votemarket.sol";
-import {ICreate3Factory} from "src/interfaces/ICreate3Factory.sol";
+import {Script, VmSafe} from "@forge-std/src/Script.sol";
 import {SafeCastLib} from "@solady/src/utils/SafeCastLib.sol";
+import {ICreate3Factory} from "src/interfaces/ICreate3Factory.sol";
+import {Oracle} from "src/oracle/Oracle.sol";
+import {OracleLens} from "src/oracle/OracleLens.sol";
+import {VerifierV2} from "src/verifiers/VerifierV2.sol";
+import {Votemarket} from "src/Votemarket.sol";
 
 /// @notice A library that contains all the addresses needed by this script
 /// @dev • How to add a new gauge controller:
@@ -149,10 +149,7 @@ contract VoteMarketDeploy is Script {
 
     /// @notice Log the deployment data for all the chains.
     function _logDeployments() private view {
-        for (uint256 i; i < deployedProtocols.length; i++) {
-            console.log("Deploy on %s at %s", vm.toUppercase(chains[i]), vm.toString(deployedProtocols[i].platform));
-            console.log("--------------------------------");
-        }
+        for (uint256 i; i < deployedProtocols.length; i++) {}
     }
 
     /// @notice Log a reminder to the developer to accept the governance role of the oracle on all the chains.
@@ -160,16 +157,6 @@ contract VoteMarketDeploy is Script {
         address platform = deployedProtocols[0].platform;
         // Get the address of the oracle contract stored in the oracle lens contract associated with the votemarket contract
         address oracleContract = OracleLens(Votemarket(payable(platform)).ORACLE()).oracle();
-
-        console.log(
-            string.concat(
-                "\n The governance of the Oracle contract (%s) \n has been transfered to "
-                "the DAO governance address (%s). \n Do not forget we MUST ACCEPT, on all "
-                "the chains, the governance role of the oracle \n by calling `acceptGovernance()`!"
-            ),
-            oracleContract,
-            AddressBook.GOVERNANCE
-        );
     }
 
     /// @notice Get the salt for the deterministic deployment of a specific contract.

@@ -2,9 +2,8 @@
 pragma solidity 0.8.19;
 
 import "test/unit/oracle/Proof.t.sol";
-import "test/unit/oracle/ProofPendle.t.sol";
 import "test/unit/oracle/ProofCorrectnessTestYB.t.sol";
-
+import "test/unit/oracle/ProofPendle.t.sol";
 
 // Slots are different for each platform whever they've been compiled with different compiler versions,
 // and if vyper or solidity.
@@ -18,7 +17,7 @@ uint256 constant CRV_LAST_USER_VOTE_SLOT = 11;
 uint256 constant CRV_USER_SLOPE_SLOT = 9;
 uint256 constant CRV_WEIGHT_SLOT = 12;
 
-contract CRV_Platform is
+contract CRVPlatform is
     ProofCorrectnessTest(
         CRV_GAUGE_CONTROLLER,
         CRV_ACCOUNT,
@@ -109,7 +108,7 @@ uint256 constant PENDLE_LAST_USER_VOTE_SLOT = 1;
 uint256 constant PENDLE_USER_SLOPE_SLOT = 162;
 uint256 constant PENDLE_WEIGHT_SLOT = 161;
 
-contract PENDLE_Platform is
+contract PENDLEPlatform is
     ProofCorrectnessTestPendle(
         PENDLE_GAUGE_CONTROLLER,
         PENDLE_ACCOUNT,
@@ -121,8 +120,6 @@ contract PENDLE_Platform is
         PENDLE_VE
     )
 {}
-
-
 
 address constant YB_GAUGE_CONTROLLER = address(0x1Be14811A3a06F6aF4fA64310a636e1Df04c1c21);
 // Infinite lock : 0xdB2B9D473014d8c6A5E55dA92205199457Ba6624
@@ -137,7 +134,7 @@ uint256 constant YB_LAST_USER_VOTE_SLOT = 1000000005;
 uint256 constant YB_USER_SLOPE_SLOT = 1000000003;
 uint256 constant YB_WEIGHT_SLOT = 1000000006;
 
-contract YB_Platform is
+contract YBPlatform is
     ProofCorrectnessTestYB(
         YB_GAUGE_CONTROLLER,
         YB_ACCOUNT,

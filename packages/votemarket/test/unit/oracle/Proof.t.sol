@@ -2,12 +2,11 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
+import "src/interfaces/IGaugeController.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IGaugeController.sol";
 
 abstract contract ProofCorrectnessTest is Test, VerifierFactory {
     Oracle oracle;
@@ -108,7 +107,7 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         uint256 lastUserVote = IGaugeController(GAUGE_CONTROLLER).last_user_vote(account, gauge);
         (uint256 slope,, uint256 end) = IGaugeController(GAUGE_CONTROLLER).vote_user_slopes(account, gauge);
         (uint256 bias_,) = IGaugeController(GAUGE_CONTROLLER).points_weight(gauge, epoch);
-        
+
         // Generate proofs for both gauge and account
         (bytes32 blockHash, bytes memory blockHeaderRlp, bytes memory controllerProof, bytes memory storageProofRlp) =
             generateAndEncodeProof(account, gauge, epoch, true);
@@ -145,8 +144,8 @@ abstract contract ProofCorrectnessTest is Test, VerifierFactory {
         assertEq(userSlope.slope, slope);
         assertEq(userSlope.end, end);
         assertEq(userSlope.lastVote, lastUserVote);
-        
-        if(bias_ == 0) {
+
+        if (bias_ == 0) {
             assertEq(weight.bias, 1);
         } else {
             assertEq(weight.bias, bias_);

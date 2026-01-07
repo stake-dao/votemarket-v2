@@ -2,14 +2,13 @@
 pragma solidity 0.8.19;
 
 import "@forge-std/src/Test.sol";
-
+import "src/interfaces/IGaugeController.sol";
+import "src/interfaces/IPendleGaugeController.sol";
+import "src/interfaces/IVePendle.sol";
 import "src/oracle/Oracle.sol";
 import "src/oracle/OracleLens.sol";
 import "src/verifiers/Verifier.sol";
 import "test/mocks/VerifierFactory.sol";
-import "src/interfaces/IGaugeController.sol";
-import "src/interfaces/IPendleGaugeController.sol";
-import "src/interfaces/IVePendle.sol";
 
 abstract contract ProofCorrectnessTestPendle is Test, VerifierFactory {
     using RLPReader for bytes;

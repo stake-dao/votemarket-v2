@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import {IVerifierBase} from "test/mocks/IVerifierBase.sol";
 import {Verifier} from "src/verifiers/Verifier.sol";
-import {VerifierV2} from "src/verifiers/VerifierV2.sol";
 import {VerifierPendle} from "src/verifiers/VerifierPendle.sol";
+import {VerifierV2} from "src/verifiers/VerifierV2.sol";
 import {VerifierYB} from "src/verifiers/VerifierYB.sol";
+import {IVerifierBase} from "test/mocks/IVerifierBase.sol";
 
 abstract contract VerifierFactory {
     function createVerifier(

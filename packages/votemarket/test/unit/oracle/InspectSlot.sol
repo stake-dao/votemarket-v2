@@ -17,17 +17,12 @@ contract InspectSlot is Test {
     function testFindOwnerSlot() external {
         IPendleVotingController controller = IPendleVotingController(TARGET);
         address expectedOwner = controller.owner();
-        console.logAddress(expectedOwner);
 
         for (uint256 i = 0; i < 20; i++) {
             bytes32 raw = vm.load(TARGET, bytes32(i));
             address decoded = address(uint160(uint256(raw)));
 
-            console.logUint(i);
-            console.logAddress(decoded);
             if (decoded == expectedOwner) {
-                console.log(i);
-
                 break;
             }
         }

@@ -146,7 +146,7 @@ contract ClaimTest is BaseTest {
         votemarket.claim(campaignId, currentEpoch, "", address(this));
 
         uint256 expectedRewardPerVote = 0;
-        if(ACCOUNT_VOTES > 0) {
+        if (ACCOUNT_VOTES > 0) {
             expectedRewardPerVote = (TOTAL_REWARD_AMOUNT / 4).mulDiv(1e18, ACCOUNT_VOTES);
         }
         uint256 expectedClaim = ACCOUNT_VOTES.mulDiv(expectedRewardPerVote, 1e18);
@@ -209,9 +209,9 @@ contract ClaimTest is BaseTest {
 
         vm.prank(address(0xBEEF));
         uint256 claimed = votemarket.claim(campaignId, address(this), currentEpoch, "");
-        
-        if(ACCOUNT_VOTES == 0) {
-            assertEq(claimed, 0);    
+
+        if (ACCOUNT_VOTES == 0) {
+            assertEq(claimed, 0);
         } else {
             assertGt(claimed, 0);
         }
@@ -269,7 +269,7 @@ contract ReentrancyAttacker {
         SafeTransferLib.safeTransfer(token, to, amount);
     }
 
-    fallback() external {
+    fallback() external payable {
         votemarket.claim(0, 0, "", address(this));
     }
 }
