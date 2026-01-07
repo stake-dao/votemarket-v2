@@ -1,0 +1,53 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["node_modules"]
+solc = "0.8.28"
+evm_version = "cancun"
+verbosity = 2
+optimizer = true
+optimizer_runs = 200
+
+[profile.default.fuzz]
+runs = 50
+
+[profile.default.invariant]
+depth = 10
+fail_on_revert = true
+call_override = false
+dictionary_weight = 80
+include_storage = true
+include_push_bytes = true
+
+[profile.default.lint]
+# https://github.com/foundry-rs/foundry/issues/12117
+lint_on_build = false
+
+[profile.ci]
+verbosity = 4
+
+[etherscan]
+bnb = { key = "${ETHERSCAN_KEY}", chain = 56 }
+frax = { key = "${ETHERSCAN_KEY}", chain = 252 }
+base = { key = "${ETHERSCAN_KEY}", chain = 8453 }
+mainnet = { key = "${ETHERSCAN_KEY}", chain = 1 }
+arbitrum = { key = "${ETHERSCAN_KEY}", chain = 42161 }
+optimism = { key = "${ETHERSCAN_KEY}", chain = 10 }
+polygon = { key = "${ETHERSCAN_KEY}", chain = 137 }
+sonic = { key = "${ETHERSCAN_KEY}", chain = 146 }
+taiko = { key = "${ETHERSCAN_KEY}", chain = 167000 }
+
+[rpc_endpoints]
+mainnet = "https://rpc.stakedao.org/main/evm/1"
+base = "https://rpc.stakedao.org/base/evm/8453"
+arbitrum = "https://rpc.stakedao.org/arbitrum/evm/42161"
+optimism = "https://rpc.stakedao.org/optimism/evm/10"
+frax = "https://rpc.stakedao.org/fraxtal/evm/252"
+sonic = "https://rpc.stakedao.org/sonic/evm/146"
+bnb = "https://rpc.stakedao.org/bsc/evm/56"
+etherlink = "https://rpc.stakedao.org/etherlink/evm/42793"
+polygon = "https://rpc.stakedao.org/polygon/evm/137"
+linea = "https://rpc.stakedao.org/linea/evm/59144"
+taiko = "https://rpc.stakedao.org/taiko/evm/167000"
+sepolia = "https://sepolia.gateway.tenderly.co"
+base-sepolia = "https://base-sepolia.gateway.tenderly.co"
