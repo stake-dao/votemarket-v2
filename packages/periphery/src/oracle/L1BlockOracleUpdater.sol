@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "src/interfaces/IL1Block.sol";
 import "src/interfaces/ILaPoste.sol";
@@ -193,10 +193,7 @@ contract L1BlockOracleUpdater {
                 oracles[i].insertBlockNumber(
                     epoch,
                     StateProofVerifier.BlockHeader({
-                        number: _l1BlockNumber,
-                        stateRootHash: bytes32(0),
-                        hash: _l1BlockHash,
-                        timestamp: _l1Timestamp
+                        number: _l1BlockNumber, stateRootHash: bytes32(0), hash: _l1BlockHash, timestamp: _l1Timestamp
                     })
                 );
             }
@@ -226,10 +223,7 @@ contract L1BlockOracleUpdater {
         for (uint256 i = 0; i < numChains;) {
             ILaPoste(LA_POSTE).sendMessage{value: msg.value / numChains}(
                 ILaPoste.MessageParams({
-                    destinationChainId: chainIds[i],
-                    to: address(this),
-                    tokens: new ILaPoste.Token[](0),
-                    payload: data
+                    destinationChainId: chainIds[i], to: address(this), tokens: new ILaPoste.Token[](0), payload: data
                 }),
                 additionalGasLimit,
                 msg.sender

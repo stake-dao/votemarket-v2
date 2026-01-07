@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.28;
 
-import {RLPReader} from "./RLPReader.sol";
 import {MerklePatriciaProofVerifier} from "./MerklePatriciaProofVerifier.sol";
+import {RLPReader} from "./RLPReader.sol";
 
 /**
  * @title A helper library for verification of Merkle Patricia account and state proofs.

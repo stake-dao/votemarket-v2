@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import {BaseV2} from "script/verifier/BaseV2.sol";
 
@@ -66,7 +66,7 @@ contract DeployV2 is BaseV2 {
 
         /// FXN
         bytes32 salt = bytes32("FXNVerifierV49798502ba35ab64b2");
-        bytes memory  initCode = getInitCodeV2(
+        bytes memory initCode = getInitCodeV2(
             FXN_ORACLE, FXN_GAUGE_CONTROLLER, FXN_LAST_USER_VOTE_SLOT, FXN_USER_SLOPE_SLOT, FXN_WEIGHT_SLOT
         );
         super.deploy({

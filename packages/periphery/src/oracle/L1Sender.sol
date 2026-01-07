@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "src/interfaces/ILaPoste.sol";
 import "@solady/src/auth/Ownable.sol";
@@ -53,10 +53,7 @@ contract L1Sender is Ownable {
         bytes memory payload = abi.encode(block.number - 1, blockhash(block.number - 1), block.timestamp);
 
         ILaPoste.MessageParams memory params = ILaPoste.MessageParams({
-            destinationChainId: chainId,
-            to: L1_BLOCK_ORACLE_UPDATER,
-            tokens: new ILaPoste.Token[](0),
-            payload: payload
+            destinationChainId: chainId, to: L1_BLOCK_ORACLE_UPDATER, tokens: new ILaPoste.Token[](0), payload: payload
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(params, additionalGasLimit, msg.sender);

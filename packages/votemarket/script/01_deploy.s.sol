@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.24;
+pragma solidity 0.8.28;
 
 import {Script, VmSafe} from "@forge-std/src/Script.sol";
 import {SafeCastLib} from "@solady/src/utils/SafeCastLib.sol";

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.24;
+pragma solidity 0.8.28;
 
 /// External Libraries
-import {StateProofVerifier, RLPReader} from "@utils/src/StateProofVerifier.sol";
+import {StateProofVerifier, RLPReader} from "src/utils/StateProofVerifier.sol";
 
 abstract contract RLPDecoder {
     function extractMappingValue(

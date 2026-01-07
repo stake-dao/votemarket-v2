@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@solady/src/utils/SafeTransferLib.sol";
 
@@ -49,10 +49,7 @@ abstract contract Bridge {
         }
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: receiver,
-            tokens: laPosteTokens,
-            payload: ""
+            destinationChainId: destinationChainId, to: receiver, tokens: laPosteTokens, payload: ""
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);

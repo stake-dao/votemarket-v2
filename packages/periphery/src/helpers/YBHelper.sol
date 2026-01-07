@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.25;
+pragma solidity 0.8.28;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -161,14 +161,26 @@ contract DepositHelper {
     }
 
     function getLastReward() external view returns (address[] memory gauges, uint256[] memory amounts, uint256 epoch) {
-        if(lastReward[lastReward.length - 1].epoch < (block.timestamp / 604800) * 604800) {
-            return (lastReward[lastReward.length - 1].gauges, lastReward[lastReward.length - 1].amounts, lastReward[lastReward.length - 1].epoch);
+        if (lastReward[lastReward.length - 1].epoch < (block.timestamp / 604800) * 604800) {
+            return (
+                lastReward[lastReward.length - 1].gauges,
+                lastReward[lastReward.length - 1].amounts,
+                lastReward[lastReward.length - 1].epoch
+            );
         } else {
-            return (lastReward[lastReward.length - 2].gauges, lastReward[lastReward.length - 2].amounts, lastReward[lastReward.length - 2].epoch);
+            return (
+                lastReward[lastReward.length - 2].gauges,
+                lastReward[lastReward.length - 2].amounts,
+                lastReward[lastReward.length - 2].epoch
+            );
         }
     }
 
-    function getRewardByIndex(uint256 _index) external view returns (address[] memory gauges, uint256[] memory amounts, uint256 epoch) {
+    function getRewardByIndex(uint256 _index)
+        external
+        view
+        returns (address[] memory gauges, uint256[] memory amounts, uint256 epoch)
+    {
         return (lastReward[_index].gauges, lastReward[_index].amounts, lastReward[_index].epoch);
     }
 
@@ -215,20 +227,18 @@ contract DepositHelper {
             });
 
             CampaignRemoteManager(campaignRemoteManager)
-            .createCampaign{
-                value: additionalGasLimit * gasSettings.gasPrice
-            }(params, DESTINATION_CHAIN_ID, additionalGasLimit, votemarket);
+            .createCampaign{value: additionalGasLimit * gasSettings.gasPrice}(
+                params, DESTINATION_CHAIN_ID, additionalGasLimit, votemarket
+            );
 
             emit DepositForGauge(currentWeights.gauges[i], amount, currentEpoch);
             assignedAmount += amount;
             amounts[i] = amount;
         }
         // Record last reward for efficiency calculations
-        lastReward.push(LastReward({
-            gauges: currentWeights.gauges,
-            amounts: amounts,
-            epoch: (block.timestamp / 604800) * 604800
-        }));
+        lastReward.push(
+            LastReward({gauges: currentWeights.gauges, amounts: amounts, epoch: (block.timestamp / 604800) * 604800})
+        );
     }
 
     // --- Owner functions ---
@@ -315,7 +325,7 @@ contract DepositHelper {
         emit UpdatedGasSettings(_campaignCreationGas, _blacklistedAddressGas, _gasPrice);
     }
 
-     /**
+    /**
      * @notice Set the current weights to apply rewards to gauges
      * @param _gauges The list of gauge addresses
      * @param _weights The list of weights to apply to each gauge, in same order
@@ -323,35 +333,32 @@ contract DepositHelper {
      * @dev All gauges must be pre-approved with addApprovedGauge()
      */
     function setWeights(address[] memory _gauges, uint16[] memory _weights) external onlyManager {
-        if(_gauges.length != _weights.length) revert INVALID_PARAMETER();
+        if (_gauges.length != _weights.length) revert INVALID_PARAMETER();
         uint16 totalWeight = 0;
         uint160 addressHeight;
 
-        for(uint256 i = 0; i < _gauges.length; i++) {
-            if(!isApprovedGauge[_gauges[i]]) revert NOT_APPROVED_GAUGE();
+        for (uint256 i = 0; i < _gauges.length; i++) {
+            if (!isApprovedGauge[_gauges[i]]) revert NOT_APPROVED_GAUGE();
             uint160 height = uint160(_gauges[i]);
-            if(height <= addressHeight) revert NOT_SORTED_ADDRESSES();
-            if(_weights[i] == 0) revert NO_WEIGHTS();
+            if (height <= addressHeight) revert NOT_SORTED_ADDRESSES();
+            if (_weights[i] == 0) revert NO_WEIGHTS();
             addressHeight = height;
             totalWeight += _weights[i];
         }
-        if(totalWeight != MAX_GAUGE_WEIGHT) revert INVALID_PARAMETER();
-        currentWeights = CurrentWeights({
-            gauges: _gauges,
-            weights: _weights
-        });
+        if (totalWeight != MAX_GAUGE_WEIGHT) revert INVALID_PARAMETER();
+        currentWeights = CurrentWeights({gauges: _gauges, weights: _weights});
         emit UpdatedWeights(_gauges, _weights);
     }
 
     /**
      * @notice Sets the list of blacklisted voters
      * @param _excludeAddresses The list of addresses to blacklist from rewards
-     * @dev blacklist length is limited 
+     * @dev blacklist length is limited
      */
     function setExcludeAddresses(address[] memory _excludeAddresses) external onlyManager {
-        if(_excludeAddresses.length > MAX_BLACKLIST_LENGTH) revert INVALID_PARAMETER();
-        for(uint256 i = 1; i < _excludeAddresses.length; i++) {
-            if(_excludeAddresses[i] <= _excludeAddresses[i-1]) revert NOT_SORTED_ADDRESSES();
+        if (_excludeAddresses.length > MAX_BLACKLIST_LENGTH) revert INVALID_PARAMETER();
+        for (uint256 i = 1; i < _excludeAddresses.length; i++) {
+            if (_excludeAddresses[i] <= _excludeAddresses[i - 1]) revert NOT_SORTED_ADDRESSES();
         }
         excludeAddresses = _excludeAddresses;
         emit UpdatedExclusions(_excludeAddresses);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.24;
+pragma solidity 0.8.28;
 
 ///  Project Interfaces & Libraries
-import {StateProofVerifier} from "@utils/src/StateProofVerifier.sol";
 import {IOracle} from "src/interfaces/IOracle.sol";
+import {StateProofVerifier} from "src/utils/StateProofVerifier.sol";
 import {RLPReader, RLPDecoderV2} from "src/verifiers/RLPDecoderV2.sol";
 
 /// @title Verifier

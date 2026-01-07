@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.24;
+pragma solidity 0.8.28;
 
-import {StateProofVerifier} from "@utils/src/StateProofVerifier.sol";
+import {StateProofVerifier} from "src/utils/StateProofVerifier.sol";
 
 /// @notice Oracle contract to store voting values from the Gauge Controller.
 contract Oracle {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@forge-std/src/Test.sol";
 import "@solady/src/auth/Ownable.sol";
@@ -84,14 +84,14 @@ contract CampaignRemoteManagerTest is Test {
         assertEq(rewardToken.balanceOf(address(campaignRemoteManager)), 0);
         assertEq(rewardToken.balanceOf(address(0xCAFE)), 1000e18);
 
-        CampaignRemoteManager.CampaignManagementParams memory managementParams = CampaignRemoteManager
-            .CampaignManagementParams({
-            campaignId: 1,
-            rewardToken: address(rewardToken),
-            numberOfPeriods: 2,
-            totalRewardAmount: 1000e18,
-            maxRewardPerVote: 1000e18
-        });
+        CampaignRemoteManager.CampaignManagementParams memory managementParams =
+            CampaignRemoteManager.CampaignManagementParams({
+                campaignId: 1,
+                rewardToken: address(rewardToken),
+                numberOfPeriods: 2,
+                totalRewardAmount: 1000e18,
+                maxRewardPerVote: 1000e18
+            });
 
         rewardToken.mint(address(this), 1000e18);
         rewardToken.approve(address(campaignRemoteManager), 1000e18);
@@ -171,14 +171,14 @@ contract CampaignRemoteManagerTest is Test {
         assertEq(votemarket.getCampaign(0).maxRewardPerVote, params.maxRewardPerVote);
         assertEq(votemarket.getCampaign(0).totalRewardAmount, params.totalRewardAmount);
 
-        CampaignRemoteManager.CampaignManagementParams memory managementParams = CampaignRemoteManager
-            .CampaignManagementParams({
-            campaignId: 0,
-            rewardToken: address(rewardToken),
-            numberOfPeriods: 2,
-            totalRewardAmount: 1000e18,
-            maxRewardPerVote: 1000e18
-        });
+        CampaignRemoteManager.CampaignManagementParams memory managementParams =
+            CampaignRemoteManager.CampaignManagementParams({
+                campaignId: 0,
+                rewardToken: address(rewardToken),
+                numberOfPeriods: 2,
+                totalRewardAmount: 1000e18,
+                maxRewardPerVote: 1000e18
+            });
 
         bytes memory managementParameters = abi.encode(managementParams);
         bytes memory managementPayload = abi.encode(
@@ -360,14 +360,14 @@ contract CampaignRemoteManagerTest is Test {
         receiveMessage(1, address(campaignRemoteManager), closePayload);
 
         // Verify campaign is closed by checking if we can manage it (should revert)
-        CampaignRemoteManager.CampaignManagementParams memory managementParams = CampaignRemoteManager
-            .CampaignManagementParams({
-            campaignId: 0,
-            rewardToken: address(rewardToken),
-            numberOfPeriods: 2,
-            totalRewardAmount: 1000e18,
-            maxRewardPerVote: 1000e18
-        });
+        CampaignRemoteManager.CampaignManagementParams memory managementParams =
+            CampaignRemoteManager.CampaignManagementParams({
+                campaignId: 0,
+                rewardToken: address(rewardToken),
+                numberOfPeriods: 2,
+                totalRewardAmount: 1000e18,
+                maxRewardPerVote: 1000e18
+            });
 
         bytes memory managementParameters = abi.encode(managementParams);
         bytes memory managementPayload = abi.encode(

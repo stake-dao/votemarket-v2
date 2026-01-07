@@ -2,7 +2,7 @@
 src = "src"
 out = "out"
 libs = ["node_modules"]
-auto_detect_solc = true
+solc = "0.8.28"
 
 # Enables to use python scripts in forge tests.
 ffi = true

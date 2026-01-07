@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@solady/src/utils/SafeTransferLib.sol";
 import "@votemarket/src/interfaces/IVotemarket.sol";
@@ -19,7 +19,6 @@ contract IncentiveGaugeHook {
     /// -----------------------------------------------------------------------
     /// Governance state
     /// -----------------------------------------------------------------------
-
     /// @notice Active governance address with full administrative control
     address public governance;
 
@@ -46,10 +45,10 @@ contract IncentiveGaugeHook {
     /// @notice Structure for incentives pending bridging
     /// @dev Stores all necessary information to bridge a leftover to mainnet
     struct PendingIncentive {
-        address votemarket;   // Votemarket contract that generated the leftover
-        uint256 campaignId;   // Campaign ID within the votemarket
-        address rewardToken;  // Reward token address on the current L2
-        uint256 leftover;     // Amount of leftover reward tokens to bridge
+        address votemarket; // Votemarket contract that generated the leftover
+        uint256 campaignId; // Campaign ID within the votemarket
+        address rewardToken; // Reward token address on the current L2
+        uint256 leftover; // Amount of leftover reward tokens to bridge
     }
 
     /// @notice Pending incentives organized by epoch and votemarket
@@ -68,12 +67,12 @@ contract IncentiveGaugeHook {
     /// Errors
     /// -----------------------------------------------------------------------
 
-    error AUTH_GOVERNANCE_ONLY();   // Thrown when caller is not governance
-    error ZERO_ADDRESS();           // Thrown when a required address is zero
-    error UNAUTHORIZED();           // Thrown when an address is not authorized
-    error UNAUTHORIZED_VOTEMARKET();// Thrown when caller is not an authorized votemarket
-    error INVALID_PAGINATION();     // Thrown when pagination parameters are invalid
-    error NO_INCENTIVES_TO_BRIDGE();// Thrown when there are no incentives in the specified range
+    error AUTH_GOVERNANCE_ONLY(); // Thrown when caller is not governance
+    error ZERO_ADDRESS(); // Thrown when a required address is zero
+    error UNAUTHORIZED(); // Thrown when an address is not authorized
+    error UNAUTHORIZED_VOTEMARKET(); // Thrown when caller is not an authorized votemarket
+    error INVALID_PAGINATION(); // Thrown when pagination parameters are invalid
+    error NO_INCENTIVES_TO_BRIDGE(); // Thrown when there are no incentives in the specified range
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -83,11 +82,7 @@ contract IncentiveGaugeHook {
     /// @param votemarket Address of the votemarket that generated the leftovers
     /// @param epoch Epoch of the incentives
     /// @param count Number of incentives bridged in this batch
-    event IncentivesBridged(
-        address indexed votemarket,
-        uint256 indexed epoch,
-        uint256 count
-    );
+    event IncentivesBridged(address indexed votemarket, uint256 indexed epoch, uint256 count);
 
     /// @notice Emitted for each individual incentive sent
     /// @param votemarket Address of the votemarket that generated the leftover
@@ -126,11 +121,11 @@ contract IncentiveGaugeHook {
     /// @notice Data sent in the payload to Merkl on mainnet
     /// @dev Encoded and passed through LaPoste bridge to configure the incentive on Merkl
     struct CrossChainIncentive {
-        address gauge;    // Gauge to incentivize on mainnet
-        address reward;   // Native ERC20 token (mainnet equivalent of the L2 token)
+        address gauge; // Gauge to incentivize on mainnet
+        address reward; // Native ERC20 token (mainnet equivalent of the L2 token)
         uint256 duration; // Duration of the incentive in seconds
-        uint256 amount;   // Amount of tokens to distribute as incentive
-        address manager;  // Address which will receive unused funds
+        uint256 amount; // Amount of tokens to distribute as incentive
+        address manager; // Address which will receive unused funds
     }
 
     /// -----------------------------------------------------------------------
@@ -186,7 +181,7 @@ contract IncentiveGaugeHook {
         // Check if the token reward is from mainnet
         (, address tokenFactory) = _get_addresses(IVotemarket(msg.sender));
         address nativeToken = ITokenFactory(tokenFactory).nativeTokens(_rewardToken);
-        if(nativeToken == address(0)) {
+        if (nativeToken == address(0)) {
             return;
         }
 
@@ -195,10 +190,7 @@ contract IncentiveGaugeHook {
 
         // Register pending incentive with all necessary information
         PendingIncentive memory pendingIncentive = PendingIncentive({
-            votemarket: msg.sender,
-            campaignId: _campaignId,
-            rewardToken: _rewardToken,
-            leftover: _leftover
+            votemarket: msg.sender, campaignId: _campaignId, rewardToken: _rewardToken, leftover: _leftover
         });
 
         // Store the pending incentive in the epoch mapping
@@ -215,18 +207,15 @@ contract IncentiveGaugeHook {
     /// @param from Starting index for pagination (inclusive)
     /// @param to Ending index for pagination (exclusive)
     /// @param additionalGasLimit Additional gas to add to the bridge transaction for execution on mainnet
-    function bridge(
-        address votemarket,
-        uint256 epoch,
-        uint256 from,
-        uint256 to,
-        uint256 additionalGasLimit
-    ) external payable {
+    function bridge(address votemarket, uint256 epoch, uint256 from, uint256 to, uint256 additionalGasLimit)
+        external
+        payable
+    {
         // Validate pagination parameters
         if (from >= to) revert INVALID_PAGINATION();
-        
+
         PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
-        
+
         if (to > incentives.length) revert INVALID_PAGINATION();
         if (from >= incentives.length) revert NO_INCENTIVES_TO_BRIDGE();
 
@@ -240,14 +229,10 @@ contract IncentiveGaugeHook {
     /// @param votemarket Address of the votemarket to bridge incentives for
     /// @param epoch Epoch of the incentives to bridge
     /// @param additionalGasLimit Additional gas to add to the bridge transaction for execution on mainnet
-    function bridgeAll(
-        address votemarket,
-        uint256 epoch,
-        uint256 additionalGasLimit
-    ) external payable {
+    function bridgeAll(address votemarket, uint256 epoch, uint256 additionalGasLimit) external payable {
         PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
         uint256 total = incentives.length;
-        
+
         if (total == 0) revert NO_INCENTIVES_TO_BRIDGE();
 
         _bridgeBatch(votemarket, epoch, 0, total, additionalGasLimit);
@@ -259,17 +244,13 @@ contract IncentiveGaugeHook {
     /// @param from Starting index
     /// @param to Ending index
     /// @param additionalGasLimit Additional gas limit
-    function _bridgeBatch(
-        address votemarket,
-        uint256 epoch,
-        uint256 from,
-        uint256 to,
-        uint256 additionalGasLimit
-    ) internal {
+    function _bridgeBatch(address votemarket, uint256 epoch, uint256 from, uint256 to, uint256 additionalGasLimit)
+        internal
+    {
         PendingIncentive[] storage incentives = pendingIncentivesByEpoch[epoch][votemarket];
 
         IVotemarket vm = IVotemarket(votemarket);
-        
+
         // Resolve bridge infrastructure contracts (LaPoste and TokenFactory)
         (address laPoste, address tokenFactory) = _get_addresses(vm);
 
@@ -284,7 +265,7 @@ contract IncentiveGaugeHook {
         // Prepare complete bridge message with batched data
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
             destinationChainId: 1, // Ethereum mainnet
-            to: merkl,             // Merkl contract receives the incentive
+            to: merkl, // Merkl contract receives the incentive
             tokens: laPosteTokens, // Batched tokens to bridge
             payload: abi.encode(crossChainIncentives) // Encoded array of incentive data
         });
@@ -321,21 +302,18 @@ contract IncentiveGaugeHook {
     ) internal {
         for (uint256 i = from; i < to; i++) {
             PendingIncentive memory pendingIncentive = incentives[i];
-            
+
             // Retrieve gauge address from the campaign
             address gauge = vm.getCampaign(pendingIncentive.campaignId).gauge;
             address manager = vm.getCampaign(pendingIncentive.campaignId).manager;
-            
+
             // Map L2 token to its native mainnet equivalent
             address nativeToken = ITokenFactory(tokenFactory).nativeTokens(pendingIncentive.rewardToken);
 
             uint256 arrayIndex = i - from;
 
             // Prepare token for bridging
-            laPosteTokens[arrayIndex] = ILaPoste.Token({
-                tokenAddress: nativeToken,
-                amount: pendingIncentive.leftover
-            });
+            laPosteTokens[arrayIndex] = ILaPoste.Token({tokenAddress: nativeToken, amount: pendingIncentive.leftover});
 
             // Prepare cross-chain incentive data
             crossChainIncentives[arrayIndex] = CrossChainIncentive({
@@ -389,10 +367,10 @@ contract IncentiveGaugeHook {
     /// @param votemarket The votemarket address
     /// @param index The index of the incentive
     /// @return The pending incentive details
-    function getPendingIncentive(uint256 epoch, address votemarket, uint256 index) 
-        external 
-        view 
-        returns (PendingIncentive memory) 
+    function getPendingIncentive(uint256 epoch, address votemarket, uint256 index)
+        external
+        view
+        returns (PendingIncentive memory)
     {
         return pendingIncentivesByEpoch[epoch][votemarket][index];
     }

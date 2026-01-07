@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@forge-std/src/Script.sol";
 import {IncentiveGaugeHook} from "src/hooks/IncentiveGaugeHook.sol";
@@ -15,11 +15,7 @@ contract DeployIncentiveGaugeHook is Script {
         vm.startBroadcast(deployer);
 
         // Deploy hook
-        bytes memory args = abi.encode(
-            deployer,
-            604800,
-            0xf7753e64debD4548a6Cdb964D77b0CC408440E13
-        );
+        bytes memory args = abi.encode(deployer, 604800, 0xf7753e64debD4548a6Cdb964D77b0CC408440E13);
 
         ImmutableCreate2Factory factory = ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
 
@@ -28,7 +24,7 @@ contract DeployIncentiveGaugeHook is Script {
         bytes32 salt = bytes32(
             abi.encodePacked(
                 bytes20(deployer), // must match caller
-                uint96(1)            // free entropy
+                uint96(1) // free entropy
             )
         );
 

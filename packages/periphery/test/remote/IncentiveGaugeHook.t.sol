@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@forge-std/src/Test.sol";
 import "@solady/src/auth/Ownable.sol";
@@ -42,7 +42,7 @@ contract IncentiveGaugeHookTest is Test {
             _minimumPeriods: 2
         });
 
-        incentiveGaugeHook = new IncentiveGaugeHook(address(this), 7*3600, MERKL);
+        incentiveGaugeHook = new IncentiveGaugeHook(address(this), 7 * 3600, MERKL);
 
         campaignRemoteManager =
             new CampaignRemoteManager({_laPoste: address(this), _tokenFactory: address(this), _owner: address(this)});
@@ -119,12 +119,12 @@ contract IncentiveGaugeHookTest is Test {
         uint256 currentEpoch = votemarket.currentEpoch();
         uint256 nbPendingIncentives = incentiveGaugeHook.getPendingIncentivesCount(currentEpoch, address(votemarket));
         assertEq(1, nbPendingIncentives);
-        assertEq(wrappedToken.balanceOf(address(incentiveGaugeHook)), rewardPerPeriod-NB_VOTES);
+        assertEq(wrappedToken.balanceOf(address(incentiveGaugeHook)), rewardPerPeriod - NB_VOTES);
 
         // Check pending incentive
         uint256 amount = incentiveGaugeHook.getPendingIncentive(currentEpoch, address(votemarket), 0).leftover;
         assertEq(wrappedToken.balanceOf(address(incentiveGaugeHook)), amount);
-        assertEq(amount, rewardPerPeriod-NB_VOTES);
+        assertEq(amount, rewardPerPeriod - NB_VOTES);
 
         // Bridge incentive funds
         incentiveGaugeHook.bridgeAll(address(votemarket), currentEpoch, 1_000_000);
@@ -132,7 +132,8 @@ contract IncentiveGaugeHookTest is Test {
         // Should have 1 pending but everything at 0
         nbPendingIncentives = incentiveGaugeHook.getPendingIncentivesCount(currentEpoch, address(votemarket));
         assertEq(1, nbPendingIncentives);
-        uint256 amountAfterBridge = incentiveGaugeHook.getPendingIncentive(currentEpoch, address(votemarket), 0).leftover;
+        uint256 amountAfterBridge =
+            incentiveGaugeHook.getPendingIncentive(currentEpoch, address(votemarket), 0).leftover;
         assertEq(0, amountAfterBridge);
 
         // We should have the funds in the merkl contract
@@ -145,7 +146,7 @@ contract IncentiveGaugeHookTest is Test {
         payable
     {
         // If it's the hook, burn wrapped token and send to the merkl the funds
-        if(msg.sender == address(incentiveGaugeHook)) {
+        if (msg.sender == address(incentiveGaugeHook)) {
             for (uint256 i = 0; i < params.tokens.length; i++) {
                 wrappedToken.burn(msg.sender, params.tokens[i].amount);
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.19;
+pragma solidity 0.8.28;
 
 import "@forge-std/src/Script.sol";
 
@@ -37,7 +37,6 @@ abstract contract BaseV2 is Script {
             vm.startBroadcast(deployer);
 
             ICreate3Factory(CREATE3_FACTORY).deployCreate3(salt, initCode);
-
 
             //Oracle(oracle).revokeAuthorizedDataProvider(address(oldVerifier));
             //Oracle(oracle).setAuthorizedDataProvider(address(verifierAddress));

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.28;
 
 import "@solady/src/auth/Ownable.sol";
 import "@solady/src/utils/SafeTransferLib.sol";
@@ -150,10 +150,7 @@ contract CampaignRemoteManager is Ownable {
         );
 
         SafeTransferLib.safeTransferFrom({
-            token: params.rewardToken,
-            from: msg.sender,
-            to: address(this),
-            amount: params.totalRewardAmount
+            token: params.rewardToken, from: msg.sender, to: address(this), amount: params.totalRewardAmount
         });
 
         SafeTransferLib.safeApprove({token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount});
@@ -162,10 +159,7 @@ contract CampaignRemoteManager is Ownable {
         tokens[0] = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: address(this),
-            tokens: tokens,
-            payload: payload
+            destinationChainId: destinationChainId, to: address(this), tokens: tokens, payload: payload
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
@@ -206,20 +200,16 @@ contract CampaignRemoteManager is Ownable {
             tokens[0] = ILaPoste.Token({tokenAddress: params.rewardToken, amount: params.totalRewardAmount});
 
             SafeTransferLib.safeTransferFrom({
-                token: params.rewardToken,
-                from: msg.sender,
-                to: address(this),
-                amount: params.totalRewardAmount
+                token: params.rewardToken, from: msg.sender, to: address(this), amount: params.totalRewardAmount
             });
 
-            SafeTransferLib.safeApprove({token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount});
+            SafeTransferLib.safeApprove({
+                token: params.rewardToken, to: TOKEN_FACTORY, amount: params.totalRewardAmount
+            });
         }
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: address(this),
-            tokens: tokens,
-            payload: payload
+            destinationChainId: destinationChainId, to: address(this), tokens: tokens, payload: payload
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
@@ -254,10 +244,7 @@ contract CampaignRemoteManager is Ownable {
         );
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: address(this),
-            tokens: new ILaPoste.Token[](0),
-            payload: payload
+            destinationChainId: destinationChainId, to: address(this), tokens: new ILaPoste.Token[](0), payload: payload
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
@@ -290,10 +277,7 @@ contract CampaignRemoteManager is Ownable {
         );
 
         ILaPoste.MessageParams memory messageParams = ILaPoste.MessageParams({
-            destinationChainId: destinationChainId,
-            to: address(this),
-            tokens: new ILaPoste.Token[](0),
-            payload: payload
+            destinationChainId: destinationChainId, to: address(this), tokens: new ILaPoste.Token[](0), payload: payload
         });
 
         ILaPoste(LA_POSTE).sendMessage{value: msg.value}(messageParams, additionalGasLimit, msg.sender);
@@ -318,20 +302,23 @@ contract CampaignRemoteManager is Ownable {
 
             address wrappedToken = ITokenFactory(TOKEN_FACTORY).wrappedTokens(params.rewardToken);
 
-            SafeTransferLib.safeApprove({token: wrappedToken, to: _payload.votemarket, amount: params.totalRewardAmount});
-
-            IVotemarket(_payload.votemarket).createCampaign({
-                chainId: params.chainId,
-                gauge: params.gauge,
-                manager: params.manager,
-                rewardToken: wrappedToken,
-                numberOfPeriods: params.numberOfPeriods,
-                maxRewardPerVote: params.maxRewardPerVote,
-                totalRewardAmount: params.totalRewardAmount,
-                addresses: params.addresses,
-                hook: params.hook,
-                whitelist: params.isWhitelist
+            SafeTransferLib.safeApprove({
+                token: wrappedToken, to: _payload.votemarket, amount: params.totalRewardAmount
             });
+
+            IVotemarket(_payload.votemarket)
+                .createCampaign({
+                    chainId: params.chainId,
+                    gauge: params.gauge,
+                    manager: params.manager,
+                    rewardToken: wrappedToken,
+                    numberOfPeriods: params.numberOfPeriods,
+                    maxRewardPerVote: params.maxRewardPerVote,
+                    totalRewardAmount: params.totalRewardAmount,
+                    addresses: params.addresses,
+                    hook: params.hook,
+                    whitelist: params.isWhitelist
+                });
         } else if (_payload.actionType == ActionType.MANAGE_CAMPAIGN) {
             CampaignManagementParams memory params = abi.decode(_payload.parameters, (CampaignManagementParams));
             Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(params.campaignId);
@@ -342,15 +329,14 @@ contract CampaignRemoteManager is Ownable {
                 if (campaign.rewardToken != wrappedToken) revert InvalidRewardToken();
 
                 SafeTransferLib.safeApprove({
-                    token: wrappedToken,
-                    to: _payload.votemarket,
-                    amount: params.totalRewardAmount
+                    token: wrappedToken, to: _payload.votemarket, amount: params.totalRewardAmount
                 });
             }
 
-            IVotemarket(_payload.votemarket).manageCampaign(
-                params.campaignId, params.numberOfPeriods, params.totalRewardAmount, params.maxRewardPerVote
-            );
+            IVotemarket(_payload.votemarket)
+                .manageCampaign(
+                    params.campaignId, params.numberOfPeriods, params.totalRewardAmount, params.maxRewardPerVote
+                );
         } else if (_payload.actionType == ActionType.CLOSE_CAMPAIGN) {
             CampaignClosingParams memory params = abi.decode(_payload.parameters, (CampaignClosingParams));
             Campaign memory campaign = IVotemarket(_payload.votemarket).getCampaign(params.campaignId);
