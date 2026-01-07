@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Script.sol";
-
-import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
-import {Verifier} from "@votemarket/src/verifiers/Verifier.sol";
-import {VerifierV2} from "@votemarket/src/verifiers/VerifierV2.sol";
+import {Script} from "@forge-std/src/Script.sol";
+import {Oracle} from "src/oracle/Oracle.sol";
+import {Verifier} from "src/verifiers/Verifier.sol";
+import {VerifierV2} from "src/verifiers/VerifierV2.sol";
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Script.sol";
+import {Script} from "@forge-std/src/Script.sol";
 import {BasePendle} from "script/initial/votemarket/BasePendle.sol";
 
 contract DeployPendle is BasePendle {

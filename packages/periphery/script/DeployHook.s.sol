@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Script.sol";
-
-import {LeftoverDistributorHook} from "@periphery/src/hooks/LeftoverDistributorHook.sol";
+import {Script} from "@forge-std/src/Script.sol";
+import {LeftoverDistributorHook} from "src/hooks/LeftoverDistributorHook.sol";
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);
 }
 
-contract Deploy is Script {
+contract DeployHook is Script {
     address public deployer = 0x606A503e5178908F10597894B35b2Be8685EAB90;
     address public governance = 0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765;
 

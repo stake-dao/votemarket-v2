@@ -1,6 +1,0 @@
-@solady=node_modules/solady/
-@forge-std=node_modules/forge-std/
-@votemarket/=node_modules/@stake-dao/votemarket/
-node_modules/@stake-dao/votemarket/:src=node_modules/@stake-dao/votemarket/src
-@periphery/=node_modules/@stake-dao/periphery/
-node_modules/@stake-dao/periphery/:src=node_modules/@stake-dao/periphery/src

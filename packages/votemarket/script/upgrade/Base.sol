@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity 0.8.28;
 
-import "@forge-std/src/Script.sol";
-
-import {Oracle} from "@votemarket/src/oracle/Oracle.sol";
-import {VerifierV2} from "@votemarket/src/verifiers/VerifierV2.sol";
-import {OracleLens} from "@votemarket/src/oracle/OracleLens.sol";
-
-import {Votemarket} from "@votemarket/src/Votemarket.sol";
-
-import {L1Sender} from "@periphery/src/oracle/L1Sender.sol";
+import {Script} from "@forge-std/src/Script.sol";
+import {Votemarket} from "src/Votemarket.sol";
 
 interface ICreate3Factory {
     function deployCreate3(bytes32 salt, bytes memory code) external returns (address);

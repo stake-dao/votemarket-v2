@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity 0.8.28;
 
-import "@forge-std/src/Script.sol";
-import "./FakeToken.sol";
+import {Script} from "@forge-std/src/Script.sol";
+import {FakeToken} from "script/fake_token/FakeToken.sol";
 
 contract DeployFakeToken is Script {
     function run() external {
