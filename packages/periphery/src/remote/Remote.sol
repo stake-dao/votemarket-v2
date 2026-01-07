@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "@solady/src/utils/SafeTransferLib.sol";
+import {SafeTransferLib} from "@solady/src/utils/SafeTransferLib.sol";
 
-import "src/interfaces/ILaPoste.sol";
-import "src/interfaces/ITokenFactory.sol";
+import {ILaPoste} from "src/interfaces/ILaPoste.sol";
 
 /// @notice A module for sending and receiving messages from La Poste.
 abstract contract Remote {
@@ -43,8 +42,8 @@ abstract contract Remote {
         _;
     }
 
-    modifier onlyValidChainId(uint256 _chainId) {
-        if (_chainId != CHAIN_ID) revert InvalidChainId();
+    modifier onlyValidChainId() {
+        if (block.chainid != CHAIN_ID) revert InvalidChainId();
         _;
     }
 
@@ -59,35 +58,42 @@ abstract contract Remote {
     /// @param tokens The tokens
     /// @param amounts The amounts
     /// @param additionalGasLimit The additional gas limit
+    /// @custom:throws ArrayLengthMismatch If `tokens` and `amounts` do not have the same length
     function _sendMessage(
         bytes memory payload,
         address[] memory tokens,
         uint256[] memory amounts,
         uint256 additionalGasLimit
     ) internal {
-        if (tokens.length != amounts.length) revert ArrayLengthMismatch();
+        uint256 tokenLength = tokens.length;
+        if (tokenLength != amounts.length) revert ArrayLengthMismatch();
 
-        ILaPoste.Token[] memory pTokens = new ILaPoste.Token[](tokens.length);
+        ILaPoste.Token[] memory pTokens = new ILaPoste.Token[](tokenLength);
 
-        for (uint256 i = 0; i < tokens.length; i++) {
-            SafeTransferLib.safeTransferFrom({token: tokens[i], from: msg.sender, to: address(this), amount: amounts[i]});
+        for (uint256 i; i < tokenLength;) {
+            address token = tokens[i];
+            uint256 amount = amounts[i];
+            SafeTransferLib.safeTransferFrom({token: token, from: msg.sender, to: address(this), amount: amount});
+            pTokens[i] = ILaPoste.Token({tokenAddress: token, amount: amount});
 
-            pTokens[i] = ILaPoste.Token({tokenAddress: tokens[i], amount: amounts[i]});
+            unchecked {
+                i++;
+            }
         }
 
         uint256 numDestinationChainIds = destinationChainIds.length;
         ILaPoste.MessageParams memory messageParams;
-        for (uint256 i = 0; i < numDestinationChainIds; i++) {
+        for (uint256 i; i < numDestinationChainIds;) {
             messageParams = ILaPoste.MessageParams({
-                destinationChainId: destinationChainIds[i],
-                to: address(this),
-                tokens: pTokens,
-                payload: payload
+                destinationChainId: destinationChainIds[i], to: address(this), tokens: pTokens, payload: payload
             });
-
             ILaPoste(LA_POSTE).sendMessage{value: msg.value / numDestinationChainIds}(
                 messageParams, additionalGasLimit, msg.sender
             );
+
+            unchecked {
+                i++;
+            }
         }
     }
 

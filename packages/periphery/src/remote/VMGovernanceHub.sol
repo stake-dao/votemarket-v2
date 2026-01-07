@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.19;
 
-import "@solady/src/auth/Ownable.sol";
-import "@solady/src/utils/SafeTransferLib.sol";
-import "@votemarket/src/interfaces/IVotemarket.sol";
-import "@votemarket/src/interfaces/IOracle.sol";
-
-import "src/remote/Remote.sol";
-import "src/interfaces/ILaPoste.sol";
-import "src/interfaces/ITokenFactory.sol";
+import {Ownable} from "@solady/src/auth/Ownable.sol";
+import {SafeTransferLib} from "@solady/src/utils/SafeTransferLib.sol";
+import {IVotemarket} from "@votemarket/src/interfaces/IVotemarket.sol";
+import {IOracle} from "@votemarket/src/interfaces/IOracle.sol";
+import {Remote} from "src/remote/Remote.sol";
 
 /// @notice A module for creating and managing campaigns from L1.
 contract VMGovernanceHub is Remote, Ownable {
@@ -65,15 +62,17 @@ contract VMGovernanceHub is Remote, Ownable {
     ///////////////////////////////////////////////////////////////
 
     /// @notice Sets the is protected status for a list of accounts.
+    /// @param _votemarket The votemarket address.
     /// @param _accounts The accounts to set the is protected status for.
     /// @param _isProtected The is protected status.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setIsProtected(
         address _votemarket,
-        address[] memory _accounts,
+        address[] calldata _accounts,
         bool _isProtected,
         uint256 additionalGasLimit
-    ) external payable onlyValidChainId(block.chainid) onlyOwner {
+    ) external payable onlyValidChainId onlyOwner {
         bytes memory parameters = abi.encode(_votemarket, _accounts, _isProtected);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_IS_PROTECTED, parameters: parameters}));
 
@@ -83,12 +82,8 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the remote address.
     /// @param _remote The remote address.
     /// @param additionalGasLimit The additional gas limit.
-    function setRemote(address _remote, uint256 additionalGasLimit)
-        external
-        payable
-        onlyOwner
-        onlyValidChainId(block.chainid)
-    {
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
+    function setRemote(address _remote, uint256 additionalGasLimit) external payable onlyOwner onlyValidChainId {
         bytes memory parameters = abi.encode(_remote);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_REMOTE, parameters: parameters}));
 
@@ -98,6 +93,7 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the fee.
     /// @param _fee The fee.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setFee(uint256 _fee, uint256 additionalGasLimit) external payable onlyOwner {
         bytes memory parameters = abi.encode(_fee);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE, parameters: parameters}));
@@ -106,15 +102,17 @@ contract VMGovernanceHub is Remote, Ownable {
     }
 
     /// @notice Sets the custom fee for a list of accounts.
+    /// @param _votemarket The votemarket address.
     /// @param _accounts The accounts to set the custom fee for.
     /// @param _fees The custom fees.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setCustomFee(
         address _votemarket,
-        address[] memory _accounts,
-        uint256[] memory _fees,
+        address[] calldata _accounts,
+        uint256[] calldata _fees,
         uint256 additionalGasLimit
-    ) external payable onlyOwner onlyValidChainId(block.chainid) {
+    ) external payable onlyOwner onlyValidChainId {
         bytes memory parameters = abi.encode(_votemarket, _accounts, _fees);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_CUSTOM_FEE, parameters: parameters}));
 
@@ -125,12 +123,13 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _accounts The accounts to set the recipient for.
     /// @param _recipient The recipient.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setRecipient(
         address _votemarket,
-        address[] memory _accounts,
+        address[] calldata _accounts,
         address _recipient,
         uint256 additionalGasLimit
-    ) external payable onlyOwner onlyValidChainId(block.chainid) {
+    ) external payable onlyOwner onlyValidChainId {
         bytes memory parameters = abi.encode(_votemarket, _accounts, _recipient);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_RECIPIENT, parameters: parameters}));
 
@@ -140,11 +139,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the fee collector.
     /// @param _feeCollector The fee collector.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setFeeCollector(address _feeCollector, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_feeCollector);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE_COLLECTOR, parameters: parameters}));
@@ -155,11 +155,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Transfers the governance role to a new owner.
     /// @param _futureGovernance The new owner.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function transferVotemarketGovernance(address _futureGovernance, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_futureGovernance);
         bytes memory payload =
@@ -170,6 +171,7 @@ contract VMGovernanceHub is Remote, Ownable {
 
     /// @notice Accepts the governance role.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function acceptVotemarketGovernance(uint256 additionalGasLimit) external payable onlyOwner {
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.ACCEPT_VOTEMARKET_GOVERNANCE, parameters: new bytes(0)}));
@@ -184,11 +186,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Sets the authorized block number provider.
     /// @param _blockNumberProvider The block number provider.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setAuthorizedBlockNumberProvider(address _oracle, address _blockNumberProvider, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_oracle, _blockNumberProvider);
         bytes memory payload =
@@ -201,11 +204,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _oracle The oracle.
     /// @param _blockNumberProvider The block number provider.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function revokeAuthorizedBlockNumberProvider(
         address _oracle,
         address _blockNumberProvider,
         uint256 additionalGasLimit
-    ) external payable onlyOwner onlyValidChainId(block.chainid) {
+    ) external payable onlyOwner onlyValidChainId {
         bytes memory parameters = abi.encode(_oracle, _blockNumberProvider);
         bytes memory payload = abi.encode(
             Payload({actionType: ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER, parameters: parameters})
@@ -218,11 +222,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _oracle The oracle.
     /// @param _dataProvider The data provider.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function setAuthorizedDataProvider(address _oracle, address _dataProvider, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_oracle, _dataProvider);
         bytes memory payload =
@@ -235,11 +240,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _oracle The oracle.
     /// @param _dataProvider The data provider.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function revokeAuthorizedDataProvider(address _oracle, address _dataProvider, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_oracle, _dataProvider);
         bytes memory payload =
@@ -251,11 +257,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Transfers the governance role to a new owner.
     /// @param _futureGovernance The new owner.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function transferOracleGovernance(address _futureGovernance, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
-        onlyValidChainId(block.chainid)
+        onlyValidChainId
     {
         bytes memory parameters = abi.encode(_futureGovernance);
         bytes memory payload =
@@ -266,6 +273,7 @@ contract VMGovernanceHub is Remote, Ownable {
 
     /// @notice Accepts the governance role.
     /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
     function acceptOracleGovernance(uint256 additionalGasLimit) external payable onlyOwner {
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.ACCEPT_ORACLE_GOVERNANCE, parameters: new bytes(0)}));
@@ -275,9 +283,9 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Adds a votemarket.
     /// @param _votemarkets The votemarkets.
     /// @param additionalGasLimit The additional gas limit.
-    function setVotemarkets(address[] memory _votemarkets, uint256 additionalGasLimit) external payable onlyOwner {
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
+    function setVotemarkets(address[] calldata _votemarkets, uint256 additionalGasLimit) external payable onlyOwner {
         /// 1. Update L1.
-        delete votemarkets;
         votemarkets = _votemarkets;
 
         /// 2. Send messages to L2 to synchronize state.
@@ -291,9 +299,9 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Adds an oracle.
     /// @param _oracles The oracles.
     /// @param additionalGasLimit The additional gas limit.
-    function setOracles(address[] memory _oracles, uint256 additionalGasLimit) external payable onlyOwner {
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
+    function setOracles(address[] calldata _oracles, uint256 additionalGasLimit) external payable onlyOwner {
         /// 1. Update L1.
-        delete oracles;
         oracles = _oracles;
 
         /// 3. Send messages to L2 to synchronize state.
@@ -304,13 +312,16 @@ contract VMGovernanceHub is Remote, Ownable {
         _dispatch(payload, additionalGasLimit);
     }
 
-    function setDestinationChainIds(uint256[] memory _destinationChainIds, uint256 additionalGasLimit)
+    /// @notice Adds destination chain ids.
+    /// @param _destinationChainIds The destination chain ids.
+    /// @param additionalGasLimit The additional gas limit.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
+    function setDestinationChainIds(uint256[] calldata _destinationChainIds, uint256 additionalGasLimit)
         external
         payable
         onlyOwner
     {
         /// 1. Update L1.
-        delete destinationChainIds;
         destinationChainIds = _destinationChainIds;
 
         /// 2. Send messages to L2 to synchronize state.
@@ -396,77 +407,110 @@ contract VMGovernanceHub is Remote, Ownable {
         (address _votemarket, address[] memory _accounts, bool _isProtected) =
             abi.decode(parameters, (address, address[], bool));
 
-        for (uint256 i = 0; i < _accounts.length; i++) {
+        uint256 accountLength = _accounts.length;
+        for (uint256 i; i < accountLength;) {
             IVotemarket(_votemarket).setIsProtected(_accounts[i], _isProtected);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleSetRemote(bytes memory parameters) internal {
         address _remote = abi.decode(parameters, (address));
-        for (uint256 i = 0; i < votemarkets.length; i++) {
+        uint256 votemarketLength = votemarkets.length;
+
+        for (uint256 i; i < votemarketLength;) {
             IVotemarket(votemarkets[i]).setRemote(_remote);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleSetFee(bytes memory parameters) internal {
         uint256 _fee = abi.decode(parameters, (uint256));
-        for (uint256 i = 0; i < votemarkets.length; i++) {
+        uint256 votemarketLength = votemarkets.length;
+
+        for (uint256 i; i < votemarketLength;) {
             IVotemarket(votemarkets[i]).setFee(_fee);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleSetCustomFee(bytes memory parameters) internal {
         (address votemarket, address[] memory _accounts, uint256[] memory _fees) =
             abi.decode(parameters, (address, address[], uint256[]));
-        for (uint256 i = 0; i < _accounts.length; i++) {
+        uint256 accountLength = _accounts.length;
+
+        for (uint256 i; i < accountLength;) {
             IVotemarket(votemarket).setCustomFee(_accounts[i], _fees[i]);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleSetRecipient(bytes memory parameters) internal {
         (address votemarket, address[] memory _accounts, address _recipient) =
             abi.decode(parameters, (address, address[], address));
-        for (uint256 i = 0; i < _accounts.length; i++) {
+        uint256 accountLength = _accounts.length;
+
+        for (uint256 i; i < accountLength;) {
             IVotemarket(votemarket).setRecipient(_accounts[i], _recipient);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleSetFeeCollector(bytes memory parameters) internal {
         (address _feeCollector) = abi.decode(parameters, (address));
-        for (uint256 i = 0; i < votemarkets.length; i++) {
+        uint256 votemarketLength = votemarkets.length;
+
+        for (uint256 i; i < votemarketLength;) {
             IVotemarket(votemarkets[i]).setFeeCollector(_feeCollector);
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleTransferGovernance(bytes memory parameters, address[] memory _entities) internal {
         address _futureGovernance = abi.decode(parameters, (address));
-        for (uint256 i = 0; i < _entities.length; i++) {
+        uint256 entityLength = _entities.length;
+
+        for (uint256 i; i < entityLength;) {
             IOracle(_entities[i]).transferGovernance(_futureGovernance);
+            unchecked {
+                i++;
+            }
         }
     }
 
-    function _handleAcceptGovernance(bytes memory parameters, address[] memory _entities) internal {
-        for (uint256 i = 0; i < _entities.length; i++) {
+    function _handleAcceptGovernance(bytes memory, address[] memory _entities) internal {
+        uint256 entityLength = _entities.length;
+
+        for (uint256 i; i < entityLength;) {
             IOracle(_entities[i]).acceptGovernance();
+            unchecked {
+                i++;
+            }
         }
     }
 
     function _handleAddVotemarket(bytes memory parameters) internal {
-        address[] memory _votemarkets = abi.decode(parameters, (address[]));
-        delete votemarkets;
-        votemarkets = _votemarkets;
+        votemarkets = abi.decode(parameters, (address[]));
     }
 
     function _handleAddOracle(bytes memory parameters) internal {
-        address[] memory _oracles = abi.decode(parameters, (address[]));
-        delete oracles;
-        oracles = _oracles;
+        oracles = abi.decode(parameters, (address[]));
     }
 
     function _handleAddDestinationChainId(bytes memory parameters) internal {
-        uint256[] memory _destinationChainIds = abi.decode(parameters, (uint256[]));
-        delete destinationChainIds;
-        destinationChainIds = _destinationChainIds;
+        destinationChainIds = abi.decode(parameters, (uint256[]));
     }
 
     function _handleSetAuthorizedBlockNumberProvider(bytes memory parameters) internal {
