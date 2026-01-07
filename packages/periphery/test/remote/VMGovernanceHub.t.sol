@@ -20,6 +20,8 @@ contract VMGovernanceHubTest is Test {
     Oracle oracle;
 
     function setUp() public {
+        vm.chainId(1);
+
         vmGovernanceHub =
             new VMGovernanceHub({_laPoste: address(this), _tokenFactory: address(this), _owner: address(this)});
 
@@ -195,8 +197,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(futureGovernance);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.TRANSFER_VOTEMARKET_GOVERNANCE,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.TRANSFER_VOTEMARKET_GOVERNANCE, parameters: parameters
             })
         );
 
@@ -219,8 +220,7 @@ contract VMGovernanceHubTest is Test {
 
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.ACCEPT_VOTEMARKET_GOVERNANCE,
-                parameters: ""
+                actionType: VMGovernanceHub.ActionType.ACCEPT_VOTEMARKET_GOVERNANCE, parameters: ""
             })
         );
 
@@ -238,8 +238,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(address(oracle), blockNumberProvider);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_BLOCK_NUMBER_PROVIDER,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_BLOCK_NUMBER_PROVIDER, parameters: parameters
             })
         );
 
@@ -258,8 +257,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(address(oracle), blockNumberProvider);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_BLOCK_NUMBER_PROVIDER, parameters: parameters
             })
         );
 
@@ -275,8 +273,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(address(oracle), dataProvider);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_DATA_PROVIDER,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.SET_AUTHORIZED_DATA_PROVIDER, parameters: parameters
             })
         );
 
@@ -295,8 +292,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(address(oracle), dataProvider);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_DATA_PROVIDER,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.REVOKE_AUTHORIZED_DATA_PROVIDER, parameters: parameters
             })
         );
 
@@ -312,8 +308,7 @@ contract VMGovernanceHubTest is Test {
         bytes memory parameters = abi.encode(futureGovernance);
         bytes memory payload = abi.encode(
             VMGovernanceHub.Payload({
-                actionType: VMGovernanceHub.ActionType.TRANSFER_ORACLE_GOVERNANCE,
-                parameters: parameters
+                actionType: VMGovernanceHub.ActionType.TRANSFER_ORACLE_GOVERNANCE, parameters: parameters
             })
         );
 
@@ -349,8 +344,7 @@ contract VMGovernanceHubTest is Test {
 
     function sendMessage(ILaPoste.MessageParams memory params, uint256 additionalGasLimit, address refundAddress)
         external
-        payable
-    {}
+        payable {}
 
     function receiveMessage(uint256 chainId, address sender, bytes memory payload) public {
         vmGovernanceHub.receiveMessage(chainId, sender, payload);

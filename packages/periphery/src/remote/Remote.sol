@@ -81,8 +81,8 @@ abstract contract Remote {
             }
         }
 
-        uint256 numDestinationChainIds = destinationChainIds.length;
         ILaPoste.MessageParams memory messageParams;
+        uint256 numDestinationChainIds = destinationChainIds.length;
         for (uint256 i; i < numDestinationChainIds;) {
             messageParams = ILaPoste.MessageParams({
                 destinationChainId: destinationChainIds[i], to: address(this), tokens: pTokens, payload: payload

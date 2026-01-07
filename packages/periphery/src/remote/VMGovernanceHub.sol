@@ -11,6 +11,9 @@ import {Remote} from "src/remote/Remote.sol";
 contract VMGovernanceHub is Remote, Ownable {
     using SafeTransferLib for address;
 
+    /// @notice The error thrown when the payload is invalid.
+    error InvalidPayload();
+
     ////////////////////////////////////////////////////////////////
     /// --- STATE VARIABLES
     ///////////////////////////////////////////////////////////////
@@ -94,7 +97,7 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _fee The fee.
     /// @param additionalGasLimit The additional gas limit.
     /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
-    function setFee(uint256 _fee, uint256 additionalGasLimit) external payable onlyOwner {
+    function setFee(uint256 _fee, uint256 additionalGasLimit) external payable onlyOwner onlyValidChainId {
         bytes memory parameters = abi.encode(_fee);
         bytes memory payload = abi.encode(Payload({actionType: ActionType.SET_FEE, parameters: parameters}));
 
@@ -172,7 +175,7 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Accepts the governance role.
     /// @param additionalGasLimit The additional gas limit.
     /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
-    function acceptVotemarketGovernance(uint256 additionalGasLimit) external payable onlyOwner {
+    function acceptVotemarketGovernance(uint256 additionalGasLimit) external payable onlyOwner onlyValidChainId {
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.ACCEPT_VOTEMARKET_GOVERNANCE, parameters: new bytes(0)}));
 
@@ -274,7 +277,7 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @notice Accepts the governance role.
     /// @param additionalGasLimit The additional gas limit.
     /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
-    function acceptOracleGovernance(uint256 additionalGasLimit) external payable onlyOwner {
+    function acceptOracleGovernance(uint256 additionalGasLimit) external payable onlyOwner onlyValidChainId {
         bytes memory payload =
             abi.encode(Payload({actionType: ActionType.ACCEPT_ORACLE_GOVERNANCE, parameters: new bytes(0)}));
         _dispatch(payload, additionalGasLimit);
@@ -284,7 +287,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _votemarkets The votemarkets.
     /// @param additionalGasLimit The additional gas limit.
     /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
-    function setVotemarkets(address[] calldata _votemarkets, uint256 additionalGasLimit) external payable onlyOwner {
+    function setVotemarkets(address[] calldata _votemarkets, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+        onlyValidChainId
+    {
         /// 1. Update L1.
         votemarkets = _votemarkets;
 
@@ -300,7 +308,12 @@ contract VMGovernanceHub is Remote, Ownable {
     /// @param _oracles The oracles.
     /// @param additionalGasLimit The additional gas limit.
     /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
-    function setOracles(address[] calldata _oracles, uint256 additionalGasLimit) external payable onlyOwner {
+    function setOracles(address[] calldata _oracles, uint256 additionalGasLimit)
+        external
+        payable
+        onlyOwner
+        onlyValidChainId
+    {
         /// 1. Update L1.
         oracles = _oracles;
 
@@ -320,6 +333,7 @@ contract VMGovernanceHub is Remote, Ownable {
         external
         payable
         onlyOwner
+        onlyValidChainId
     {
         /// 1. Update L1.
         destinationChainIds = _destinationChainIds;
@@ -383,6 +397,8 @@ contract VMGovernanceHub is Remote, Ownable {
             _handleAddOracle(_payload.parameters);
         } else if (_payload.actionType == ActionType.ADD_DESTINATION_CHAIN_ID) {
             _handleAddDestinationChainId(_payload.parameters);
+        } else {
+            revert InvalidPayload();
         }
     }
 
@@ -531,5 +547,17 @@ contract VMGovernanceHub is Remote, Ownable {
     function _handleRevokeAuthorizedDataProvider(bytes memory parameters) internal {
         (address _oracle, address _dataProvider) = abi.decode(parameters, (address, address));
         IOracle(_oracle).revokeAuthorizedDataProvider(_dataProvider);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    /// --- UTILS
+    ///////////////////////////////////////////////////////////////
+
+    /// @notice Sweeps the sleeping ETH to the receiver.
+    /// @param receiver The receiver address.
+    /// @dev Contract can hold native tokens due to the division in the `_sendMessage` function.
+    /// @custom:throws OwnableUnauthorizedAccount If the caller is not the owner.
+    function sweep(address receiver) external onlyOwner {
+        SafeTransferLib.safeTransferAllETH(receiver);
     }
 }
