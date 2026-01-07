@@ -21,8 +21,6 @@ on:
     paths:
       - "packages/votemarket/**"
       - ".github/workflows/votemarket_unit-tests.yml" # this file
-      - "packages/utils/**" # dependency
-      - "packages/periphery/**" # dependency
     branches:
       - main
       - develop
@@ -30,8 +28,6 @@ on:
     paths:
       - "packages/votemarket/**"
       - ".github/workflows/votemarket_unit-tests.yml" # this file
-      - "packages/utils/**" # dependency
-      - "packages/periphery/**" # dependency
     branches:
       - main
 
