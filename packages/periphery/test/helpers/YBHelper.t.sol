@@ -8,7 +8,7 @@ import {FakeToken} from "../mocks/FakeToken.sol";
 contract DepositHelperSettersTest is Test {
     DepositHelper helper;
 
-    address owner = makeAddr("owner");
+    address owner = makeAddr("test-owner");
     address manager = makeAddr("manager");
     address rewardNotifier = makeAddr("notifier");
     address campaignRemoteManager = 0x53aD4Cd1F1e52DD02aa9FC4A8250A1b74F351CA2;
@@ -157,7 +157,7 @@ contract DepositHelperSettersTest is Test {
     }
 
     function testSetExcludeAddressesWrongOrder() public {
-        address[] memory excluded = new address[](2) ;
+        address[] memory excluded = new address[](2);
         excluded[0] = makeAddr("a");
         excluded[1] = makeAddr("b");
 
@@ -168,7 +168,7 @@ contract DepositHelperSettersTest is Test {
     }
 
     function testSetExcludeAddresses() public {
-        address[] memory excluded = new address[](2) ;
+        address[] memory excluded = new address[](2);
         excluded[0] = makeAddr("b");
         excluded[1] = makeAddr("a");
 
@@ -199,7 +199,6 @@ contract DepositHelperSettersTest is Test {
         vm.expectRevert(abi.encodeWithSelector(DepositHelper.NOT_SORTED_ADDRESSES.selector));
         helper.setWeights(gauges, weights);
         vm.stopPrank();
-
     }
 
     function testSetWeights() public {
@@ -223,7 +222,6 @@ contract DepositHelperSettersTest is Test {
     }
 
     function testSetWeightsRevertsIfNotApproved() public {
-        
         address[] memory gauges = new address[](1);
         uint16[] memory weights = new uint16[](1);
         gauges[0] = gauge;
@@ -248,10 +246,10 @@ contract DepositHelperSettersTest is Test {
         vm.stopPrank();
 
         // Set weights
-        address[] memory gauges = new address[](2) ;
+        address[] memory gauges = new address[](2);
         gauges[0] = makeAddr("gauge1");
         gauges[1] = makeAddr("gauge2");
-        uint16[] memory weights = new uint16[](2) ;
+        uint16[] memory weights = new uint16[](2);
         weights[0] = 6000;
         weights[1] = 4000;
         vm.startPrank(manager);
@@ -290,7 +288,6 @@ contract DepositHelperSettersTest is Test {
     }
 
     function testNotifyRewardWithoutGas() public {
-
         // Approve some gauges
         vm.startPrank(owner);
         helper.addApprovedGauge(makeAddr("gauge1"));
@@ -298,10 +295,10 @@ contract DepositHelperSettersTest is Test {
         vm.stopPrank();
 
         // Set weights
-        address[] memory gauges = new address[](2) ;
+        address[] memory gauges = new address[](2);
         gauges[0] = makeAddr("gauge1");
         gauges[1] = makeAddr("gauge2");
-        uint16[] memory weights = new uint16[](2) ;
+        uint16[] memory weights = new uint16[](2);
         weights[0] = 6000;
         weights[1] = 4000;
         vm.startPrank(manager);
@@ -318,7 +315,6 @@ contract DepositHelperSettersTest is Test {
         vm.expectRevert(DepositHelper.NOT_ENOUGH_GAS.selector);
         helper.notifyReward(amount);
         vm.stopPrank();
-
     }
 
     function testNotifyRewardRevertIfNoWeights() public {
@@ -326,5 +322,4 @@ contract DepositHelperSettersTest is Test {
         vm.prank(rewardNotifier);
         helper.notifyReward(10 ether);
     }
-
 }
